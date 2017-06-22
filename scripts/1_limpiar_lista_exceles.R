@@ -8,78 +8,73 @@ library("lubridate")
 library("measurements")
 library("RSQLite")
 library("ggplot2")
+# Cargando funciones auxiliares:
+source("funciones_auxiliares.R")
 
-# ## Poniendo las opciones para las warnings
-# options(nwarnings=50000)
-# 
-# nombres_archivos <- list.files("../BASES_INTEGRACION/conacyt/migracion_datos", full.names = TRUE)
-# 
-# # Leyendo cada archivo de Excel, que contiene información de cada aspecto:
-# lista_exceles <- llply(nombres_archivos, function(x){
-#   # Primero se leerá cada archivo, no importando warnings, con el fin de saber
-#   # el número de columnas de cada uno y poder especificar que todas sean leídas
-#   # como texto (y así evitar warnings la segunda vez que se lean)
-#   aux <- read_excel(x, sheet = 2)
-#   print(ncol(aux))
-#   datos <- read_excel(x, sheet = 2, col_types = rep("text", ncol(aux))) %>%
-#     # Se revisaron los datos, y todos los renglones no vacíos tienen el siguiente campo
-#     filter(!is.na(Serie)) %>%
-#     # Agregando el archivo origen a los datos correspondientes
-#     mutate(
-#       archivo_origen = (basename(x) %>%
-#         stri_match_first_regex("(\\w+).xlsx"))[,2]
-#       )
-#   return(datos)
-# })
-# 
-# names(lista_exceles) <- (basename(nombres_archivos) %>%
-#   stri_match_first_regex("(\\w+).xlsx"))[,2]
-# 
-# # Escribiendo Warnings
-# #sink("productos/warnings_lectura_archivos_excel.txt")
-# #warnings()
-# #sink()
-# # 6005 + 3472 = 9477
-# 
-# # Escribiendo los data frames leídos en un objeto
-# saveRDS(lista_exceles, "productos/lista_exceles.RData")
+# Leyendo lista de exceles
+lista_exceles_cruda <- readRDS("../productos/lista_exceles_cruda.RData")
 
-## 0. Leyendo los datos
-lista_exceles <- readRDS("productos/lista_exceles.RData")
+## 1. Arreglando nombres de columnas que difieren entre DF's:
+lista_exceles_columnas_homologadas <- lista_exceles_cruda %>%
+  renombra_columna("101a110cm", "tamanio_101cm_110cm") %>%
+  renombra_columna("111a120cm", "tamanio_111cm_120cm") %>%
+  renombra_columna("11a20cm     ll", "tamanio_11cm_20cm") %>%
+  renombra_columna("191a200cm", "tamanio_191cm_200cm") %>%
+  renombra_columna("21a30cm", "tamanio_21cm_30cm") %>%
+  renombra_columna("31a40cm", "tamanio_31cm_40cm") %>%
+  renombra_columna("41a50cm", "tamanio_41cm_50cm") %>%
+  renombra_columna("51a60cm", "tamanio_51cm_60cm") %>%
+  renombra_columna("61a70cm", "tamanio_61cm_70cm") %>%
+  renombra_columna("6a10cm", "tamanio_6cm_10cm") %>%
+  renombra_columna("71a80cm", "tamanio_71cm_80cm") %>%
+  renombra_columna("81a90cm", "tamanio_81cm_90cm") %>%
+  renombra_columna("91a100cm", "tamanio_91cm_100cm") %>%
+  renombra_columna("11a20cm     ll", "11_20cm") %>%
+  renombra_columna("Ancho_del_cuadrante_m", "ancho_cuadrante_m") %>%
+  renombra_columna("Ancho_del_transecto_metros", "ancho_transecto_m") %>%
+  renombra_columna("Anio_de_muestreo", "anio_muestreo") %>%
+  renombra_columna("Anio_De_Publicacion", "anio_publicacion") %>%
+  renombra_columna("Autor_Administrador_Del_Proyecto", "autor_administrador_proyecto") %>%
+  renombra_columna("Blaqueamieto", "blanqueamiento") %>%
+  renombra_columna("Depredación", "depredacion") %>%
+  renombra_columna("Día", "dia") %>% #importante
+  renombra_columna("Dia", "dia") %>% #importante
+  renombra_columna("Fecha_de_inicio", "fecha_inicio") %>%
+  renombra_columna("Fecha_de_termino", "fecha_termino") %>%
+  renombra_columna("Longitud_del_cuadrante_m", "longitud_cuadrante_m") %>%
+  renombra_columna("Longitud_del_transecto_metro", "longitud_transecto_m") %>%
+  renombra_columna("menores_a_5m", "tamanio_0cm_5cm") %>%
+  renombra_columna("Metodo_de_Seleccion_de_Sitios", "metodo_seleccion_sitios") %>%
+  renombra_columna("Nivel_de_agregacion_de_datos", "nivel_agregacion_datos") %>%
+  renombra_columna("Nombre_del_Arrecife", "nombre_arrecife") %>%
+  renombra_columna("Nombre_del_sitio", "nombre_sitio") %>% #importante
+  renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>% #importante
+  renombra_columna("Nombre_del_Proyecto", "nombre_proyecto") %>%
+  renombra_columna("Numero_de_sitios_agregados", "numero_sitios_agregados") %>%
+  renombra_columna("Profundidad_final", "profundidad_final_m") %>%
+  renombra_columna("Profundidad_inicial", "profundidad_inicial_m") %>%
+  renombra_columna("Profundidad_media_m", "profundidad_media_m") %>% #importante
+  renombra_columna("Profundidad_media_metros", "profundidad_media_m") %>% #importante
+  renombra_columna("Region_del_arrecife_HR", "region_healthy_reefs") %>%
+  renombra_columna("Tamanio_de_cadena_metros", "tamanio_cadena_m") %>%
+  renombra_columna("Temperatura_celsius", "temperatura_c") %>% #importante
+  renombra_columna("Temperatura_en _Celcius", "temperatura_c") %>% #importante
+  renombra_columna("Tipo_de_Arrecife", "tipo_arrecife")
 
-# Revisando que los exceles se hayan leído correctamente:
-l_ply(names(lista_exceles), function(x){
-  # Nombre de la tabla
-  paste("\n", x, "\n") %>%
-    cat()
-  # Datos de la tabla
-  glimpse(lista_exceles[[x]])
-})
-
-## 1. Creando una tabla con la información de todos los Exceles
-
+## 2. Creando una tabla con la información de todos los Exceles
 # Para crear las tablas, primero se unirán los datos de todos los exceles
 # (agregando columnas según se necesite), y luego se separarán esos datos en
 # tablas
-datos_globales <- Reduce(rbind.fill, lista_exceles) %>%
+datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
+  # pasando todos los nombres a minúsculas
+  setNames(colnames(.) %>%
+      tolower
+  ) %>%
   mutate(
-    id = 1: nrow(.)
+    id = 1:nrow(.)
   )
 
-nombres_columnas <- colnames(datos_globales) %>%
-  sort()
-
-# Función auxiliar a la hora de programar, que busca en "nombres_columnas" los
-# elementos que contienen cierto string.
-# x: string a buscar en "nombre_columnas, sin contar mayúsculas ni minúsculas
-
-encuentra_columnas <- function(x){
-  indice <- stri_detect_fixed(nombres_columnas, x, case_insensitive = TRUE)
-  return(nombres_columnas[indice])
-}
-
 ## 2. Creando la información de proyecto en dicha tabla
-
 datos_globales_proyecto <- datos_globales %>%
   mutate(
     Project.name_aux = Nombre_del_Proyecto,
