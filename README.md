@@ -10,7 +10,9 @@ columnas equivalentes al unirlos.
 4. Verificar valores de cada columna para eliminar nombres aproximadamente
 duplicados y otros defectos. Enfocarse en particular a homologar llaves naturales
 y tipos de datos dentro de una misma columna.
-5. Cambiar tipos de datos de todas las columnas al más apropiado.
+5. Renombrar las columnas para que coincidan con las de la base, y hacer los
+cálculos apropiados. En particular, cambiar tipos de datos de
+todas las columnas al más apropiado.
 6. Crear ID's de las tablas a partir de los valores de las columnas de llave
 natural (por ejemplo, para proyecto, el nombre del proyecto).
 7. Crear cada tabla mediante agrupaciones por su correspondiente ID.
