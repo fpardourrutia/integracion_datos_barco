@@ -22,6 +22,18 @@ renombra_columna <- function(lista_df, nombre_anterior, nombre_nuevo){
   }, nombre_anterior, nombre_nuevo)
 }
 
+# Funcion auxiliar para pasar a minúsculas todos los nombres de las columnas de
+# los df en una lista:
+# lista_df: lista de data frames
+# La función regresa una lista de data frames, por lo que se puede pipear.
+renombra_columnas_minusculas <- function(lista_df){
+  llply(lista_df, function(df){
+    names(df) <- names(df) %>%
+      tolower()
+    return(df)
+  })
+}
+
 ###### Funciones auxiliares sobre data frames
 
 # Función auxiliar a la hora de programar, que regresa los nombres de las columnas
@@ -35,6 +47,28 @@ encuentra_columnas <- function(df, x){
     sort()
   indice <- stri_detect_fixed(nombres_columnas, x, case_insensitive = TRUE)
   return(nombres_columnas[indice])
+}
+
+# Función auxiliar a la hora de programar, para hacer una tabla para cada columna
+# de un data frame, y así visualizar valores a corregir
+# df: data frame cuyas valores en cada columna se quieren revisar
+# La función regresa una lista de tablas con los valores de cada columna de df.
+revisa_valores <- function(df){
+  # Obteniendo nombres de las columnas en el data frame
+  nombres_columnas <- colnames(df) %>%
+    sort()
+  
+  # Asignando nombres para el llply:
+  names(nombres_columnas) <- nombres_columnas
+  
+  # Generando una lista con tablas de valores, una para cada columna
+  resultado <- llply(nombres_columnas, function(x){
+    resultado <- df[[x]] %>%
+      table(useNA = "always")
+    return(resultado)
+  })
+  
+  return(resultado)
 }
 
 # Función auxiliar para intercambiar un valor por otro de determinada columna
@@ -52,7 +86,7 @@ cambia_valor_columna <- function(df, nombre_columna, valor_anterior, valor_nuevo
     # Si valor_anterior es NA, se debe hacer un procedimiento distinto
     if(is.na(valor_anterior)){
       df[[nombre_columna]][is.na(df[[nombre_columna]])] <- valor_nuevo
-    }else{
+    } else{
       df[[nombre_columna]] <- ifelse(
         !is.na(df[[nombre_columna]]) & df[[nombre_columna]] == valor_anterior,
         valor_nuevo, df[[nombre_columna]]
@@ -62,6 +96,38 @@ cambia_valor_columna <- function(df, nombre_columna, valor_anterior, valor_nuevo
     warning("La columna especificada no está en el data frame")
   }
   return(df)
+}
+
+# Función para eliminar columnas vacías (de puros NA's) de un data frame
+# df: dataframe a eliminar columnas vacías
+# La función regresa el data frame sin columnas vacías
+elimina_columnas_vacias <- function(df){
+  # Obteniendo columnas a eliminar
+  columnas_eliminar <- df %>%
+    # Convirtiendo todas los valores de todas las columnas a TRUE si el valor
+    # correspondiente es NA y FALSE e.o.c
+    mutate_all(is.na) %>%
+    # Calculando la cantidad de NA0s que tiene cada columa
+    summarise_all(sum) %>%
+    # Viendo si la columna tiene puros NA's, en dicho caso, el resultado será
+    # TRUE (columna a eliminar)
+    mutate_all(
+      funs(. == nrow(df))
+    ) %>%
+    # Poniendo los nombres de las columnas en una misma variable
+    gather("columna", "eliminar") %>%
+    filter(eliminar) %>%
+    # Generando expresión para el select_
+    mutate(
+      expresion = paste0("-", columna)
+    ) %>%
+    pull(expresion)
+  
+  # Eliminando dichas columnas del df
+  resultado <- df %>%
+    select_(.dots = columnas_eliminar)
+  
+  return(resultado)
 }
 
 # Función para transformar un conjunto de variables a tipo numérico:
@@ -119,15 +185,15 @@ mutate_logical <- function(df, ...){
 genera_llave <- function(df, nombre_columna_llave, ...){
   
   # Generando la expresión para el mutate_:
-  nombres_variables_llave_natural <- c(...)
+  nombres_columnas_llave_natural <- c(...)
   
   expresion = paste0(
     "paste0(",
-    paste0(".data$", nombres_variables_llave_natural) %>%
+    paste0(".data$", nombres_columnas_llave_natural) %>%
       paste0(collapse = ", \"_\", "),
     ") ",
     "%>% as.factor() %>% as.numeric()"
-  ) %>%
+    ) %>%
     as.list()
   
   # Asignando el nombre de la columna que contendrá la llave numérica a la expresión
@@ -140,4 +206,53 @@ genera_llave <- function(df, nombre_columna_llave, ...){
   return(resultado)
 }
 
-# Función auxiliar para generar una tabla a partir de 
+# Función auxiliar para generar una tabla a partir de una columna de llave 
+# y columnas adicionales, para el valor de las columnas adicionales se utilizará
+# el primer valor encontrado.
+# df: df que contiene la columna "nombre_columna_llave" y las columnas a incluir en
+# la nueva tabla.
+# nombre_columna_llave: nombre de la columna que será una llave de la tabla nueva.
+# ...: columnas adicionales a incluir en la tabla nueva, se incluirá el primer valor
+# encontrado en la tabla original para cada valor de "nombre_columna_llave".
+# La función regresa la tabla generada.
+genera_tabla <- function(df, nombre_columna_llave, ...){
+  
+  # Generando la expresión para el group_by:
+  expresion_group_by_ <- nombre_columna_llave %>%
+    as.list()
+  
+  # Generando vector con strings obtenidos de la elipsis
+  nombres_variables_tabla <- c(...)
+  
+  # Hay dos casos, si ... tiene valores o no:
+  if(length(nombres_variables_tabla) > 0){
+    
+    # Generando expresión para el summarise_
+    expresion_summarise_ <- paste0("first(.data$",
+      nombres_variables_tabla,
+      ")"
+    ) %>%
+    as.list()
+    
+    # Asignando nombres porque el summarise_ lo requiere:
+    names(expresion_summarise_) <- nombres_variables_tabla
+    
+    # Generando resultado en el caso de que ... tenga valores
+    resultado <- df %>%
+      group_by_(.dots = expresion_group_by_) %>%
+      summarise_(
+        .dots = expresion_summarise_
+      ) %>%
+      ungroup()
+    
+  } else{
+    
+    # Generando resultado en el caso de ... no tenga valores, en este caso,
+    # la tabla tendrá como única columna "nombre_columna_llave"
+    resultado <- df %>%
+      group_by_(.dots = expresion_group_by_) %>%
+      summarise() %>%
+      ungroup()
+  }
+  return(resultado)
+}

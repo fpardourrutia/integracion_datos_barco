@@ -45,9 +45,13 @@ sink()
 # 26408 + 412 + 185 = 27005
 
 # Revisando que los exceles se hayan leído correctamente:
-l_ply(lista_exceles_cruda, function(x){
-  glimpse(x)
+llply(lista_exceles_cruda, function(x){
+  nombres_columnas <- colnames(x) %>%
+    sort()
+  return(nombres_columnas)
 })
+# Perfecto! No hay nombres aproximadamente duplicados en las columnas dentro de
+# cada Excel.
 
 num_registros <- read_excel(paste0(ruta_exceles, "/_numero_registros_excel.xlsx"))
 View(num_registros)
