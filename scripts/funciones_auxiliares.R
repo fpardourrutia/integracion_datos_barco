@@ -102,6 +102,7 @@ cambia_valor_columna <- function(df, nombre_columna, valor_anterior, valor_nuevo
 # df: dataframe a eliminar columnas vacías
 # La función regresa el data frame sin columnas vacías
 elimina_columnas_vacias <- function(df){
+  
   # Obteniendo columnas a eliminar
   columnas_eliminar <- df %>%
     # Convirtiendo todas los valores de todas las columnas a TRUE si el valor
@@ -124,8 +125,12 @@ elimina_columnas_vacias <- function(df){
     pull(expresion)
   
   # Eliminando dichas columnas del df
-  resultado <- df %>%
-    select_(.dots = columnas_eliminar)
+  if(length(columnas_eliminar) == 0)
+    # Si no se debe eliminar ninguna columna
+    resultado <- df
+  else
+    resultado <- df %>%
+      select_(.dots = columnas_eliminar)
   
   return(resultado)
 }
