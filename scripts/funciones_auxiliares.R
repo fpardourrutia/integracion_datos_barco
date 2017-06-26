@@ -261,3 +261,72 @@ genera_tabla <- function(df, nombre_columna_llave, ...){
   }
   return(resultado)
 }
+
+###### Funciones auxiliares sobre vectores
+
+# Función para que, dado un vector de strings (frases), capitalice la primera
+# letra de cada palabra de cada una de sus entradas, y las otras letras las minimiza.
+# vec: Vector cuyas entradas son strings (frases)
+# La función regresa vec con cada palabra en cada entrada capitalizada apropiadamente.
+# Además, quita espacios en blanco al inicio y término de cada string
+simple_cap <- function(vec){
+  
+  # Quitando NA's para que la función funcione como se espera, pero guardando
+  # sus posiciones para volver a insertarlas al finalizar la función:
+  posicion_NAs <- is.na(vec)
+  vec[posicion_NAs] <- ""
+  
+  lista_palabras_por_string <- vec %>%
+    # quitando espacios en blanco
+    stri_trim_both() %>%
+    # cortando cada entrada del vector por palabras
+    stri_split_coll(pattern = " ")
+  
+  # Capitalizando cada letra de inicio de cada palabra y minimizando las otras
+  resultado <- llply(lista_palabras_por_string, function(x){
+    
+    # Capitalizando primera letra de cada palabra de x
+    primera_letra_palabras <- stri_sub(x, from = 1, to = 1) %>%
+      toupper()
+    # Minimizando las otras letras
+    otras_letras <- stri_sub(x, from = 2) %>%
+      tolower()
+    # Formando de nuevo las palabras
+    palabras <- paste0(primera_letra_palabras, otras_letras)
+    # Formando de nuevo el string
+    resultado <- paste(palabras, collapse = " ")
+    return(resultado)
+  }) %>%
+    as.character()
+  
+  # Sustituyendo NA's de nuevo
+  resultado[posicion_NAs] <- NA
+  return(resultado)
+}
+
+# Función auxiliar para estandarizar lo más posible strings escritos de manera
+# distinta: dado un vector de strings, a cada una de sus entradas la función le
+# aplica lo siguiente:
+# 1. lo pasa a minúsculas.
+# 2. Le elimina espacios vacíos al principio y al final.
+# 3. Le quita acentos a vocales y cambia "ñ" por "ni".
+# 4. Cambia: comas, puntos, dos puntos, puntos y comas, diagonales, símbolos de
+# interrogación, admiración, paréntesis, guiones altos y espacio vacíos por guiones
+# bajos.
+# 5. Después del procedimiento anterior, si encuentra dos o más guines bajos pegados
+# los colapsa en uno solo
+# vec: vector de strings a estandarizar
+# La función regresa un vector de la misma longitud que vec, pero habiéndole
+# aplicado el procedimiento anterior.
+estandariza_strings <- function(vec){
+  resultado <- vec %>%
+    tolower() %>%
+    stri_trim_both() %>%
+    stri_replace_all_coll(
+      c("á","é","í","ó","ú","ñ",",",".",":",";","/","¿","?","¡","!","(",")","-"," "),
+      c("a","e","i","o","u","ni","_","_","_","_","_","_","_","_","_","_","_","_","_"),
+      vectorize_all = FALSE) %>%
+    stri_replace_all_regex("_+", "_")
+  
+  return(resultado)
+}

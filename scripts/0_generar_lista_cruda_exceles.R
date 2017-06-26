@@ -1,3 +1,7 @@
+# En este script se leen los datos de los Exceles con la información sobre
+# monitoreos de arrecifes. Se tiene cuidado en leerlos apropiadamente y no
+# introducir NA's.
+
 library("plyr")
 library("dplyr")
 library("tidyr")
