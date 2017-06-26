@@ -5,10 +5,7 @@ library("plyr")
 library("dplyr")
 library("tidyr")
 library("stringi")
-library("readr")
-library("readxl")
 library("lubridate")
-library("ggplot2")
 # Cargando funciones auxiliares:
 source("funciones_auxiliares.R")
 
