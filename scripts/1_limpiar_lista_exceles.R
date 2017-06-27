@@ -6,6 +6,7 @@ library("dplyr")
 library("tidyr")
 library("stringi")
 library("lubridate")
+library("readr")
 # Cargando funciones auxiliares:
 source("funciones_auxiliares.R")
 
@@ -44,7 +45,6 @@ lista_exceles_columnas_homologadas <- lista_exceles_cruda %>%
   renombra_columna("Metodo_de_Seleccion_de_Sitios", "metodo_seleccion_sitios") %>%
   renombra_columna("Mortalidad_Transición", "mortalidad_transicion") %>%
   renombra_columna("Nivel_de_agregacion_de_datos", "nivel_agregacion_datos") %>%
-  renombra_columna("Nombre_del_Arrecife", "nombre_arrecife") %>%
   renombra_columna("Nombre_del_sitio", "nombre_sitio") %>% #importante
   renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>% #importante
   renombra_columna("Nombre_del_Proyecto", "nombre_proyecto") %>%
@@ -113,6 +113,14 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   
   # Site_sample
   cambia_valor_columna("pais", "Mexico", "México") %>%
+  
+  cambia_valor_columna("anp", "NA", NA) %>% #!!!
+  mutate(
+    # Haciendo columna "dentro de ANP, sabemos que si "anp" es NA
+    # quiere decir que no. No se será un NA en "dentro_anp
+    dentro_anp = ifelse(is.na(anp), FALSE, TRUE) #!!!
+  ) %>%
+  
   cambia_valor_columna("region_healthy_reefs",
     "Nothern Quintana Roo",
     "Norte de Quintana Roo") %>%
@@ -129,6 +137,15 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   cambia_valor_columna("localidad", "EL Placer", "El Placer") %>%
   cambia_valor_columna("localidad", "PUERTO MORELOS", "Puerto Morelos") %>%
   cambia_valor_columna("localidad", "Triangulos", "Triángulos") %>%
+  
+  # Para esta versión, cambiar manualmente el "nombre_sitio" ChankanaabGP a
+  # Chankanaab, porque es remuestreo
+  cambia_valor_columna("nombre_sitio", "ChankanaabGP", "Chankanaab") %>%
+  # Estandarizando nombres de los sitios
+  mutate(
+    nombre_sitio = estandariza_strings(nombre_sitio)
+    ) %>%
+  
   cambia_valor_columna("anio", "2017", "2016") %>% #!!!
   cambia_valor_columna("anio", "2017", "2016") %>% #!!!
   cambia_valor_columna("minutos", "0.37", "0") %>% #!!!
@@ -143,12 +160,13 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
       archivo_origen == "CORALES_DESAGREGADOS_V2" ~ "Colonias por transecto",
       archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" ~ "Observaciones por transecto",
       archivo_origen == "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2" ~ "Especies por transecto",
-      archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" ~ "Incidencias por cuadrante",
+      archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" ~ "Observaciones por cuadrante",
+      # Por triste que sea, los reclutas son observaciones, no incidencias.
       archivo_origen == "RUGOSIDAD_DESAGREGADA_V2" ~ "Medida por transecto"
     )
   ) %>%
   
-  # Transect_sample
+  # Transect_sample. Esme me dijo que podía quitar los 0's.
   cambia_valor_columna("transecto", "01", "1") %>%
   cambia_valor_columna("transecto", "02", "2") %>%
   cambia_valor_columna("transecto", "03", "3") %>%
@@ -208,6 +226,7 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   
   # Eliminando columnas superfluas
   select(
+    -nombre_remuestreo, # No se usa
     -unidades_profundidad, #!!! Todo es en m.
     -conteo, #!!! Siempre es 1
     -cobertura, #!!! Columna calculable a partir de las anteriores
@@ -268,12 +287,52 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     "id"
   ) %>%
   
-  # Redondeando apropiadamente columnas numéricas que lo necesitan
   mutate(
+    # Redondeando apropiadamente columnas numéricas que lo necesitan
     profundidad_inicial_m = round(profundidad_inicial_m, 1),
     profundidad_final_m = round(profundidad_final_m, 1),
     profundidad_media_m = round(profundidad_media_m, 2),
-    temperatura_c = round(temperatura_c, 2)
+    temperatura_c = round(temperatura_c, 2),
+    
+    # Para esta versión, como las horas no tienen am ni pm,
+    # usaré la regla de Esme: todo se hace entre las 7 am y las 6 pm
+    hora = case_when( #!!!
+      hora == 1 ~ 13,
+      hora == 2 ~ 14,
+      hora == 3 ~ 15,
+      hora == 4 ~ 16,
+      hora == 5 ~ 17,
+      hora == 6 ~ 18,
+      TRUE ~ hora
+    ),
+    
+    # Arreglando los transectos: si protocolo == AGRRA_V5, entonces hay dos tipos de
+    # transectos:
+    # 1. Bentos, Corales, Reclutas, Complejidad, Invertebrados.
+    # 2. Peces.
+    #
+    # Si protocolo == "Sin Protocolo", estos son:
+    # 1. Bentos, Corales, Reclutas, Complejidad
+    # 2. Peces, Invertebrados
+    # 
+    # Cabe destacar que el protocolo está por aspecto, entonces sólo los registros
+    # provenientes del archivo "INVERTEBRADOS_DESAGREGADOS_V2" lo contienen.
+    # Esto lo arreglarán Esme y Nuria en versiones posteriores del monitoreo.
+    
+    transecto = case_when(
+      archivo_origen == "BENTOS_DESAGREGADOS_V2" ~ paste0(transecto, "_bentos"),
+      archivo_origen == "CORALES_DESAGREGADOS_V2" ~ paste0(transecto, "_bentos"),
+      archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" ~ paste0(transecto, "_bentos"),
+      archivo_origen == "RUGOSIDAD_DESAGREGADA_V2" ~ paste0(transecto, "_bentos"),
+      archivo_origen == "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2" ~ paste0(transecto, "_peces"),
+      archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" & protocolo == "AGRRA_V5" ~
+        paste0(transecto, "_bentos"),
+      archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" & protocolo == "Sin Protocolo" ~
+        paste0(transecto, "_peces")
+    )
+    
+    # Agregando la columna de "muestreo_completo": los transectos de peces todos
+    # se completaron, los de bentos, todos excepto uno (90%).
   )
 
 # Revisando valores de las columnas de datos_globales:
@@ -290,58 +349,51 @@ crv <- function(nombre_columna){
 
 # saveRDS(datos_globales, "../productos/datos_globales.RData")
 
-# Comentarios:
-# falta localidad del proyecto
-# Revisar la hora y los minutos, hay faltantes tmb!
-# No entiendo la diferencia entre "nombre_sitio" y "nombre_remuestreo"
-# "tipo_arrecife", "zona_arrecifal" y "subzona_habitat" siguen muy revueltas!
-# falta "inside_non_fishing_area"
-# No entiendo si "NA" en "anp" es que no está dentro de ANP o no se sabe.
-# Por qué en "protocolo" hay algunos "Sin Protocolo" y otros "AGRRA_V5?
-# Nivel de agregación de datos == "Organismo/sustrato" es por punto y corresponde
-# a Bentos.
-# ¿Qué es la columna "Numero" para "INVERTEBRADOS_DESAGREGADOS_V2"?
-# No tenemos cuenta del número de reclutas y corales pequeños en
-# "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2"
-# Redondear "temperatura_c" , "profundidad_inicial/final_m".
-# Me falta la variable "profundidad_sitio", pero mientras voy a usar "profundidad_media_m".
-# Estoy quitando los 0's de los nombres de transecto, hay que ver si es cierto.
-# Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
+# Comentarios Esme y Nuria:
+# 1. Falta localidad del proyecto
+# 2. "tipo_arrecife", "zona_arrecifal" y "subzona_habitat" siguen muy revueltas!
+# 3. Falta "inside_non_fishing_area"
+# 4. Esme me va a calcular "profundidad_sitio_m", por mientras usar "profundidad_media_m"
+# 5. Esme va a revisar los datos con "blanqueamiento" NA, pero con porcentaje y viceversa.
+# datos_globales %>% group_by(blanqueamiento, porcentaje) %>% tally() %>% View()
+# 6. Esme me va a difereciar transectos con el mismo nombre en el mismo muestreo
+# de sitio, pero que en realidad son distintos, por ejemplo, el transecto 1 de peces
+# y el de bentos.
+# 7. Esme va a checar qué significa el sustrato "0".
+# 8. Esme va a checar SC con "codigo NA.
+
+
+
+
+
+# Comentarios personales.
+# 1. Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
 # "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2", por lo que tal vez esta información se
-# pueda obtener de otros exceles.
-# De la misma manera, los registros que tienen vacía la columna "ancho_transecto_m"
-# pertenecen a aspectos donde no es necesario este dato.
-# Creo que la columna "Sitio_autor" de "BENTOS_DESAGREGADOS_V2" contiene todos los
-# sitios en este estudio y se puede usar de referencia.
-# falta la columna de "Muestreo_completo"
-# Comparar códigos de bentos con catálogo, para saber si están bien escritos
-# Sería bueno tener un protocolo para apuntar nombres de observadores.
-# Los registros que tienen NA en clump no perteneces a "CORALES_DESAGREGADOS_V2"
-# Los registros de "CORALES_DESAGREGADOS_V2" con NA en "d1_max_diam_cm",
+# pueda obtener de otros exceles. De la misma manera, los registros que tienen
+# vacía la columna "ancho_transecto_m" pertenecen a aspectos donde no es necesario
+# este dato.
+# 2. Comparar códigos de bentos con catálogo, para saber si están bien escritos
+# 3. Sería bueno tener un protocolo para apuntar nombres de observadores.
+# 4. Los registros que tienen NA en clump no pertenecen a "CORALES_DESAGREGADOS_V2"
+# 5. Los registros de "CORALES_DESAGREGADOS_V2" con NA en "d1_max_diam_cm",
 # "d2_min_diam_cm" y "altura_maxima_cm" son básicamente los que tienen
 # "clump" == "FRAG".
-# hay datos con "blanqueamiento" NA pero con porcentaje y viceversa. ¿Es normal?
-# datos_globales %>% group_by(blanqueamiento, porcentaje) %>% tally() %>% View()
+# 6. Como "anio", "mes", "dia", "hora" y "minutos" son por transecto, para ponerlos
+# a nivel de sitio calcular la fecha_hora más antigua.
+# Para reclutas, Maximum_recruit_size" y "Maximum_small_coral_size" son los de AGGRA.
+
+
+# Para la versión 3.
 # Los números no cuadran en la suma de mortalidades, hay algo que o entiendo.
 # También creo que "mortalidad_total" es un campo que usan cuando no saben el tipo
 # de mortalidad
 # datos_globales %>% filter(archivo_origen == "CORALES_DESAGREGADOS_V2") %>%
 # group_by(mortalidad_antigua, mortalidad_reciente, mortalidad_transición, mortalidad_total)
 # %>% tally() %>% View()
-# Falta columna de "muestreo_completo" en "Invertebrados".
-# Redondear a dos dígitos "tamanio_cadena_m".
+# La suma de las 4 mortalidades debe dar 100% (mortalidad_total) es cuando no saben
+# el tipo de mortalidad
+
+# Falta columna de "muestreo_completo" en "Invertebrados". Todo se completó excepto uno.
 # En "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" hay transectos sin info de longitud
-# ("longitud_transecto_m").
-# ¿Por qué hay cuadrante con códigos de especie de reclutas repetidos, bajo la
-# misma categoría de tamaño (R/SC). Ejemplo:
-# datos_globales %>%
-# filter(archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2",
-# sitio_autor == "Mex-1047_Álvarez-Filip Lorenzo") %>% elimina_columnas_vacias()
-# %>% View()
-# Por ahora, para formar la tabla haré un group_by "sitio_autor", "transecto",
-# "cuadrante", "codigo", "categoria_tamanio".
-# El nombre del cuadrante corresponde a la columna "cuadrante".
-# ¿Qué es el 0 en "sustrato?
-# Faltan "Maximum_recruit_size" y "Maximum_small_coral_size".
-# Hay SC que no se sabe de qué especie son y entonces tienen en "codigo" NA.
-# En Corales, ¿qué es "fisión" y "S"?
+# ("longitud_transecto_m"). Obtenerla de los otros transectos
+# En Corales, ¿qué es "fisión" y "S"? Esme los va a checar!!

@@ -77,11 +77,6 @@ crv <- function(nombre_columna){
 # Faltan "Maximum_recruit_size" y "Maximum_small_coral_size".
 # Hay SC que no se sabe de qué especie son y entonces tienen en "codigo" NA.
 # EN Corales, ¿qué es "fisión" y "S"?
-# Anio, Mes, Dia, Hora, Minutos son distintos entre el mismo muestreo de sitio
-# (por ejemplo, puede ser que se hayan tomado por transecto). Necesito que
-# esté a nivel de sitio. Esta información es importante porque es parte de una
-# llave natural para un muestreo de sitio.
-# ¿Cuáles aspectos se toman sobre el mismo transecto?
 
 # Renombrando columnas apropiadamente para generar las tablas de Project
 

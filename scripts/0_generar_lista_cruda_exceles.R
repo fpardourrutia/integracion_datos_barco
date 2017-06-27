@@ -40,7 +40,7 @@ names(lista_exceles_cruda) <- (basename(nombres_archivos) %>%
   stri_match_first_regex("(\\w+).xlsx"))[,2]
 
 # Escribiendo Warnings para tener el control sobre ellos.
-sink("productos/warnings_lectura_archivos_excel.txt")
+sink("../productos/warnings_lectura_archivos_excel.txt")
 warnings()
 sink()
 # Expecting numeric .*
