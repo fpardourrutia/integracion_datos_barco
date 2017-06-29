@@ -212,53 +212,62 @@ genera_llave <- function(df, nombre_columna_llave, ...){
 }
 
 # Función auxiliar para generar una tabla a partir de una columna de llave 
-# y columnas adicionales, para el valor de las columnas adicionales se utilizará
-# el primer valor encontrado.
+# y una lista nombrada de columnas adicionales, para calcular el valor de cada
+# columna adicional correspondiente a un valor de "nombre_columna_llave" se
+# utilizará el primer valor encontrado.
 # df: df que contiene la columna "nombre_columna_llave" y las columnas a incluir en
 # la nueva tabla.
 # nombre_columna_llave: nombre de la columna que será una llave de la tabla nueva.
-# ...: columnas adicionales a incluir en la tabla nueva, se incluirá el primer valor
-# encontrado en la tabla original para cada valor de "nombre_columna_llave".
-# La función regresa la tabla generada.
-genera_tabla <- function(df, nombre_columna_llave, ...){
+# nombre_nuevo_columna_llave: el nombre que tendrá la llave en el nuevo data frame
+# lista_columnas_adicionales: lista nombrada de columnas adicionales a incluir
+# en la tabla nueva.
+# Para cada elemento en la lista, el "nombre" corresponde al nombre de la columna
+# en el data frame nuevo, y el valor al nombre de ésta en el df anterior..
+# La función regresa la tabla generada con las especificaciones anteriores
+genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
+  lista_columnas_adicionales){
   
   # Generando la expresión para el group_by:
   expresion_group_by_ <- nombre_columna_llave %>%
     as.list()
   
-  # Generando vector con strings obtenidos de la elipsis
-  nombres_variables_tabla <- c(...)
-  
-  # Hay dos casos, si ... tiene valores o no:
-  if(length(nombres_variables_tabla) > 0){
+  # Generando la expresión para el rename (de la columna de la llave)
+  expresion_rename_ <- list(nombre_columna_llave)
+  names(expresion_rename_) <- nombre_nuevo_columna_llave
+
+  # Hay dos casos distintos: si lista_columnas_adicionales es vacía o no:
+  if(length(lista_columnas_adicionales) > 0){
     
-    # Generando expresión para el summarise_
+    # Generando la expresión para el summarise:
     expresion_summarise_ <- paste0("first(.data$",
-      nombres_variables_tabla,
-      ")"
-    ) %>%
-    as.list()
+      lista_columnas_adicionales, ")")
+        
+    # Asignando nombres de variables en la nueva tabla:
+    names(expresion_summarise_) <- names(lista_columnas_adicionales)
     
-    # Asignando nombres porque el summarise_ lo requiere:
-    names(expresion_summarise_) <- nombres_variables_tabla
-    
-    # Generando resultado en el caso de que ... tenga valores
+    # Generando resultado
     resultado <- df %>%
       group_by_(.dots = expresion_group_by_) %>%
       summarise_(
         .dots = expresion_summarise_
       ) %>%
-      ungroup()
+      ungroup() %>%
+      rename_(
+        .dots = expresion_rename_
+      )
     
   } else{
-    
-    # Generando resultado en el caso de ... no tenga valores, en este caso,
-    # la tabla tendrá como única columna "nombre_columna_llave"
+    # Generando resultado en el caso de "lista_columnas_adicionales" sea vacía,
+    # en este caso, la tabla tendrá como única columna "nombre_columna_llave"
     resultado <- df %>%
       group_by_(.dots = expresion_group_by_) %>%
       summarise() %>%
-      ungroup()
+      ungroup() %>%
+      rename_(
+        .dots = expresion_rename_
+      )
   }
+  
   return(resultado)
 }
 

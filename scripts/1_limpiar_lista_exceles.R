@@ -86,6 +86,16 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   ## Arreglando valores de las columnas
   
   # Project
+  cambia_valor_columna("titulo",
+    paste0("Evaluación de la efectividadde las Áreas Marinas Protegidas en los ",
+      "arrecifales del Caribe Mexicano"),
+      paste0("Evaluación de la efectividad de las Áreas Marinas Protegidas ",
+        "en los sistemas arrecifales del Caribe Mexicano")
+  ) %>%
+  # Arreglando el valor de "documento"
+  mutate(
+    documento = "datos de campo" #!!!
+  ) %>%
   cambia_valor_columna("nombre_proyecto", "NA", "CONACYT 247104 2016") %>% #!!!
   cambia_valor_columna("proposito", "Estrategic", "Evaluación ANPs") %>%
   cambia_valor_columna("tema", NA, "Monitoreo") %>% #!!!
@@ -138,9 +148,6 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   cambia_valor_columna("localidad", "PUERTO MORELOS", "Puerto Morelos") %>%
   cambia_valor_columna("localidad", "Triangulos", "Triángulos") %>%
   
-  # Para esta versión, cambiar manualmente el "nombre_sitio" ChankanaabGP a
-  # Chankanaab, porque es remuestreo
-  cambia_valor_columna("nombre_sitio", "ChankanaabGP", "Chankanaab") %>%
   # Estandarizando nombres de los sitios
   mutate(
     nombre_sitio = estandariza_strings(nombre_sitio)
@@ -190,6 +197,8 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   mutate(
     sobrecrecimiento = toupper(sobrecrecimiento)
   ) %>%
+  cambia_valor_columna("depredacion", "BITES", "BITE") %>%
+  
   
   # Invertebrates_transect_sample_info
   # Comparar "especie" con catálogo para eliminar posibles errores ortográficos.
@@ -226,6 +235,8 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   
   # Eliminando columnas superfluas
   select(
+    -sitio_autor, # No se usa
+    -curp_proyecto, # No se usa
     -nombre_remuestreo, # No se usa
     -unidades_profundidad, #!!! Todo es en m.
     -conteo, #!!! Siempre es 1
@@ -233,7 +244,10 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     -protocolo_utilizado, #!!! Es redundante con "metodo"
     -numero, #!!! Siempre es 1
     -abundancia, #!!! suma de todas las columnas de abundancia por tamaño de peces
-    -numero_cuadrantes #!!! Siempre es 1
+    -numero_cuadrantes, #!!! Siempre es 1
+    -s, #!!! Coral sano, hay 8 registros
+    -fision, #!!! número de roturas en el coral, hay 11 registros
+    -tejido_vivo #!!! hay 6 observaciones
   ) %>%
   
   ## Ya que se terminó la revisión de columnas, lo siguiente es transformar en
@@ -247,11 +261,11 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     "anio_muestreo",
     "longitud_transecto_m",
     "puntos_o_cm_reales_transecto",
-    "dia",
-    "mes",
-    "anio",
-    "hora",
-    "minutos",
+    #"dia", # Me conviene tenerlos como string
+    #"mes",
+    #"anio",
+    #"hora",
+    #"minutos",
     "profundidad_inicial_m",
     "profundidad_final_m",
     "profundidad_media_m",
@@ -265,8 +279,6 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     "mortalidad_reciente",
     "mortalidad_transicion",
     "mortalidad_antigua",
-    "fision",
-    "s",
     "porcentaje",
     "tamanio_0cm_5cm",
     "tamanio_6cm_10cm",
@@ -297,15 +309,28 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     # Para esta versión, como las horas no tienen am ni pm,
     # usaré la regla de Esme: todo se hace entre las 7 am y las 6 pm
     hora = case_when( #!!!
-      hora == 1 ~ 13,
-      hora == 2 ~ 14,
-      hora == 3 ~ 15,
-      hora == 4 ~ 16,
-      hora == 5 ~ 17,
-      hora == 6 ~ 18,
+      hora == "1" ~ "13",
+      hora == "2" ~ "14",
+      hora == "3" ~ "15",
+      hora == "4" ~ "16",
+      hora == "5" ~ "17",
+      hora == "6" ~ "18",
       TRUE ~ hora
     ),
     
+    # Agregando un 0 antes de meses, días, horas y minutos cuando se requiera:
+    mes = ifelse(as.numeric(mes) %in% c(1:9), paste0("0", mes), mes),
+    dia = ifelse(as.numeric(dia) %in% c(1:9), paste0("0", dia), dia),
+    hora = ifelse(as.numeric(hora) %in% c(0:9), paste0("0", hora), hora),
+    minutos = ifelse(as.numeric(minutos) %in% c(0:9), paste0("0", minutos), minutos),
+    
+    # Creando las fecha_horas de muestreo para cada registro
+    fecha_hora = ifelse(
+      is.na(anio) | is.na(mes) | is.na (dia) | is.na(hora) | is.na(minutos),
+      NA,
+      paste0(anio, "-", mes, "-", dia, " ", hora, ":", minutos)
+    ),
+
     # Arreglando los transectos: si protocolo == AGRRA_V5, entonces hay dos tipos de
     # transectos:
     # 1. Bentos, Corales, Reclutas, Complejidad, Invertebrados.
@@ -329,12 +354,99 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
         paste0(transecto, "_bentos"),
       archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" & protocolo == "Sin Protocolo" ~
         paste0(transecto, "_peces")
-    )
+    ),
     
-    # Agregando la columna de "muestreo_completo": los transectos de peces todos
-    # se completaron, los de bentos, todos excepto uno (90%).
+    # Agregando la columna de "muestreo_completo": todos los transectos están completos
+    # menos uno de bentos y reclutas
+    muestreo_transecto_completo = case_when(
+      nombre_proyecto == "CONACYT 247104 2016" &
+        nombre_sitio == "xm04" &
+        transecto == "3_bentos" &
+        archivo_origen %in% c(
+          "BENTOS_DESAGREGADOS_V2",
+          "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2"
+        ) ~ FALSE,
+      # Lo siguiente hace que sea más general esta parte del código:
+      archivo_origen %in% c(
+        "BENTOS_DESAGREGADOS_V2",
+        "CORALES_DESAGREGADOS_V2",
+        "INVERTEBRADOS_DESAGREGADOS_V2",
+        "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2",
+        "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2",
+        "RUGOSIDAD_DESAGREGADA_V2"
+      ) ~ TRUE
+    ),
+    
+    ## Cambiando NA's por 0's en mediciones sobre colonias de coral:
+    mortalidad_antigua = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(mortalidad_antigua), 0, mortalidad_antigua),
+    mortalidad_reciente = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(mortalidad_reciente), 0, mortalidad_reciente),
+    mortalidad_transicion = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(mortalidad_transicion), 0, mortalidad_transicion),
+    mortalidad_total = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(mortalidad_total), 0, mortalidad_total),
+    blanqueamiento = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(blanqueamiento), "ND", blanqueamiento), # No detectado
+    enfermedades = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(enfermedades), "ND", enfermedades),
+    sobrecrecimiento = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(sobrecrecimiento), "ND", sobrecrecimiento),
+    depredacion = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
+        is.na(depredacion), "ND", depredacion)
+    
+    # # arreglando mortalidades si suman más de 100. Ésto se corregirá en v3.
+    # suma_mortalidades = mortalidad_antigua +
+    #   mortalidad_reciente +
+    #   mortalidad_transicion +
+    #   mortalidad_total,
+    # 
+    # # Notar que si alguna mortalidad es NA, entonces la suma es NA y todas se
+    # # hacen NA (lo cuál no es un problema porque acabamos de castear mortalidades
+    # # NA a 0 para "CORALES_DESAGREGADOS_V2")
+    # mortalidad_antigua = ifelse(suma_mortalidades > 100, #!!!
+    #   (mortalidad_antigua / suma_mortalidades) * 100,
+    #   mortalidad_antigua),
+    # mortalidad_reciente = ifelse(suma_mortalidades > 100, #!!!
+    #   (mortalidad_reciente / suma_mortalidades) * 100 ,
+    #   mortalidad_reciente),
+    # mortalidad_transicion = ifelse(suma_mortalidades > 100, #!!!
+    #   (mortalidad_transicion / suma_mortalidades) * 100 ,
+    #   mortalidad_transicion),
+    # mortalidad_total = ifelse(suma_mortalidades > 100, #!!!
+    #   (mortalidad_total / suma_mortalidades) * 100 ,
+    #   mortalidad_total)
+  ) %>%
+  # Calculando una sóla hora para cada muestreo de sitio: !!! Esto puede fallar si
+  # los sitios ya tienen nombre único.
+  ddply(.(nombre_sitio), function(df){
+    fecha_hora_muestreo_sitio <- df %>%
+      filter(!is.na(fecha_hora)) %>%
+      arrange(fecha_hora) %>%
+      # Obteniendo el primer renglón
+      slice(1) %>%
+      pull(fecha_hora)
+    
+    resultado <- df %>%
+      mutate(
+        fecha_hora_muestreo_sitio = fecha_hora_muestreo_sitio
+      )
+  }) %>%
+  
+  # Para esta versión, cambiar manualmente el "nombre_sitio" ChankanaabGP a
+  # Chankanaab, porque es remuestreo. No se podía cambiar antes de arreglar
+  # horas de muestreo, pues se perdía la info del remuestreo.
+  cambia_valor_columna("nombre_sitio", "chankanaabgp", "chankanaab") %>%
+  select(
+    # Eliminando columnas auxiliares
+    -anio,
+    -mes,
+    -dia,
+    -hora
+    -minutos,
+    -fecha_hora
   )
-
+  
 # Revisando valores de las columnas de datos_globales:
 revision_valores <- revisa_valores(datos_globales)
 names(revision_valores)
@@ -359,12 +471,12 @@ crv <- function(nombre_columna){
 # 6. Esme me va a difereciar transectos con el mismo nombre en el mismo muestreo
 # de sitio, pero que en realidad son distintos, por ejemplo, el transecto 1 de peces
 # y el de bentos.
-# 7. Esme va a checar qué significa el sustrato "0".
+# 7. Esme va a checar qué significa el sustrato "0". Cuadrantes que no se hicieron
 # 8. Esme va a checar SC con "codigo NA.
-
-
-
-
+# 9. En Corales, ¿qué es "fisión" y "S"?
+# 10. NECESITO que todos los registros de un mismo muestreo de sitio tengan la misma
+# hora, sino, al homologar nombres de sitio (ante remuestreos), va a ser muy difícil
+# distinguir entre remuestreos.
 
 # Comentarios personales.
 # 1. Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
@@ -372,7 +484,7 @@ crv <- function(nombre_columna){
 # pueda obtener de otros exceles. De la misma manera, los registros que tienen
 # vacía la columna "ancho_transecto_m" pertenecen a aspectos donde no es necesario
 # este dato.
-# 2. Comparar códigos de bentos con catálogo, para saber si están bien escritos
+# 2. Comparar códigos con catálogo, para saber si están bien escritos
 # 3. Sería bueno tener un protocolo para apuntar nombres de observadores.
 # 4. Los registros que tienen NA en clump no pertenecen a "CORALES_DESAGREGADOS_V2"
 # 5. Los registros de "CORALES_DESAGREGADOS_V2" con NA en "d1_max_diam_cm",
@@ -381,19 +493,8 @@ crv <- function(nombre_columna){
 # 6. Como "anio", "mes", "dia", "hora" y "minutos" son por transecto, para ponerlos
 # a nivel de sitio calcular la fecha_hora más antigua.
 # Para reclutas, Maximum_recruit_size" y "Maximum_small_coral_size" son los de AGGRA.
-
-
-# Para la versión 3.
-# Los números no cuadran en la suma de mortalidades, hay algo que o entiendo.
-# También creo que "mortalidad_total" es un campo que usan cuando no saben el tipo
-# de mortalidad
+# 7. "mortalidad_total" es un campo que usan cuando no saben el tipo de mortalidad.
+# Por lo tanto, la suma de las mortalidades debe ser < 100.
 # datos_globales %>% filter(archivo_origen == "CORALES_DESAGREGADOS_V2") %>%
 # group_by(mortalidad_antigua, mortalidad_reciente, mortalidad_transición, mortalidad_total)
 # %>% tally() %>% View()
-# La suma de las 4 mortalidades debe dar 100% (mortalidad_total) es cuando no saben
-# el tipo de mortalidad
-
-# Falta columna de "muestreo_completo" en "Invertebrados". Todo se completó excepto uno.
-# En "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" hay transectos sin info de longitud
-# ("longitud_transecto_m"). Obtenerla de los otros transectos
-# En Corales, ¿qué es "fisión" y "S"? Esme los va a checar!!

@@ -8,11 +8,12 @@ library("lubridate")
 # Cargando funciones auxiliares:
 source("funciones_auxiliares.R")
 
-datos_globales_final <- readRDS("../productos/datos_globales_final.RData")
-glimpse(datos_globales_final)
+datos_globales <- readRDS("../productos/datos_globales.RData")
+glimpse(datos_globales)
 
 # Revisando valores de las columnas de datos_globales:
-revision_valores <- revisa_valores(datos_globales_final)
+revision_valores <- revisa_valores(datos_globales)
+names(revision_valores)
 
 # Función para consultar el objeto anterior:
 # nombre_columna: nombre de la columna a consultar.
@@ -22,61 +23,16 @@ crv <- function(nombre_columna){
   return(revision_valores[[nombre_columna]])
 }
 
-# Comentarios:
-# falta localidad del proyecto
-# Revisar la hora y los minutos, hay faltantes tmb!
-# No entiendo la diferencia entre "nombre_sitio" y "nombre_remuestreo"
-# "tipo_arrecife", "zona_arrecifal" y "subzona_habitat" siguen muy revueltas!
-# falta "inside_non_fishing_area"
-# No entiendo si "NA" en "anp" es que no está dentro de ANP o no se sabe.
-# Por qué en "protocolo" hay algunos "Sin Protocolo" y otros "AGRRA_V5?
-# Nivel de agregación de datos == "Organismo/sustrato" es por punto y corresponde
-# a Bentos.
-# ¿Qué es la columna "Numero" para "INVERTEBRADOS_DESAGREGADOS_V2"?
-# No tenemos cuenta del número de reclutas y corales pequeños en
-# "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2"
-# Redondear "temperatura_c" , "profundidad_inicial/final_m".
-# Me falta la variable "profundidad_sitio", pero mientras voy a usar "profundidad_media_m".
-# Estoy quitando los 0's de los nombres de transecto, hay que ver si es cierto.
-# Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
-# "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2", por lo que tal vez esta información se
-# pueda obtener de otros exceles.
-# De la misma manera, los registros que tienen vacía la columna "ancho_transecto_m"
-# pertenecen a aspectos donde no es necesario este dato.
-# Creo que la columna "Sitio_autor" de "BENTOS_DESAGREGADOS_V2" contiene todos los
-# sitios en este estudio y se puede usar de referencia.
-# falta la columna de "Muestreo_completo"
-# Comparar códigos de bentos con catálogo, para saber si están bien escritos
-# Sería bueno tener un protocolo para apuntar nombres de observadores.
-# Los registros que tienen NA en clump no perteneces a "CORALES_DESAGREGADOS_V2"
-# Los registros de "CORALES_DESAGREGADOS_V2" con NA en "d1_max_diam_cm",
-# "d2_min_diam_cm" y "altura_maxima_cm" son básicamente los que tienen
-# "clump" == "FRAG".
-# hay datos con "blanqueamiento" NA pero con porcentaje y viceversa. ¿Es normal?
-# datos_globales %>% group_by(blanqueamiento, porcentaje) %>% tally() %>% View()
-# Los números no cuadran en la suma de mortalidades, hay algo que o entiendo.
-# También creo que "mortalidad_total" es un campo que usan cuando no saben el tipo
-# de mortalidad
-# datos_globales %>% filter(archivo_origen == "CORALES_DESAGREGADOS_V2") %>%
-# group_by(mortalidad_antigua, mortalidad_reciente, mortalidad_transición, mortalidad_total)
-# %>% tally() %>% View()
-# Falta columna de "muestreo_completo" en "Invertebrados".
-# Redondear a dos dígitos "tamanio_cadena_m".
-# En "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" hay transectos sin info de longitud
-# ("longitud_transecto_m").
-# ¿Por qué hay cuadrante con códigos de especie de reclutas repetidos, bajo la
-# misma categoría de tamaño (R/SC). Ejemplo:
-# datos_globales %>%
-# filter(archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2",
-# sitio_autor == "Mex-1047_Álvarez-Filip Lorenzo") %>% elimina_columnas_vacias()
-# %>% View()
-# Por ahora, para formar la tabla haré un group_by "sitio_autor", "transecto",
-# "cuadrante", "codigo", "categoria_tamanio".
-# El nombre del cuadrante corresponde a la columna "cuadrante".
-# ¿Qué es el 0 en "sustrato?
-# Faltan "Maximum_recruit_size" y "Maximum_small_coral_size".
-# Hay SC que no se sabe de qué especie son y entonces tienen en "codigo" NA.
-# EN Corales, ¿qué es "fisión" y "S"?
+datos_globales_llaves_primarias <- datos_globales %>%
+  genera_llave("id_proyecto", "nombre_proyecto") %>%
+  genera_llave("id_muestreo_sitio", "nombre_sitio", "fecha_hora_muestreo_sitio") %>%
+  genera_llave("id_muestreo_transecto", "id_muestreo_sitio", "transecto")
+
+genera_tabla(datos_globales_final_llaves_primarias, "id_proyecto", "project_id",
+  list(
+    name = "nombre_proyecto"
+  ))
+
 
 # Renombrando columnas apropiadamente para generar las tablas de Project
 
@@ -321,9 +277,6 @@ Transect_sample <- datos_globales_transecto %>%
     name = Transect_sample.name
   ) %>%
   unique()
-
-
-
 
 #write_csv(site_sample, "productos/ejemplo_tabla_sitios.csv")
 #write_csv(project, "productos/ejemplo_tabla_projectos.csv")
