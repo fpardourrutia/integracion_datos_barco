@@ -1,6 +1,7 @@
 library("plyr")
 library("dplyr")
 library("stringi")
+library("forcats") # Para trabajar con factores, en "genera_llave"
 
 ###### Funciones auxiliares sobre listas de data frames
 
@@ -186,27 +187,55 @@ mutate_logical <- function(df, ...){
 # tienen los mismos valores en las columnas de la llave natural.
 # nombre_columna_llave: nombre de la columna que contendrá la llave numérica
 # ...: nombre de las variables que definen la llave natural.
-# El resultado es el df con la llave generada como una nueva columna
+# El resultado es el df con la llave generada como una nueva columna.
+# Si no se pasa argumentos extras a la función (en ...), la llave generada
+# será simplemente una cuenta de todos los renglones.
 genera_llave <- function(df, nombre_columna_llave, ...){
   
-  # Generando la expresión para el mutate_:
   nombres_columnas_llave_natural <- c(...)
   
-  expresion = paste0(
-    "paste0(",
-    paste0(".data$", nombres_columnas_llave_natural) %>%
-      paste0(collapse = ", \"_\", "),
-    ") ",
-    "%>% as.factor() %>% as.numeric()"
+  if(length(nombres_columnas_llave_natural) > 0){
+    
+    # Generando la expresión para ordenar primero el df por los factores, ya
+    # que estos se generarán en orden de aparición (forcats::as_factor())
+    expresion_arrange_ = as.list(nombres_columnas_llave_natural)
+    
+    # Generando la expresión para el mutate_:
+    expresion_mutate_ = paste0(
+      "paste0(",
+      paste0(".data$", nombres_columnas_llave_natural) %>%
+        paste0(collapse = ", \"_\", "),
+      ") ",
+      # forcats::as_factor() crea los factores en el órden de aparición, sin ordenar
+      # primero (lo cuál causaba problemas de "11" < "2" al usar as.factor())
+      "%>% as_factor() %>% as.numeric()"
     ) %>%
-    as.list()
-  
-  # Asignando el nombre de la columna que contendrá la llave numérica a la expresión
-  # porque el mutate_ lo requiere
-  names(expresion) <- nombre_columna_llave
-  
-  resultado <- df %>%
-    mutate_(.dots = expresion)
+      as.list()
+    
+    # Asignando el nombre de la columna que contendrá la llave numérica a la expresión
+    # porque el mutate_ lo requiere
+    names(expresion_mutate_) <- nombre_columna_llave
+    
+    resultado <- df %>%
+      # generando una columna para poder regresar el data frame a su orden original
+      # después de generar las llaves
+      mutate(
+        orden_aux_funcion_genera_llave = 1:nrow(.)
+        ) %>%
+      arrange_(.dots = expresion_arrange_) %>%
+      mutate_(.dots = expresion_mutate_) %>%
+      arrange(orden_aux_funcion_genera_llave) %>%
+      select(-orden_aux_funcion_genera_llave)
+    
+  } else{
+    # Si no se pasan columnas que especifiquen una llave natural:
+    
+    expresion_mutate_ = list("1:nrow(.)")
+    names(expresion_mutate_) <- nombre_columna_llave
+    
+    resultado <- df %>%
+      mutate_(.dots = expresion_mutate_)
+  }
   
   return(resultado)
 }

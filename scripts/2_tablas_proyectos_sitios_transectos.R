@@ -1,10 +1,12 @@
-# En este script se generarán las tablas de "Project", "Site_sample" y "Transect_sample".
+# En este script se generarán las tablas principales que se insertarán en la base
+# de datos.
 
 library("plyr")
 library("dplyr")
 library("tidyr")
 library("stringi")
 library("lubridate")
+library("readr")
 # Cargando funciones auxiliares:
 source("funciones_auxiliares.R")
 
@@ -28,256 +30,171 @@ datos_globales_llaves_primarias <- datos_globales %>%
   genera_llave("id_muestreo_sitio", "nombre_sitio", "fecha_hora_muestreo_sitio") %>%
   genera_llave("id_muestreo_transecto", "id_muestreo_sitio", "transecto")
 
-genera_tabla(datos_globales_final_llaves_primarias, "id_proyecto", "project_id",
-  list(
-    name = "nombre_proyecto"
-  ))
+##############################
+# Generando la tabla "project"
+##############################
 
+lista_columnas_project <- list(
+  name = "nombre_proyecto",
+  description = "titulo",
+  purpose = "tema",
+  #location falta
+  start_year = "anio_inicio_proyecto", # Cambios en esquema!
+  end_year = "anio_termino_proyecto",  # Cambios en esquema!
+  organization = "institucion",
+  suborganization = "suborganizacion",
+  person_in_charge = "autor_administrador_proyecto",
+  contact = "contacto",
+  site_selection_method = "metodo_seleccion_sitios",
+  comments = "strings_vacios", # Cambios en el esquema"
+  reference = "cita"
+  
+  # Faltan columnas del cliente de captura
+)
 
-# Renombrando columnas apropiadamente para generar las tablas de Project
-
-## 2. Creando la información de proyecto en dicha tabla
-Project <- datos_globales_final %>%
-  mutate(
-    Project.name_aux = Nombre_del_Proyecto,
-    Project.description_aux = Proposito,
-    Project.purpose_aux = Tema,
-    # Project.location_aux
-    Project.start_year_aux = Fecha_de_inicio,
-    Project.end_year_aux = Fecha_de_termino,
-    Project.organization_aux = Institucion,
-    Project.suborganization_aux = Suborganizacion,
-    Project.person_in_charge_aux = Autor_Administrador_Del_Proyecto,
-    Project.contact_aux = Contacto,
-    Project.site_selection_method_aux = Metodo_de_Seleccion_de_Sitios,
-    # comment_aux
-    Project.reference_aux = Cita
-    ) %>%
-  # Generando los datos finales de la tabla "Project"
-  mutate(
-    Project.name = ifelse(stri_detect_coll(Project.name_aux, "247104"),
-      "CONACYT 247104",
-      "Greenpeace 2016"),
-    Project.id = ifelse(Project.name == "CONACYT 247104", 1, 2)
-  ) %>%
-  group_by(Project.id) %>%
-  mutate(
-    Project.description = first(Project.description_aux),
-    Project.purpose = first(Project.purpose_aux),
-    # Definiendo las fecha de incio y término del proyecto a mano. Lorenzo dijo
-    # que con el año es suficiente.
-    Project.start_year = "2016",
-    Project.end_year = ifelse(Project.name == "CONACYT 247104",
-      NA, "2016"),
-    Project.organization = first(Project.organization_aux),
-    Project.suborganization = first(Project.suborganization_aux),
-    Project.person_in_charge = first(Project.person_in_charge_aux),
-    Project.contact = first(Project.contact_aux),
-    Project.site_selection_method = "Estratégico",
-    Project.reference = first(Project.reference_aux)
-  ) %>%
-  ungroup() %>%
-  select(
-    id,
-    archivo_origen,
-    everything()
+project <- genera_tabla(
+  df = datos_globales_llaves_primarias,
+  nombre_columna_llave = "id_proyecto",
+  nombre_nuevo_columna_llave = "id",
+  lista_columnas_adicionales = lista_columnas_project
   )
 
-# Construyendo la tabla "project"
-project <- datos_globales_proyecto %>%
-  select(
-    id = Project.id,
-    name = Project.name,
-    description = Project.description,
-    purpose = Project.purpose,
-    start_year = Project.start_year,
-    end_year = Project.end_year,
-    organization = Project.organization,
-    suborganization = Project.suborganization,
-    person_in_charge = Project.person_in_charge,
-    contact = Project.contact,
-    site_selection_method = Project.site_selection_method,
-    reference = Project.reference
-  ) %>%
-  unique()
+#################################
+# Generando la tabla "site_sample"
+#################################
 
-## 3. Agregando ahora la información de sitio a "datos_globales_proyecto"
+lista_columnas_site_sample <- list(
+  project_id = "id_proyecto",
+  name = "nombre_sitio",
+  datetime = "fecha_hora_muestreo_sitio", # Cambios en el esquema!
+  # resampling: esta columna se eliminará por dificultad de mantenimiento
+  country = "pais",
+  healthy_reefs_region = "region_healthy_reefs",
+  location = "localidad",
+  
+  # Falta definir (y depurar) las variables "tipo_arrecide, "zona_arrecifal",
+  # "subzona_habitat", "nombre_arrecife".
+  
+  inside_protected_area = "dentro_anp",
+  protected_area_name = "anp",  # Cambios en esquema!
+  # Falta "dentro_area_no_pesca" (inside_non_fishing_area)
+  latitude = "latitud",
+  longitude = "longitud",
+  datum = "datum",
+  
+  methodology = "protocolo_muestreo_sitio",
+  # "methodology_details" se elimina, los detalles quedarán a nivel de aspecto
+  # (ver notas)
+  # "data_aggregation_level" pasará a las tablas de "...info" (ver notas).
+  
+  # Esme me calculará la profundidad por sitio
+  depth_m = "profundidad_media_m", # Cambios en el esquema!
+  temperature_c = "temperatura_c", # Cambios en el esquema!
+  comments = "strings_vacios"
+  
+  # Faltan columnas del cliente de captura
+)
 
-datos_globales_sitio <- datos_globales_proyecto %>%
-  mutate(
-    # Auxiliar para generar la llave primaria de la tabla en cuestión, debe ser
-    # una llave natural en una sola columna de tipo factor (formada posiblemente
-    # concatenando varias columnas), que posteriormente se convertirá a numérico.
-    Site_sample.id_aux = Nombre_del_Arrecife %>%
-      # quitando mayúsculas
-      tolower() %>%
-      # quitando espacios
-      stri_trim_both,
-    
-    Site_sample.name_aux = Nombre_del_Arrecife,
-    Site_sample.country_aux = PAIS,
-    
-    # Healthy_reefs_region pueden ser dos columnas distintas, pero por flexibilidad
-    # del código, se quedará como una única.
-    Site_sample.healthy_reefs_region_aux = Region_del_arrecife,
-    Site_sample.location_aux = Localidad,
-    Site_sample.reef_name_aux = "",
-    
-    # Revisar diferencias entre estas 3, parece que son lo mismo
-    Site_sample.reef_type_aux = Tipo_de_Arrecife,
-    Site_sample.reef_zone_aux = Zona_arrecifal,
-    Site_sample.subzone_habitat_aux = Subzona_de_habitat,
-    Site_sample.inside_protected_area_aux = ifelse(ANP == "NA", FALSE, TRUE),
-    Site_sample.protected_area_aux = ifelse(ANP == "NA", NA, ANP),
-    Site_sample.inside_non_fishing_area_aux = NA,
-    Site_sample.latitude_aux = `Latitud `,
-    Site_sample.longitude_aux = Longitud,
-    Site_sample.datum_aux = "WGS84",
-    Site_sample.date_aux = ifelse(Fecha == "NA", "", Fecha %>%
-        as.numeric() %>%
-        as.Date(origin = "1899-12-30") %>%
-        as.character()
-    ),
-    Site_sample.time_aux = ifelse(Hora == "NA" | is.na(Hora), NA,
-      ifelse(stri_detect_coll(Hora, ":"), Hora,
-        (parse_date_time("00:00:00", orders = "HMS") +
-          as.numeric(Hora) * 24 * 60 * 60) %>%
-          as.character() %>%
-          stri_extract_first_regex(., "\\d\\d:\\d\\d")
-      )
-    ),
-    Site_sample.methodology_aux = Protocolo,
-    Site_sample.methodology_details_aux = Metodo,
-    Site_sample.data_aggregation_level_aux = Nivel_de_agregacion_de_datos,
-    Site_sample.temperature_aux = Temperatura,
-    Site_sample.depth_aux = Profundidad_media_m
-  ) %>%
-  # generando Site_sample.id, la llave primaria
-  mutate(
-    Site_sample.id = Site_sample.id_aux %>%
-      as.factor() %>%
-      as.numeric()
-  ) %>%
-  group_by(
-    # Agrupando por la llave primaria
-    Site_sample.id
-  ) %>%
-  mutate(
-    Site_sample.name = first(Site_sample.name_aux),
-    Site_sample.country = first(Site_sample.country_aux),
-    Site_sample.healthy_reefs_region = first(Site_sample.healthy_reefs_region_aux),
-    Site_sample.location = first(Site_sample.location_aux),
-    Site_sample.reef_name = first(Site_sample.reef_name_aux),
-    Site_sample.reef_type = first(Site_sample.reef_type_aux),
-    Site_sample.reef_zone = first(Site_sample.reef_zone_aux),
-    Site_sample.subzone_habitat = first(Site_sample.subzone_habitat_aux),
-    Site_sample.inside_protected_area = first(Site_sample.inside_protected_area_aux),
-    Site_sample.protected_area = first(Site_sample.protected_area_aux),
-    Site_sample.inside_non_fishing_area = first(Site_sample.inside_non_fishing_area_aux),
-    Site_sample.latitude = first(Site_sample.latitude_aux),
-    Site_sample.longitude = first(Site_sample.longitude_aux),
-    Site_sample.datum = first(Site_sample.datum_aux),
-    Site_sample.date = first(Site_sample.date_aux),
-    Site_sample.time = first(Site_sample.time_aux),
-    Site_sample.methodology = first(Site_sample.methodology_aux),
-    Site_sample.methodology_details = paste0(archivo_origen, ": ",
-      Site_sample.methodology_details_aux) %>%
-        unique() %>%
-        paste(collapse = ", "),
-    Site_sample.data_aggregation_level = first(Site_sample.data_aggregation_level_aux),
-    Site_sample.temperature = first(Site_sample.temperature_aux),
-    Site_sample.depth = first(Site_sample.depth_aux)
-  )
+site_sample <- genera_tabla(
+  df = datos_globales_llaves_primarias,
+  nombre_columna_llave = "id_muestreo_sitio",
+  nombre_nuevo_columna_llave = "id",
+  lista_columnas_adicionales = lista_columnas_site_sample
+)
 
-site_sample <- datos_globales_sitio %>%
-  select(
-    id = Site_sample.id,
-    project_id = Project.id,
-    name = Site_sample.name,
-    country = Site_sample.country,
-    healthy_reefs_region = Site_sample.healthy_reefs_region,
-    location = Site_sample.location,
-    reef_name = Site_sample.reef_name,
-    reef_type = Site_sample.reef_type,
-    reef_zone = Site_sample.reef_zone,
-    subzone_habitat = Site_sample.subzone_habitat,
-    inside_protected_area = Site_sample.inside_protected_area,
-    protected_area = Site_sample.protected_area,
-    inside_non_fishing_area = Site_sample.inside_non_fishing_area,
-    latitude = Site_sample.latitude,
-    longitude = Site_sample.longitude,
-    datum = Site_sample.datum,
-    date = Site_sample.date,
-    time = Site_sample.time,
-    methodology = Site_sample.methodology,
-    methodology_details = Site_sample.methodology_details,
-    data_aggregation_level = Site_sample.data_aggregation_level,
-    temperature = Site_sample.temperature,
-    depth = Site_sample.depth
-  ) %>%
-  unique()
+#####################################
+# Generando la tabla "transect_sample"
+#####################################
+# Supuestos: en cada transecto se vio al menos una observación, sea la que sea:
+# bentos: alguna de bentos, corales, reclutas, complejidad (invertebrados si aplica)
+# peces: agún pez (o invertebrado), si aplica.
 
-# # Revisando que no haya NA's en campos específicos para un aspecto,
-# datos_globales %>%
-#   filter(archivo_origen == "bentos_desagregado") %>%
-#   select(Codigo) %>%
-#   table(useNA = "always")
-# 
-# datos_globales %>%
-#   filter(archivo_origen == "corales_desagregados") %>%
-#   select(Blaqueamieto) %>%
-#   table(useNA = "always")
-# 
-# # Revisando que las "Especie" y "Code" en archivo_origen == "peces_desagregados"
-# # tengan la misma cantidad de datos
-# 
-# datos_globales %>%
-#   filter(archivo_origen == "peces_desagregados") %>%
-#   select(
-#     Especie,
-#     Code
-#   ) %>%
-#   mutate(
-#     Especie_bool = ifelse(is.na(Especie), 0, 1),
-#     Code_bool = ifelse(is.na(Code), 0, 1)
-#   ) %>%
-#   summarise(
-#     num_Especie = sum(Especie_bool),
-#     num_Code = sum(Code_bool)
-#   )
+# Es importante tener completa la información de transectos, pero no por sí misma,
+# más importante es tener completa la información de muestreos de cada aspecto
+# realizados entre sitio (las tablas ...info)
+# (información completa de aspectos => información completa de muestreos de transectos)
 
-## 4. Agregando la información de transecto a "datos_globales_sitio".
+lista_columnas_transect_sample <- list(
+  site_sample_id = "id_muestreo_sitio",
+  name = "transecto"
+)
 
-datos_globales_transecto <- datos_globales_sitio %>%
-  mutate(
-    # Auxiliar para generar la llave primaria de la tabla en cuestión, debe ser
-    # una llave natural en una sola columna de tipo factor (formada posiblemente
-    # concatenando varias columnas), que posteriormente se convertirá a numérico.
-    Transect_sample.id_aux = paste0(Site_sample.id, "_", Transecto %>%
-      # quitando mayúsculas si existen
-      tolower() %>%
-      # quitando espacios
-      stri_trim_both %>%
-      # quitando primer 0
-      stri_replace_first_regex("^0(.*)", "$1")),
-    Transect_sample.id = Transect_sample.id_aux %>%
-      as.factor() %>%
-      as.numeric(),
-    Transect_sample.name_aux = Transecto
-  ) %>%
-  group_by(Transect_sample.id) %>%
-  mutate(
-    Transect_sample.name = first(Transect_sample.name_aux)
-  )
+transect_sample <- genera_tabla(
+  df = datos_globales_llaves_primarias,
+  nombre_columna_llave = "id_muestreo_transecto",
+  nombre_nuevo_columna_llave = "id",
+  lista_columnas_adicionales = lista_columnas_transect_sample
+)
 
-Transect_sample <- datos_globales_transecto %>%
-  select(
-    id = Transect_sample.id,
-    site_sample_id = Site_sample.id,
-    name = Transect_sample.name
-  ) %>%
-  unique()
+##########
+# Benthos
+##########
+# Supuestos:
+# 1. Cada muestreo de benthos en transecto realizado fue registrado en los Exceles
+# correspondientes (independientemente de si tuvo observaciones o no).
+# 2. Cada muestreo de transecto tiene sólo un muestreo de bentos asociado (por
+# ejemplo, no es válido tener PIT y LIT sobre el mismo transecto)
 
-#write_csv(site_sample, "productos/ejemplo_tabla_sitios.csv")
-#write_csv(project, "productos/ejemplo_tabla_projectos.csv")
+datos_globales_bentos_llaves_primarias <- datos_globales_llaves_primarias %>%
+  filter(archivo_origen == "BENTOS_DESAGREGADOS_V2") %>%
+  elimina_columnas_vacias() %>%
+  # Para que sea un poco más natural la llave primaria generada para
+  # "id_punto_muestreo_bentos"
+  arrange(serie) %>%
+  genera_llave("id_muestreo_bentos_transecto", "id_muestreo_transecto") %>%
+  genera_llave("id_punto_muestreo_bentos") # Que sea una simple cuenta en órden
 
+###################################################
+# Generando la tabla "Benthos_transect_sample_info
+###################################################
+
+lista_columnas_benthos_transect_sample_info <- list(
+  transect_sample_id = "id_muestreo_transecto",
+  sampling_method = "metodo",
+  data_aggregation_level = "nivel_agregacion_datos"
+)
+
+#############
+# Catálogos
+#############
+# - Project.purpose (tema)
+# - Project.site_selection_method (metodo_seleccion_sitios)
+# - Site_sample.country (pais)
+# - Site_sample.healthy_reefs_region (region_healthy_reefs)
+# - Site_sample.location (localidad)
+# - Site_sample.methodology (protocolo_muestreo_sitio)
+# - de las variables elegidas entre Site_sample.reef_type (tipo_arrecife),
+#   Site_sample.reef_zone (zona_arrecifal), Site_sample.subzone_habitat (subzona_habitat)
+# - Site_sample.protected_area (anp)
+# - Benthos_transect_sample_info.sampling_method (método en exceles de Bentos)
+# - Benthos_transect_sample_info.data_aggregation_level (nivel_agregacion_datos
+#   en exceles de Bentos)
+# - 
+
+#######################################
+# Comentarios (a consultar con Lorenzo)
+#######################################
+# 1. Tal vez el método de selección de cada sitio se debe dar por sitio, porque
+# así puede ser más preciso. Ésto depende si en un mismo proyecto pueden haber
+# sitios seleccionados de más de una forma (estratégico, aleatorio, etc).
+# Y de la frecuencia con que esto pase.
+# 2. Creo que protocolo a nivel de Sitio debe ser muy general, por ejemplo:
+# "Otros", "AGRRA_v5", "AGRRA_v5+" (AGRRA_v5 y adicionales). Propongo dejar los
+# detalles a nivel muestreo de un aspecto, es decir, a nivel de las tablas "...info".
+# Por ello, se elimina el campo "Site_sample.methodology_details".
+# 3. Después de mucho pensar, creo que la columna "data_aggregation_level" debe
+# estar a nivel de las tablas de "..._info", por ejemplo, "Coral_transect_sample_info",
+#  Recruit_subquadrat_sample_from_transect_info", etc, ya que estas tablas son
+# las que realmente especifican CADA ASPECTO MUESTREADO EN UN SITIO (independientemente
+# de si hubo observaciones o no). Por medio del nombre de la tabla + la variable
+# "data_aggregation_level", se puede saber para un sitio/transecto/etc:
+#   1. Qué aspectos se muestrearon.
+#   2. El nivel biológico de agregación de la información (individuo /
+#   agregados por especie, etc).
+#   3. El nivel geográfico de agregación de la información: cuadrante, transecto,
+#   sitio, etc...
+# Para visualizar esta abstracción, recordar que un join es ENTRE TABLAS, entonces,
+# por ejemplo, los registros en un join entre "Site_sample", "Transect_sample"
+# y "Fish_transect_sample_info", con "data_aggregation_level" = "por especie" en
+# esta última tabla, especifican sitios donde la información de PECES (1) está
+# agregada a nivel de ESPECIE (2), por transecto (3).

@@ -54,6 +54,7 @@ lista_exceles_columnas_homologadas <- lista_exceles_cruda %>%
   renombra_columna("Profundidad_media_m", "profundidad_media_m") %>% #importante
   renombra_columna("Profundidad_media_metros", "profundidad_media_m") %>% #importante
   renombra_columna("Region_del_arrecife_HR", "region_healthy_reefs") %>%
+  renombra_columna("Subzona_de_habitat", "subzona_habitat") %>%
   renombra_columna("Tamanio_de_cadena_metros", "tamanio_cadena_m") %>%
   renombra_columna("Temperatura_celsius", "temperatura_c") %>% #importante
   renombra_columna("Temperatura_en _Celcius", "temperatura_c") %>% #importante
@@ -162,24 +163,40 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   # como la columna nivel_agregacion_datos se tiene que recodificar por completo,
   # y con reglas específicas, se usará un mutate %>%
   mutate(
-    nivel_agregacion_datos = case_when(
-      archivo_origen == "BENTOS_DESAGREGADOS_V2" ~ "Puntos por transecto",
-      archivo_origen == "CORALES_DESAGREGADOS_V2" ~ "Colonias por transecto",
-      archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" ~ "Observaciones por transecto",
-      archivo_origen == "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2" ~ "Especies por transecto",
-      archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" ~ "Observaciones por cuadrante",
+    nivel_agregacion_datos = case_when( #!!! Checarlo bien, aquí estoy suponiendo
+      # que los exceles están por nivel de agregación de datos (tanto espacial
+      # como biológico), y que los nombres de las tablas "Benthos_transect_sample_info",
+      # etc... en la base de datos brindarán la información sobre el nivel de
+      # agregación espacial de los datos. Esta info irá a parar a dichas tablas,
+      # para brindar información del nivel de agregación biológica de los mismos.
+      archivo_origen == "BENTOS_DESAGREGADOS_V2" ~
+        "desagregados: puntos/interceptos",
+      archivo_origen == "CORALES_DESAGREGADOS_V2" ~
+        "desagregados: colonias",
+      archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" ~
+        "desagregados: observaciones",
+      archivo_origen == "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2" ~
+        "agregados por especie y categoría de tamaño",
+      archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" ~
+        "desagregados: observaciones",
       # Por triste que sea, los reclutas son observaciones, no incidencias.
-      archivo_origen == "RUGOSIDAD_DESAGREGADA_V2" ~ "Medida por transecto"
+      archivo_origen == "RUGOSIDAD_DESAGREGADA_V2" ~
+        "desagregados: medida por transecto"
     )
   ) %>%
   
-  # Transect_sample. Esme me dijo que podía quitar los 0's.
-  cambia_valor_columna("transecto", "01", "1") %>%
-  cambia_valor_columna("transecto", "02", "2") %>%
-  cambia_valor_columna("transecto", "03", "3") %>%
-  cambia_valor_columna("transecto", "04", "4") %>%
-  cambia_valor_columna("transecto", "05", "5") %>%
-  cambia_valor_columna("transecto", "06", "6") %>%
+  # Transect_sample. Esme me dijo que los 0's daban igual, entonces decido a
+  # ponerles 0's a los que lo requieran, porque quiero que me los ordene por
+  # número, pero son caracteres
+  cambia_valor_columna("transecto", "1", "01") %>%
+  cambia_valor_columna("transecto", "2", "02") %>%
+  cambia_valor_columna("transecto", "3", "03") %>%
+  cambia_valor_columna("transecto", "4", "04") %>%
+  cambia_valor_columna("transecto", "5", "05") %>%
+  cambia_valor_columna("transecto", "6", "06") %>%
+  cambia_valor_columna("transecto", "7", "07") %>%
+  cambia_valor_columna("transecto", "8", "08") %>%
+  cambia_valor_columna("transecto", "9", "09") %>%
   
   # Benthos_transect_sample_info
   cambia_valor_columna("profundidad_inicial_m", "NA", NA) %>%
@@ -361,7 +378,7 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     muestreo_transecto_completo = case_when(
       nombre_proyecto == "CONACYT 247104 2016" &
         nombre_sitio == "xm04" &
-        transecto == "3_bentos" &
+        transecto == "03_bentos" &
         archivo_origen %in% c(
           "BENTOS_DESAGREGADOS_V2",
           "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2"
@@ -393,7 +410,7 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     sobrecrecimiento = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
         is.na(sobrecrecimiento), "ND", sobrecrecimiento),
     depredacion = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(depredacion), "ND", depredacion)
+        is.na(depredacion), "ND", depredacion),
     
     # # arreglando mortalidades si suman más de 100. Ésto se corregirá en v3.
     # suma_mortalidades = mortalidad_antigua +
@@ -416,6 +433,10 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     # mortalidad_total = ifelse(suma_mortalidades > 100, #!!!
     #   (mortalidad_total / suma_mortalidades) * 100 ,
     #   mortalidad_total)
+    
+    # Creando columna auxiliar útiles a la hora de generar las tablas
+    strings_vacios = "",
+    datum = "WGS84"
   ) %>%
   # Calculando una sóla hora para cada muestreo de sitio: !!! Esto puede fallar si
   # los sitios ya tienen nombre único.
@@ -437,14 +458,33 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   # Chankanaab, porque es remuestreo. No se podía cambiar antes de arreglar
   # horas de muestreo, pues se perdía la info del remuestreo.
   cambia_valor_columna("nombre_sitio", "chankanaabgp", "chankanaab") %>%
+  
+  # Generando una columna puramente informativa con el protocolo utilizado a
+  # nivel de muestreo de sitio 
+  ddply(.(nombre_sitio, fecha_hora_muestreo_sitio), function(df){
+    # Para los datos CONACyT / GreenPeace, si se encuentra un "Sin protocolo" para
+    # un muestreo de sitio, es un dato de invertebrado que se obtuvo de muestrear
+    # invertebrados en el transecto de peces (lo cuál es adicional a AGRRA_V5)
+    protocolo_muestreo_sitio = ifelse(
+      "Sin Protocolo" %in% df$protocolo, "AGRRA_V5+", "AGRRA_V5")
+    
+    resultado <- df %>%
+      mutate(
+        protocolo_muestreo_sitio = protocolo_muestreo_sitio
+      )
+    
+    return(resultado)
+  }) %>% #!!! 
   select(
     # Eliminando columnas auxiliares
     -anio,
     -mes,
     -dia,
-    -hora
+    -hora,
     -minutos,
-    -fecha_hora
+    -fecha_hora,
+    -anio_muestreo,
+    -protocolo
   )
   
 # Revisando valores de las columnas de datos_globales:
@@ -477,6 +517,8 @@ crv <- function(nombre_columna){
 # 10. NECESITO que todos los registros de un mismo muestreo de sitio tengan la misma
 # hora, sino, al homologar nombres de sitio (ante remuestreos), va a ser muy difícil
 # distinguir entre remuestreos.
+# 11. Necesito una columa informativa con el protocolo utilizado a nivel de sitio, por
+# ejemplo: AGRRA_V5, AGRRA_V5 + (AGRRA V_5 y adicionales), Otro, etc.
 
 # Comentarios personales.
 # 1. Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
