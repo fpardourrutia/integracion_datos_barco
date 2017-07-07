@@ -519,6 +519,8 @@ crv <- function(nombre_columna){
 # distinguir entre remuestreos.
 # 11. Necesito una columa informativa con el protocolo utilizado a nivel de sitio, por
 # ejemplo: AGRRA_V5, AGRRA_V5 + (AGRRA V_5 y adicionales), Otro, etc.
+# 12. ¿La temperatura está bien por sitio, o la recomiendan por transecto?
+# 13. Hay cuentas de peces duplicadas en el archivo "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2".
 
 # Comentarios personales.
 # 1. Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
@@ -540,3 +542,6 @@ crv <- function(nombre_columna){
 # datos_globales %>% filter(archivo_origen == "CORALES_DESAGREGADOS_V2") %>%
 # group_by(mortalidad_antigua, mortalidad_reciente, mortalidad_transición, mortalidad_total)
 # %>% tally() %>% View()
+# 8. Por compatibilidad con cliente de captura, pasar NA's a strings vacíos en
+# campos que se quedan de tipo caracter. Tip: hacer una función que sustituya
+# NA's por "" en columnas de caracteres.

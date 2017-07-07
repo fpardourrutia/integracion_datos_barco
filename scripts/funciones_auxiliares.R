@@ -159,7 +159,7 @@ mutate_numeric <- function(df, ...){
 }
 
 # Función para transformar un conjunto de variables a tipo lógico:
-# df: data_frame cuyas variables se quieren transformar
+# df: data frame cuyas variables se quieren transformar
 # ...: nombres de las variables a transformar
 mutate_logical <- function(df, ...){
   # Obteniendo variables como un vector
@@ -177,6 +177,22 @@ mutate_logical <- function(df, ...){
   resultado <- df %>%
     mutate_(.dots = expresion)
   
+  return(resultado)
+}
+
+# Función auxiliar para transformar NA's en "" en columnas de tipo
+# caracter.
+# df: data frame de interés
+# El resultado es un data frame con los NA's sustituídos por "" en columnas de
+# tipo caracter.
+# Nota: como es muy útil trabajar con NA's en R, esta transformación se recomienda
+# realizarla hasta tener las tablas finales, listas para introducir en la base de
+# datos.
+cambia_na_strings_vacios <- function(df){
+  resultado <- df %>%
+    mutate_if(
+      is.character, funs(ifelse(is.na(.), "", .))
+    )
   return(resultado)
 }
 

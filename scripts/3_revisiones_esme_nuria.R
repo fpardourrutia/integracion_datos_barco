@@ -106,3 +106,49 @@ numero_transectos_tipo_muestreo_sitio <- project %>%
       ungroup(), by = "site_sample_id")
 
 # write_csv(numero_transectos_tipo_muestreo_sitio, "../productos/numero_transectos_tipo_muestreo_sitio.csv")
+
+# Especies de peces con dos registros asociados en el mismo transecto (cosa imposible
+# por la manera en que están estructurados los datos)
+especies_peces_varios_registros_mismo_transecto_muestra <- conteo_peces_transecto_llave_primaria %>%
+  group_by(id_conteo_especie_talla) %>%
+  mutate(
+    cantidad_registros_identicos = n()
+  ) %>%
+  ungroup() %>%
+  mutate(
+    especie = estandariza_strings(especie)
+  ) %>%
+  filter(cantidad_registros_identicos > 1) %>%
+  distinct(
+    nombre_sitio,
+    fecha_hora_muestreo_sitio,
+    transecto,
+    codigo,
+    especie
+  ) %>%
+  select(
+    nombre_sitio,
+    fecha_hora_muestreo_sitio,
+    transecto,
+    codigo,
+    especie
+  ) %>%
+  arrange(
+    nombre_sitio,
+    fecha_hora_muestreo_sitio,
+    transecto,
+    codigo,
+    especie
+  )
+
+(conteo_peces_transecto_llave_primaria$codigo %>%
+    unique() %>%
+    length()) ==
+    (conteo_peces_transecto_llave_primaria$especie %>%
+        estandariza_strings() %>%
+        unique() %>%
+        length())
+# Perfecto: TRUE!
+
+# write_csv(especies_peces_varios_registros_mismo_transecto_muestra,
+#   "../productos/especies_peces_varios_registros_mismo_transecto_muestra.csv")
