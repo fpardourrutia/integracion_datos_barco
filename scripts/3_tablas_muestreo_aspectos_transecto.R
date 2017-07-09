@@ -1,5 +1,15 @@
 # En este script se generarán las tablas de muestreos de aspectos a nivel de transecto
-# Es decir, todas las llamadas "...transect_sample_info" y asociadas a ellas
+# Es decir, todas las llamadas "...transect_sample_info" y asociadas a ellas.
+
+# Supuesto para generar las tablas de aspecto (bentos, peces, corales, reclutas,
+# complejidad, invertebrados):
+# 1. Cada Excel tiene información correspondiente a un sólo nivel espacial de
+# agrupación de datos (transecto / sitio) .
+# 2. Cada Excel tiene información correspondiente a un sólo nivel biológico de
+# agregación de datos (por observacion, coberturas por especie, etc)...
+# Esto es necesario para generar las tablas de "...info" (que tienen información)
+# del nivel de agrupación de los datos en el nombre, y del nivel de agrupación
+# biológica de los datos en el campo "...info.data_aggregation_level".
 
 library("plyr")
 library("dplyr")
@@ -100,7 +110,7 @@ lista_columnas_benthos_transect_sample_info <- list(
   comments = "strings_vacios"
 )
 
-benthos_transect_sample_info <- genera_tabla(
+benthos_transect_sample_info <- genera_tabla_2(
   df = muestreo_bentos_transecto_llave_primaria,
   nombre_columna_llave = "id_muestreo_bentos_transecto",
   nombre_nuevo_columna_llave = "id",
@@ -191,7 +201,7 @@ lista_columnas_coral_transect_sample_info <- list(
   comments = "strings_vacios"
 )
 
-coral_transect_sample_info <- genera_tabla(
+coral_transect_sample_info <- genera_tabla_2(
   df = muestreo_corales_transecto_llave_primaria,
   nombre_columna_llave = "id_muestreo_corales_transecto",
   nombre_nuevo_columna_llave = "id",
@@ -292,7 +302,7 @@ lista_columnas_invertebrate_transect_sample_info <- list(
   comments = "notas" # !!! Aquí sí hay comentarios"
 )
 
-invertebrate_transect_sample_info <- genera_tabla(
+invertebrate_transect_sample_info <- genera_tabla_2(
   df = muestreo_invertebrados_transecto_llave_primaria,
   nombre_columna_llave = "id_muestreo_invertebrados_transecto",
   nombre_nuevo_columna_llave = "id",
@@ -400,7 +410,7 @@ lista_columnas_fish_transect_sample_info <- list(
   comments = "strings_vacios"
 )
 
-fish_transect_sample_info <- genera_tabla(
+fish_transect_sample_info <- genera_tabla_2(
   df = muestreo_peces_transecto_llave_primaria,
   nombre_columna_llave = "id_muestreo_peces_transecto",
   nombre_nuevo_columna_llave = "id",
@@ -435,7 +445,7 @@ conteo_peces_transecto_llave_primaria <-
     serie,
     codigo,
     especie,
-    contains("tamanio"),
+    dplyr::contains("tamanio"),
     id_muestreo_peces_transecto
   ) %>%
   
@@ -445,17 +455,18 @@ conteo_peces_transecto_llave_primaria <-
   #filter(especie != "NA") %>%
   
   ## Generando columnas de "min_size", "max_size" y "count".
-  gather(key = categoria_tamanio, value = cuenta, contains("tamanio")) %>%
+  gather(key = categoria_tamanio, value = cuenta, dplyr::contains("tamanio")) %>%
   # Filtrando tamaños no encontrados en un mismo conteo de especie en transecto.
   filter(!is.na(cuenta)) %>%
-  # Generando campos de "min_size_cm" y "max_size_cm" # Cambios en el esquema!
-  separate(col = categoria_tamanio, into = c("etiqueta", "min_size_cm", "max_size_cm")) %>%
+  # Generando campos de "tamanio_minimo_cm" y "tamanio_maximo_cm" # Cambios en el esquema!
+  separate(col = categoria_tamanio, into = c("etiqueta", "tamanio_minimo_cm", "tamanio_maximo_cm")) %>%
   mutate(
-    # Quitándoles la etiqueta de "cm" a "min_size" y "max_size"
-    min_size_cm = stri_sub(min_size_cm, from = 1, to = (stri_length(min_size_cm)-2)) %>%
+    # Quitándoles la etiqueta de "cm" a "tamanio_minimo_cm" y "tamanio_maximo_cm"
+    tamanio_minimo_cm = stri_sub(tamanio_minimo_cm, from = 1, to = (stri_length(tamanio_minimo_cm)-2)) %>%
       as.numeric(),
-    max_size_cm = stri_sub(max_size_cm, from = 1, to = (stri_length(max_size_cm)-2)) %>%
-      as.numeric()
+    tamanio_maximo_cm = stri_sub(tamanio_maximo_cm, from = 1, to = (stri_length(tamanio_maximo_cm)-2)) %>%
+      as.numeric(),
+    es_juvenil = NA #lógico
   ) %>%
   # Suponemos que para cada "muestreo_peces_transecto", sólo debe haber un registro
   # por código de especie y talla. Si hay más, se toma el primero (provisionalmente,
@@ -464,15 +475,17 @@ conteo_peces_transecto_llave_primaria <-
     "id_conteo_especie_talla",
     "id_muestreo_peces_transecto",
     "codigo",
-    "min_size_cm",
-    "max_size_cm" #!!! no se ha generado por "is_juvenile"
+    "es_juvenil",
+    "tamanio_minimo_cm",
+    "tamanio_maximo_cm"
     )
 
 lista_columnas_fish_transect_sample_count <- list(
   fish_transect_sample_info_id = "id_muestreo_peces_transecto",
   species_code = "codigo",
-  min_size_cm = "min_size_cm",
-  max_size_cm = "max_size_cm",
+  is_juvenile = "es_juvenil",
+  min_size_cm = "tamanio_minimo_cm",
+  max_size_cm = "tamanio_maximo_cm",
   count = "cuenta"
   )
 
@@ -481,18 +494,6 @@ fish_transect_sample_count <- genera_tabla(
   nombre_columna_llave = "id_conteo_especie_talla",
   nombre_nuevo_columna_llave = "id",
   lista_columnas_adicionales = lista_columnas_fish_transect_sample_count
-  ) %>%
-  mutate(
-    is_juvenile = as.logical(NA)
-  ) %>%
-  select(
-    id,
-    fish_transect_sample_info_id,
-    species_code,
-    is_juvenile,
-    min_size_cm,
-    max_size_cm,
-    count
   )
 
 ################
@@ -531,9 +532,9 @@ lista_columnas_complexity_transect_sample_info <- list(
   # Es la longitud real muestreada, no la teórica, la que nos interesa
   sampled_length_m = "longitud_transecto_m", # Cambios en el esquema!
   
-  # El siguiente campo sólo cobra sentido si existen cuadrantes donde se midió
-  # complejidad.
-  # sampling_completed = "muestreo_transecto_completo",
+  # El siguiente campo sólo cobra sentido si existen submuestreos (no cuadrantes
+  # que ya van asociados a "Transect_sample") donde se midió complejidad.
+  # Sampling_completed = "muestreo_transecto_completo",
   
   rugosity_contour_length_m = "tamanio_cadena_m", # Cambios en el esquema!
   rugosity_linear_length_m = "longitud_transecto_m", #!!!
@@ -541,7 +542,7 @@ lista_columnas_complexity_transect_sample_info <- list(
   comments = "strings_vacios"
 )
 
-rugosity_transect_sample_info <- genera_tabla(
+complexity_transect_sample_info <- genera_tabla(
   df = muestreo_complejidad_transecto_llave_primaria,
   nombre_columna_llave = "id_muestreo_complejidad_transecto",
   nombre_nuevo_columna_llave = "id",
@@ -552,25 +553,84 @@ rugosity_transect_sample_info <- genera_tabla(
 ############
 # Reclutas
 ############
-############################################################
-# Generando la tabla "Subquadrat_samples_from_transect_info"
-############################################################
+####################################################################
+# Generando la tabla "Recruit_subquadrat_sample_from_transect_info"
+####################################################################
+# Cambios en el esquema! Esta tabla va ligada ahora a "Transect_sample", y contiene
+# un registro por cuadrante.
 
 # Supuestos:
-# 1.La información de subcuadrantes 
-# 2. Cada muestreo de transecto da lugar a, a lo más, un registro de información
-# de subcuadrantes.
+# 1. Cada muestreo realizado de reclutas en cuadrante fue registrado en los Exceles
+# correspondientes (independientemente de si tuvo observaciones o no).
+# 2. Cada cuadrante tiene a lo más un muestreo de reclutas asociado (esto es obvio)
+# 3. Este script ya acepta muestreos de reclutas en cuadrantes sin observaciones
 
-informacion_muestras_subcuadrantes_transecto_llave_primaria <- datos_globales_transecto_llave_primaria %>%
+muestreo_reclutas_cuadrante_llave_primaria <-
+  datos_globales_transecto_llave_primaria %>%
   filter(archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2") %>%
-  elimina_columnas_vacias() %>%
+  #elimina_columnas_vacias() %>% # Se elimina para no quitar "na_numerico"
   # Segundo supuesto:
-  genera_llave("id_muestreo_peces_transecto", "id_muestreo_transecto")
+  genera_llave("id_muestreo_reclutas_cuadrante", "id_muestreo_transecto", "cuadrante")
 
+lista_columnas_recruit_subquadrat_sample_from_transect_info <- list(
+  transect_sample_id = "id_muestreo_transecto",
+  quadrat_no = "cuadrante",
+  # sampling_method y data_aggregation_level creo que son innecesarios para reclutas
+  # tomados en un cuadrante, ya que no hay muchas opciones: siempre están agregados
+  # por especie (pues no hay orden), y siempre se cuentan.
+  surveyor = "observador",
+  maximum_recruit_size_cm = "na_numerico",
+  maximum_small_coral_size_cm = "na_numerico",
+  substratum = "sustrato",
+  comments = "strings_vacios"
+)
 
+recruit_subquadrat_sample_from_transect_info <- genera_tabla(
+  df = muestreo_reclutas_cuadrante_llave_primaria,
+  nombre_columna_llave = "id_muestreo_reclutas_cuadrante",
+  nombre_nuevo_columna_llave = "id",
+  lista_columnas_adicionales = lista_columnas_recruit_subquadrat_sample_from_transect_info
+)
 
+####################################################################
+# Generando la tabla "Recruit_subquadrat_sample_from_transect_count"
+####################################################################
 
+recruit_subquadrat_sample_from_transect_count <- muestreo_reclutas_cuadrante_llave_primaria %>%
+  elimina_columnas_vacias() %>%
+  # Filtrando los cuadrantes sin observaciones:
+  filter(!is.na(codigo)) %>%
+  # Agregando los datos por cuadrante, especie y categoria_tamanio
+  group_by(id_muestreo_reclutas_cuadrante, codigo, categoria_tamanio) %>%
+    summarise(
+      cuenta = n()
+    ) %>%
+  ungroup() %>%
+  arrange(id_muestreo_reclutas_cuadrante, codigo, categoria_tamanio) %>%
+  genera_llave("id") %>%
+  select(
+    id,
+    recruit_subquadrat_sample_from_transect_info_id = id_muestreo_reclutas_cuadrante,
+    species_code = codigo,
+    size_category = categoria_tamanio,
+    count = cuenta
+  )
 
+# save(
+#   benthos_transect_sample_info,
+#   benthos_transect_sample_point,
+#   coral_transect_sample_info,
+#   coral_transect_sample_observation,
+#   invertebrate_transect_sample_info,
+#   invertebrate_transect_sample_observation,
+#   fish_transect_sample_info,
+#   fish_transect_sample_count,
+#   complexity_transect_sample_info,
+#   recruit_subquadrat_sample_from_transect_info,
+#   recruit_subquadrat_sample_from_transect_count,
+#   file = "../productos/tablas_muestreo_aspectos_transecto.RData"
+# )
+  
 #############
 # Catálogos
 #############
@@ -607,6 +667,9 @@ informacion_muestras_subcuadrantes_transecto_llave_primaria <- datos_globales_tr
 #   en exceles de peces)
 # - Fish_transect_sample_count.species_code (codigo)
 # - Fish_transect_sample_count.species (especie)
+# - Recruit_subquadrat_sample_from_transect_info.substratum (sustrato)
+# - Recruit_subquadrat_sample_from_transect_count.species_code (codigo)
+# - Recruit_subquadrat_sample_from_transect_count.size_category (categoria_tamanio)
 
 #######################################
 # Comentarios (a consultar con Lorenzo)
@@ -647,3 +710,23 @@ informacion_muestras_subcuadrantes_transecto_llave_primaria <- datos_globales_tr
 # 8. Consultar con Lorenzo si él cree que puede haber varias medidas de complejidad
 # implementadas en el mismo transecto, en este caso, habría que desechar la idea
 # de meter el campo de "sampling_method".
+# 9. Checar con Lorenzo si "start_depth_m" y "end_depth_m" pueden ser declaradas
+# a nivel de transecto, así como la longitud teórica del mismo. Checar si
+# "temperature_c" está bien a nivel de muestreo de sitio.
+# 10. Cambios MASIVOS para simplificar cuadrantes en transectos: la tabla
+# "Subquadrat_samples_from_transect_info" desaparece, y se une a "Transect_sample"
+# Es una relación uno - uno (o cero). La tabla "Subquadrat_sample_from_transect"
+# desaparece, ya que el nombre de cada subcuadrante es autogenerado y no tiene
+# mucho sentido, entonces la info de reclutas queda asociada al transecto, con el
+# nombre (autogenerado) de cada cuadrante en un nuevo campo, y la cuenta de reclutas
+# queda asociada a su info correspondiente.
+# Si Esme me contesta que es muy improbable que más de una persona haga un mismo
+# cuadrante, y además maximum_relief siempre es por cuadrantes, entonces la tabla
+# de "Complexity_transect_maximum_relief_measurement" se une directo a transecto.
+# Por el momento, así pensarlo y hacerlo.
+# Esme me contestó que es muy improbable que varias personas realicen el mismo
+# cuadrante.
+# 11. Pensar si se necesitan los campos "Transect_sample.random_selection_centers"
+# y "Transect_sample.distance_between_centers".
+# 12. Igual y en "Transect_sample" se puede incluir el campo que especifique que
+# el transecto es fijo entre remuestreos.

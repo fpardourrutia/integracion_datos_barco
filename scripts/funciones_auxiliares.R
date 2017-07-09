@@ -2,6 +2,7 @@ library("plyr")
 library("dplyr")
 library("stringi")
 library("forcats") # Para trabajar con factores, en "genera_llave"
+library("purrr") # Para "genera_tabla_2"
 
 ###### Funciones auxiliares sobre listas de data frames
 
@@ -205,7 +206,7 @@ cambia_na_strings_vacios <- function(df){
 # ...: nombre de las variables que definen la llave natural.
 # El resultado es el df con la llave generada como una nueva columna.
 # Si no se pasa argumentos extras a la función (en ...), la llave generada
-# será simplemente una cuenta de todos los renglones.
+# será simplemente una cuenta de todos los renglones, en el orden en que aparecen
 genera_llave <- function(df, nombre_columna_llave, ...){
   
   nombres_columnas_llave_natural <- c(...)
@@ -224,7 +225,7 @@ genera_llave <- function(df, nombre_columna_llave, ...){
       ") ",
       # forcats::as_factor() crea los factores en el órden de aparición, sin ordenar
       # primero (lo cuál causaba problemas de "11" < "2" al usar as.factor())
-      "%>% as_factor() %>% as.numeric()"
+      "%>% as_factor() %>% as.integer()"
     ) %>%
       as.list()
     
@@ -279,14 +280,14 @@ genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
   # Generando la expresión para el rename (de la columna de la llave)
   expresion_rename_ <- list(nombre_columna_llave)
   names(expresion_rename_) <- nombre_nuevo_columna_llave
-
+  
   # Hay dos casos distintos: si lista_columnas_adicionales es vacía o no:
   if(length(lista_columnas_adicionales) > 0){
     
     # Generando la expresión para el summarise:
     expresion_summarise_ <- paste0("first(.data$",
       lista_columnas_adicionales, ")")
-        
+    
     # Asignando nombres de variables en la nueva tabla:
     names(expresion_summarise_) <- names(lista_columnas_adicionales)
     
@@ -315,6 +316,65 @@ genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
   
   return(resultado)
 }
+
+# Función auxiliar para generar una tabla a partir de una columna de llave 
+# y una lista nombrada de columnas adicionales, para calcular el valor de cada
+# columna adicional correspondiente a un valor de "nombre_columna_llave" se
+# utilizará la moda del valor de dicha columna en el nivel correspondiente de
+# "nombre_columna_llave".
+# df: df que contiene la columna "nombre_columna_llave" y las columnas a incluir en
+# la nueva tabla.
+# nombre_columna_llave: nombre de la columna que será una llave de la tabla nueva.
+# nombre_nuevo_columna_llave: el nombre que tendrá la llave en el nuevo data frame
+# lista_columnas_adicionales: lista nombrada de columnas adicionales a incluir
+# en la tabla nueva.
+# Para cada elemento en la lista, el "nombre" corresponde al nombre de la columna
+# en el data frame nuevo, y el valor al nombre de ésta en el df anterior..
+# La función regresa la tabla generada con las especificaciones anteriores
+genera_tabla_2 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
+  lista_columnas_adicionales){
+  
+  # Generando la expresión para el rename (de la columna de la llave), que se
+  # usará al final del ddply
+  expresion_rename_ <- list(nombre_columna_llave)
+  names(expresion_rename_) <- nombre_nuevo_columna_llave
+  
+  resultado <- df %>%
+    group_by_(nombre_columna_llave) %>%
+    # Para cada grupo:
+    do(
+      # Se utilizará el hecho de que "lista_columnas_adicionales" está nombrada
+      # para asignar el nuevo nombre de las columnas a "resultado".
+      map(lista_columnas_adicionales, function(columna, df_sub){
+          resultado <- df_sub %>%
+            # Seleccionando la columna de interés
+            group_by_(columna) %>%
+            # Calculando la moda
+            tally() %>%
+            ungroup() %>%
+            arrange(desc(n)) %>%
+            # Sacándolo como un tipo de datos primitivo
+            select_(columna) %>%
+            slice(1) %>%
+            pull()
+        return(resultado)
+      }, .) %>%
+        #convirtiendo a data frame
+        as_data_frame(.)
+    ) %>%
+    ungroup() %>%
+    # al final del ddply, hay que renombrar "nombre_columna_llave"
+    # a "nuevo_nombre_columna_llave"
+    rename_(.dots = expresion_rename_)
+  
+  return(resultado)
+}
+
+# Nota: La diferencia entre "genera_tabla" y "genera_tabla_2" es que "genera_tabla"
+# utiliza el primer valor encontrado para asignar el valor de cada campo para cada
+# nivel de "nombre_columna_llave", y "genera_tabla_2" utiliza el valor más
+# frecuente. Cabe destacar que "genera_tabla_2" es un poco más lenta que
+# "genera_tabla".
 
 ###### Funciones auxiliares sobre vectores
 

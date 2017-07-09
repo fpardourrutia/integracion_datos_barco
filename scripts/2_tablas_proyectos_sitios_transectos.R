@@ -32,7 +32,7 @@ datos_globales_llaves_primarias <- datos_globales %>%
 #saveRDS(datos_globales_llaves_primarias, "../productos/datos_globales_llaves_primarias.RData")
 
 ##############################
-# Generando la tabla "project"
+# Generando la tabla "Project"
 ##############################
 
 lista_columnas_project <- list(
@@ -53,7 +53,7 @@ lista_columnas_project <- list(
   # Faltan columnas del cliente de captura
 )
 
-project <- genera_tabla(
+project <- genera_tabla_2(
   df = datos_globales_llaves_primarias,
   nombre_columna_llave = "id_proyecto",
   nombre_nuevo_columna_llave = "id",
@@ -64,7 +64,7 @@ project <- genera_tabla(
   cambia_na_strings_vacios()
 
 #################################
-# Generando la tabla "site_sample"
+# Generando la tabla "Site_sample"
 #################################
 
 lista_columnas_site_sample <- list(
@@ -99,7 +99,7 @@ lista_columnas_site_sample <- list(
   # Faltan columnas del cliente de captura
 )
 
-site_sample <- genera_tabla(
+site_sample <- genera_tabla_2(
   df = datos_globales_llaves_primarias,
   nombre_columna_llave = "id_muestreo_sitio",
   nombre_nuevo_columna_llave = "id",
@@ -111,7 +111,7 @@ site_sample <- genera_tabla(
 
 
 #####################################
-# Generando la tabla "transect_sample"
+# Generando la tabla "Transect_sample"
 #####################################
 # Supuestos: en cada transecto se vio al menos una observación, sea la que sea:
 # bentos: alguna de bentos, corales, reclutas, complejidad (invertebrados si aplica)
@@ -122,24 +122,76 @@ site_sample <- genera_tabla(
 # realizados entre sitio (las tablas ...info)
 # (información completa de aspectos => información completa de muestreos de transectos)
 
-lista_columnas_transect_sample <- list(
-  site_sample_id = "id_muestreo_sitio",
-  name = "transecto"
+# Se propone fusionar las tablas de "Subquadrat_samples_from_transect_info" y
+# "Transect_sample", además de eliminar la tabla de "Subquadrat_sample_from_transect",
+# con el fin de simplificar enormemente el modelo de datos. Esto se hará en este
+# momento:
+
+# Generando tabla con la información de "Subquadrat_samples_from_transect_info"
+# Ahora es auxiliar pues estará ligada a transecto.
+# Supuestos:
+# 1. Cada muestreo de cuadrantes realizado fue registrado en los Exceles
+# de "Reclutas" (independientemente si tuvo observaciones o no).
+# 2. Cada muestreo de transecto tiene a lo más una definición de muestras por cuadrantes.
+
+lista_columnas_subquadrat_samples_from_transect_info_aux <- list(
+  # Campos específicos del "aspecto": toma de datos por cuadrantes. El hecho
+  # de que "start/end_depth_m" van a estar en la tabla de "transect_sample",
+  # me sugirió que tal vez sería mejor que estén a nivel de transecto (a ver)
+  # qué dicen Esme, Nuria y Lorenzo.
+  subquadrats_sampled = "verdadero", # Cambios en el esquema!
+  subquadrat_transect_start_depth_m = "profundidad_inicial_m", # Cambios en el esquema!
+  subquadrat_transect_end_depth_m = "profundidad_final_m", # Cambios en el esquema!
+  subquadrat_transect_sampled_length_m = "longitud_transecto_m", # Cambios en el esquema!
+  random_selection_centers = "falso", # Cambios en el esquema!
+  distance_between_centers_m = "na_numerico", # Cambios en el esquema!
+  subquadrat_length_m = "longitud_cuadrante_m", # Cambios en el esquema!
+  subquadrat_width_m = "ancho_cuadrante_m", # Cambios en el esquema!
+  number_subquadrats_sampled = "cantidad_cuadrantes_realizados" # Cambios en el esquema!
 )
+
+subquadrat_samples_from_transect_info_aux <- datos_globales_llaves_primarias %>%
+  filter(archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2") %>%
+  # elimina_columnas_vacias() %>% # Para que no quite "na_numerico"
+  # Calculando cantidad de cuadrantes por muestreo de transecto
+  ddply(.(id_muestreo_transecto), function(df){
+    cantidad_cuadrantes_realizados <- df %>%
+      pull(cuadrante) %>%
+      unique() %>%
+      length()
+    
+    resultado <- df %>%
+      mutate(
+        cantidad_cuadrantes_realizados = cantidad_cuadrantes_realizados
+      )
+    return(resultado)
+  }) %>%
+  # para garantizar que sólo haya un registro por "id_muestreo_transecto"
+  genera_tabla_2(
+    nombre_columna_llave = "id_muestreo_transecto",
+    nombre_nuevo_columna_llave ="id_muestreo_transecto",
+    lista_columnas_adicionales = lista_columnas_subquadrat_samples_from_transect_info_aux
+  )
+
+lista_columnas_transect_sample <- list(
+    site_sample_id = "id_muestreo_sitio",
+    name = "transecto"
+  )
 
 transect_sample <- genera_tabla(
   df = datos_globales_llaves_primarias,
   nombre_columna_llave = "id_muestreo_transecto",
   nombre_nuevo_columna_llave = "id",
-  lista_columnas_adicionales = lista_columnas_transect_sample
-)
+  lista_columnas_adicionales = lista_columnas_transect_sample) %>%
+  left_join(subquadrat_samples_from_transect_info_aux,
+    by = c("id" = "id_muestreo_transecto")) %>%
+  mutate(
+    subquadrats_sampled = ifelse(is.na(subquadrats_sampled), FALSE, subquadrats_sampled)
+  )
 
-# Supuesto para generar las tablas de aspecto (bentos, peces, corales, reclutas,
-# complejidad, invertebrados):
-# 1. Cada Excel tiene información correspondiente a un sólo nivel espacial de
-# agrupación de datos (transecto / sitio) .
-# 2. Cada Excel tiene información correspondiente a un sólo nivel biológico de
-# agragación de datos (por observacion, coberturas por especie, etc)...
-# Esto es necesario para generar las tablas de "...info" (que tienen información)
-# del nivel de agrupación de los datos en el nombre, y del nivel de agrupación
-# biológica de los datos en el campo "...info.data_aggregation_level".
+# save(
+#   project,
+#   site_sample,
+#   transect_sample,
+#   file = "../productos/tablas_proyectos_sitios_transectos.RData"
+# )

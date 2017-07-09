@@ -434,8 +434,11 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
     #   (mortalidad_total / suma_mortalidades) * 100 ,
     #   mortalidad_total)
     
-    # Creando columna auxiliar útiles a la hora de generar las tablas
+    # Creando columnas auxiliares útiles a la hora de generar las tablas
     strings_vacios = "",
+    verdadero = TRUE,
+    falso = FALSE,
+    na_numerico = NA_real_,
     datum = "WGS84"
   ) %>%
   # Calculando una sóla hora para cada muestreo de sitio: !!! Esto puede fallar si
@@ -521,6 +524,10 @@ crv <- function(nombre_columna){
 # ejemplo: AGRRA_V5, AGRRA_V5 + (AGRRA V_5 y adicionales), Otro, etc.
 # 12. ¿La temperatura está bien por sitio, o la recomiendan por transecto?
 # 13. Hay cuentas de peces duplicadas en el archivo "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2".
+# 14. ¿Por qué los transectos de corales tienen longitudes tan variables?
+# Si la respuesta es que dejan de muestrear porque ya no ven más corales, entonces
+# eso hay que considerarlo, por ejemplo, poniendo que la longitud del transecto es
+# 10m (pensarlo más).
 
 # Comentarios personales.
 # 1. Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
