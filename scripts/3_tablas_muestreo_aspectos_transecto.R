@@ -679,54 +679,69 @@ recruit_subquadrat_sample_from_transect_count <- muestreo_reclutas_cuadrante_lla
 # sitios seleccionados de más de una forma (estratégico, aleatorio, etc).
 # Y de la frecuencia con que esto pase.
 # 2. Creo que protocolo a nivel de Sitio debe ser muy general, por ejemplo:
-# "Otros", "AGRRA_v5", "AGRRA_v5+" (AGRRA_v5 y adicionales). Propongo dejar los
-# detalles a nivel muestreo de un aspecto, es decir, a nivel de las tablas "...info".
-# Por ello, se elimina el campo "Site_sample.methodology_details".
-# 3. Después de mucho pensar, creo que la columna "data_aggregation_level" debe
-# estar a nivel de las tablas de "..._info", por ejemplo, "Coral_transect_sample_info",
-#  Recruit_subquadrat_sample_from_transect_info", etc, ya que estas tablas son
-# las que realmente especifican CADA ASPECTO MUESTREADO EN UN SITIO (independientemente
+# “Otros”, “AGRRA_v5", “AGRRA_v5+” (AGRRA_v5 y adicionales). Propongo dejar los
+# detalles a nivel muestreo de un aspecto, es decir, a nivel de las tablas “...info”.
+# Por ello, se elimina el campo “Site_sample.methodology_details” (así se realizó para v2).
+# 3. Después de mucho pensar, creo que la columna “data_aggregation_level” debe
+# estar a nivel de las tablas de “..._info”, por ejemplo, “Coral_transect_sample_info”,
+# Recruit_subquadrat_sample_from_transect_info”, etc, ya que estas tablas son
+# las que realmente especifican cada aspecto muestreado en un sitio (independientemente
 # de si hubo observaciones o no). Por medio del nombre de la tabla + la variable
-# "data_aggregation_level", se puede saber para un sitio/transecto/etc:
+# “data_aggregation_level”, se puede saber para un sitio/transecto/etc:
 #   1. Qué aspectos se muestrearon.
 #   2. El nivel biológico de agregación de la información (individuo /
-#   agregados por especie, etc).
+#     agregados por especie, etc).
 #   3. El nivel geográfico de agregación de la información: cuadrante, transecto,
 #   sitio, etc...
 # Para visualizar esta abstracción, recordar que un join es ENTRE TABLAS, entonces,
-# por ejemplo, los registros en un join entre "Site_sample", "Transect_sample"
-# y "Fish_transect_sample_info", con "data_aggregation_level" = "por especie" en
+# por ejemplo, los registros en un join entre “Site_sample”, “Transect_sample”
+# y “Fish_transect_sample_info”, con “data_aggregation_level” = “por especie” en
 # esta última tabla, especifican sitios donde la información de PECES (1) está
-# agregada a nivel de ESPECIE (2), por transecto (3).
+# agregada a nivel de ESPECIE (2), por transecto (3) (así se realizó para v2).
 # 4. Revisar lo del pez león en invertebrados, ya que está muy raro.
-# 5. Es necesario que el campo de "invertebrates_sampled" sea más específico,
-# por ejemplo, dividirlo en "agrra_invertebrates_sampled", "lion_fish_sampled,
-# "other_invertebrates_sampled" (que posiblemente se tenga que dividir, etc.)
+# 5. Es necesario que el campo de “invertebrates_sampled” sea más específico,
+# por ejemplo, dividirlo en “agrra_invertebrates_sampled”, “lion_fish_sampled,
+# “other_invertebrates_sampled” (que posiblemente se tenga que dividir, etc.).
+# (se puso un ejemplo de esto en v2)
 # 6. Los datos de invertebrados muestreados para el proyecto CONACyT / GreenPeace
 # están por observaciones, si hay muchos así, conviene hacer una tabla para
-# invertebrados por observaciones (no por agregados de especies)
-# 7. Para la tabla "Fish_transect_sample_info", es necesario especificar qué especies
-# se muestrearon. Para ello, necesito un catálogo de "sampled_fish".
+# invertebrados por observaciones (no por agregados de especies, o ambas)
+# (así se realizó para v2).
+# 7. Para la tabla “Fish_transect_sample_info”, es necesario especificar qué especies
+# se muestrearon. Para ello, necesito un catálogo de “sampled_fish”
+# (AGRRA, ReefBudget, etc). Así se realizó para v2.
 # 8. Consultar con Lorenzo si él cree que puede haber varias medidas de complejidad
 # implementadas en el mismo transecto, en este caso, habría que desechar la idea
-# de meter el campo de "sampling_method".
-# 9. Checar con Lorenzo si "start_depth_m" y "end_depth_m" pueden ser declaradas
+# de meter el campo de “sampling_method” (así se realizó para v2).
+# 9. Checar con L/E/N si “start_depth_m” y “end_depth_m” pueden ser declaradas
 # a nivel de transecto, así como la longitud teórica del mismo. Checar si
-# "temperature_c" está bien a nivel de muestreo de sitio.
-# 10. Cambios MASIVOS para simplificar cuadrantes en transectos: la tabla
-# "Subquadrat_samples_from_transect_info" desaparece, y se une a "Transect_sample"
-# Es una relación uno - uno (o cero). La tabla "Subquadrat_sample_from_transect"
+# “temperature_c” está bien a nivel de muestreo de sitio. Esme ya me confirmó
+# que los 3 campos deben estar a nivel de transecto.
+# 10. Cambios masivos para simplificar cuadrantes en transectos: la tabla
+# “Subquadrat_samples_from_transect_info” desaparece, y se une a “Transect_sample”
+# Es una relación uno - uno (o cero). La tabla “Subquadrat_sample_from_transect”
 # desaparece, ya que el nombre de cada subcuadrante es autogenerado y no tiene
 # mucho sentido, entonces la info de reclutas queda asociada al transecto, con el
 # nombre (autogenerado) de cada cuadrante en un nuevo campo, y la cuenta de reclutas
-# queda asociada a su info correspondiente.
+# queda asociada a su info correspondiente (así se realizó para v2).
 # Si Esme me contesta que es muy improbable que más de una persona haga un mismo
 # cuadrante, y además maximum_relief siempre es por cuadrantes, entonces la tabla
-# de "Complexity_transect_maximum_relief_measurement" se une directo a transecto.
-# Por el momento, así pensarlo y hacerlo.
+# de “Complexity_transect_maximum_relief_measurement” se une directo a transecto.
 # Esme me contestó que es muy improbable que varias personas realicen el mismo
-# cuadrante.
-# 11. Pensar si se necesitan los campos "Transect_sample.random_selection_centers"
-# y "Transect_sample.distance_between_centers".
-# 12. Igual y en "Transect_sample" se puede incluir el campo que especifique que
+# cuadrante, entonces se realizará como lo anterior.
+# 11. Pensar si se necesitan los campos “Transect_sample.random_selection_centers”
+# y “Transect_sample.distance_between_centers”.
+# 12. Igual y en “Transect_sample” se puede incluir el campo que especifique que
 # el transecto es fijo entre remuestreos.
+# 13. Necesitamos mejorar el campo “Project.site_selection_method”, ya que es crucial
+# para la correcta aplicación de la teoría de muestreo al análisis de esta base de
+# datos. Una solución que se me ocurre es poner una columna "project.sample_stratum",
+# y cada estrato del mismo proyecto (sea espacial o temporal) va a tener su propio
+# registro en la tabla. Dentro de cada estrato, los sitios deben tomarse exáctamente
+# de la misma forma: muestreo aleatorio simple, estratégico para muestra representativa,
+# estratégico por ser sitio de importancia para la biodiversidad, etc (a definir menú).
+# Cambiar nombre de la tabla de Project a Project_stratum, para dar al estrato la importancia
+# que se merece.
+# 14. Finalmente, para el sesgo por observadores, igual y conviene tener un catálogo de
+# observadores (independiente del login del cliente), y que el observador se seleccione
+# de ahí. 
