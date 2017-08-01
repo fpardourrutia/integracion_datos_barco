@@ -45,7 +45,7 @@ warnings()
 sink()
 # Expecting numeric .*
 # Coercing text to numeric .*
-# Expectig logical .*
+# Expecting logical .*
 # 26408 + 412 + 185 = 27005
 
 # Revisando que los exceles se hayan leído correctamente:

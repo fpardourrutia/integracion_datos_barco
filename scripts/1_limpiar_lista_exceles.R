@@ -528,6 +528,8 @@ crv <- function(nombre_columna){
 # Si la respuesta es que dejan de muestrear porque ya no ven más corales, entonces
 # eso hay que considerarlo, por ejemplo, poniendo que la longitud del transecto es
 # 10m (pensarlo más).
+# 15. Lorenzo me confirmó que los peces muestreados en CONACyT / GreenPeace no
+# fueron sólo AGRRA, sino todos.
 
 # Comentarios personales.
 # 1. Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
