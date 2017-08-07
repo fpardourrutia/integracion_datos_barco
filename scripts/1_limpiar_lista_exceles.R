@@ -530,27 +530,3 @@ crv <- function(nombre_columna){
 # 10m (pensarlo más).
 # 15. Lorenzo me confirmó que los peces muestreados en CONACyT / GreenPeace no
 # fueron sólo AGRRA, sino todos.
-
-# Comentarios personales.
-# 1. Los registros que tienen vacía "longitud_transecto_m" son todos del archivo:
-# "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2", por lo que tal vez esta información se
-# pueda obtener de otros exceles. De la misma manera, los registros que tienen
-# vacía la columna "ancho_transecto_m" pertenecen a aspectos donde no es necesario
-# este dato.
-# 2. Comparar códigos con catálogo, para saber si están bien escritos
-# 3. Sería bueno tener un protocolo para apuntar nombres de observadores.
-# 4. Los registros que tienen NA en clump no pertenecen a "CORALES_DESAGREGADOS_V2"
-# 5. Los registros de "CORALES_DESAGREGADOS_V2" con NA en "d1_max_diam_cm",
-# "d2_min_diam_cm" y "altura_maxima_cm" son básicamente los que tienen
-# "clump" == "FRAG".
-# 6. Como "anio", "mes", "dia", "hora" y "minutos" son por transecto, para ponerlos
-# a nivel de sitio calcular la fecha_hora más antigua.
-# Para reclutas, Maximum_recruit_size" y "Maximum_small_coral_size" son los de AGGRA.
-# 7. "mortalidad_total" es un campo que usan cuando no saben el tipo de mortalidad.
-# Por lo tanto, la suma de las mortalidades debe ser < 100.
-# datos_globales %>% filter(archivo_origen == "CORALES_DESAGREGADOS_V2") %>%
-# group_by(mortalidad_antigua, mortalidad_reciente, mortalidad_transición, mortalidad_total)
-# %>% tally() %>% View()
-# 8. Por compatibilidad con cliente de captura, pasar NA's a strings vacíos en
-# campos que se quedan de tipo caracter. Tip: hacer una función que sustituya
-# NA's por "" en columnas de caracteres.

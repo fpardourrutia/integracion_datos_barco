@@ -40,15 +40,14 @@ lista_columnas_project <- list(
   description = "titulo",
   purpose = "tema",
   #location falta
-  start_year = "anio_inicio_proyecto", # Cambios en esquema!
-  end_year = "anio_termino_proyecto",  # Cambios en esquema!
+  start_year = "anio_inicio_proyecto",
+  end_year = "anio_termino_proyecto",
   organization = "institucion",
   suborganization = "suborganizacion",
   person_in_charge = "autor_administrador_proyecto",
   contact = "contacto",
-  site_selection_method = "metodo_seleccion_sitios",
-  comments = "strings_vacios", # Cambios en el esquema"
-  reference = "cita"
+  reference = "cita",
+  comments = "strings_vacios"
   
   # Faltan columnas del cliente de captura
 )
@@ -70,8 +69,7 @@ project <- genera_tabla_2(
 lista_columnas_site_sample <- list(
   project_id = "id_proyecto",
   name = "nombre_sitio",
-  datetime = "fecha_hora_muestreo_sitio", # Cambios en el esquema!
-  # resampling: esta columna se eliminará por dificultad de mantenimiento
+  datetime = "fecha_hora_muestreo_sitio",
   country = "pais",
   healthy_reefs_region = "region_healthy_reefs",
   location = "localidad",
@@ -80,20 +78,18 @@ lista_columnas_site_sample <- list(
   # "subzona_habitat", "nombre_arrecife".
   
   inside_protected_area = "dentro_anp",
-  protected_area_name = "anp",  # Cambios en esquema!
+  protected_area_name = "anp",
   # Falta "dentro_area_no_pesca" (inside_non_fishing_area)
   latitude = "latitud",
   longitude = "longitud",
   datum = "datum",
   
+  selection_method = "metodo_seleccion_sitios", # Cambios en el esquema!
   methodology = "protocolo_muestreo_sitio",
-  # "methodology_details" se elimina, los detalles quedarán a nivel de aspecto
-  # "...info" (ver notas)
-  # "data_aggregation_level" pasará a las tablas de "...info" (ver notas).
   
   # Esme me calculará la profundidad por sitio
-  depth_m = "profundidad_media_m", # Cambios en el esquema!
-  temperature_c = "temperatura_c", # Cambios en el esquema!
+  depth_m = "profundidad_media_m",
+  temperature_c = "temperatura_c",
   comments = "strings_vacios"
   
   # Faltan columnas del cliente de captura
@@ -117,16 +113,6 @@ site_sample <- genera_tabla_2(
 # bentos: alguna de bentos, corales, reclutas, complejidad (invertebrados si aplica)
 # peces: agún pez (o invertebrado), si aplica.
 
-# Es importante tener completa la información de transectos, pero no por sí misma,
-# más importante es tener completa la información de muestreos de cada aspecto
-# realizados entre sitio (las tablas ...info)
-# (información completa de aspectos => información completa de muestreos de transectos)
-
-# Se propone fusionar las tablas de "Subquadrat_samples_from_transect_info" y
-# "Transect_sample", además de eliminar la tabla de "Subquadrat_sample_from_transect",
-# con el fin de simplificar enormemente el modelo de datos. Esto se hará en este
-# momento:
-
 # Generando tabla con la información de "Subquadrat_samples_from_transect_info"
 # Ahora es auxiliar pues estará ligada a transecto.
 # Supuestos:
@@ -135,19 +121,11 @@ site_sample <- genera_tabla_2(
 # 2. Cada muestreo de transecto tiene a lo más una definición de muestras por cuadrantes.
 
 lista_columnas_subquadrat_samples_from_transect_info_aux <- list(
-  # Campos específicos del "aspecto": toma de datos por cuadrantes. El hecho
-  # de que "start/end_depth_m" van a estar en la tabla de "transect_sample",
-  # me sugirió que tal vez sería mejor que estén a nivel de transecto (a ver)
-  # qué dicen Esme, Nuria y Lorenzo.
-  subquadrats_sampled = "verdadero", # Cambios en el esquema!
-  subquadrat_transect_start_depth_m = "profundidad_inicial_m", # Cambios en el esquema!
-  subquadrat_transect_end_depth_m = "profundidad_final_m", # Cambios en el esquema!
-  subquadrat_transect_sampled_length_m = "longitud_transecto_m", # Cambios en el esquema!
-  random_selection_centers = "falso", # Cambios en el esquema!
-  distance_between_centers_m = "na_numerico", # Cambios en el esquema!
-  subquadrat_length_m = "longitud_cuadrante_m", # Cambios en el esquema!
-  subquadrat_width_m = "ancho_cuadrante_m", # Cambios en el esquema!
-  number_subquadrats_sampled = "cantidad_cuadrantes_realizados" # Cambios en el esquema!
+  subquadrats_planned = "verdadero",
+  random_selection_subqudrat_centers = "falso",
+  subquadrat_length_m = "longitud_cuadrante_m",
+  subquadrat_width_m = "ancho_cuadrante_m",
+  number_subquadrats_planned = "cantidad_cuadrantes_realizados"
 )
 
 subquadrat_samples_from_transect_info_aux <- datos_globales_llaves_primarias %>%
@@ -174,8 +152,13 @@ subquadrat_samples_from_transect_info_aux <- datos_globales_llaves_primarias %>%
   )
 
 lista_columnas_transect_sample <- list(
-    site_sample_id = "id_muestreo_sitio",
-    name = "transecto"
+  site_sample_id = "id_muestreo_sitio",
+  name = "transecto",
+  length_m = "Voy a necesitar un campo con la longitud teórica de cada transecto",
+  temperature_c = "temperatura_c",
+  start_depth_m = "profundidad_inicial_m",
+  end_depth_m = "profundidad_final_m",
+  comments = "strings_vacios"
   )
 
 transect_sample <- genera_tabla(
@@ -186,7 +169,7 @@ transect_sample <- genera_tabla(
   left_join(subquadrat_samples_from_transect_info_aux,
     by = c("id" = "id_muestreo_transecto")) %>%
   mutate(
-    subquadrats_sampled = ifelse(is.na(subquadrats_sampled), FALSE, subquadrats_sampled)
+    subquadrats_planned = ifelse(is.na(subquadrats_planned), FALSE, subquadrats_planned)
   )
 
 # save(
