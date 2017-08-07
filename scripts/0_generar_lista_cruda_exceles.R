@@ -12,7 +12,7 @@ library("lubridate")
 # Poniendo las opciones para las warnings
 options(nwarnings=50000)
 
-ruta_exceles <- "~/Dropbox/carpetas_compartidas/barco_lab/BASES_INTEGRACION/conacyt_greenpeace/respaldos/datos_v2"
+ruta_exceles <- "~/Dropbox/carpetas_compartidas/barco_lab/BASES_INTEGRACION/conacyt_greenpeace/respaldos/datos_v3_preeliminar/"
 
 nombres_archivos <- list.files(ruta_exceles,
   full.names = TRUE,
