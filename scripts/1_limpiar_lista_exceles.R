@@ -11,10 +11,10 @@ library("readr")
 source("funciones_auxiliares.R")
 
 # Leyendo lista de exceles
-lista_exceles_cruda <- readRDS("../productos/lista_exceles_cruda.RData")
+lista_datos_crudos <- readRDS("../productos/v3/lista_datos_crudos.RData")
 
 ## 1. Arreglando nombres de columnas que difieren entre DF's:
-lista_exceles_columnas_homologadas <- lista_exceles_cruda %>%
+lista_datos_columnas_homologadas <- lista_datos_crudos %>%
   renombra_columna("101a110cm", "tamanio_101cm_110cm") %>%
   renombra_columna("111a120cm", "tamanio_111cm_120cm") %>%
   renombra_columna("11a20cm     ll", "tamanio_11cm_20cm") %>%
@@ -54,18 +54,16 @@ lista_exceles_columnas_homologadas <- lista_exceles_cruda %>%
   renombra_columna("Profundidad_media_m", "profundidad_media_m") %>% #importante
   renombra_columna("Profundidad_media_metros", "profundidad_media_m") %>% #importante
   renombra_columna("Region_del_arrecife_HR", "region_healthy_reefs") %>%
-  renombra_columna("Subzona_de_habitat", "subzona_habitat") %>%
   renombra_columna("Tamanio_de_cadena_metros", "tamanio_cadena_m") %>%
   renombra_columna("Temperatura_celsius", "temperatura_c") %>% #importante
   renombra_columna("Temperatura_en _Celcius", "temperatura_c") %>% #importante
-  renombra_columna("Tipo_de_Arrecife", "tipo_arrecife") %>%
   renombra_columna("Unidades_de_profundidad", "unidades_profundidad") %>%
   renombra_columnas_minusculas()
 
 # Revisando que no haya duplicados en los nombres de las columnas dentro de cada
 # Excel, causados, por ejemplo, por renombrar una columna a un nombre anteriormente
 # usado
-ldply(lista_exceles_columnas_homologadas, function(df){
+ldply(lista_datos_columnas_homologadas, function(df){
   numero_columnas_nombres_duplicados <- colnames(df) %>%
     duplicated() %>%
     sum()

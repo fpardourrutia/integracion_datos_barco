@@ -6,12 +6,15 @@ library("purrr") # Para "genera_tabla_2"
 
 ###### Funciones auxiliares sobre listas de data frames
 
-# Función auxiliar para renombrar una columna en todos los exceles. Para usarla
-# un supuesto es que la columna "nombre_nuevo" no existe si existe "nombre_anterior":
+# Función auxiliar para renombrar una columna en todos los data frames de una lista.
+# Para usarla, un supuesto es que la columna "nombre_nuevo" no existe si existe
+# "nombre_anterior":
 # lista_df: lista de data frames
 # nombre_anterior: nombre de la columna a renombrar
 # nombre_nuevo: nombre nuevo de la columna
 # La función regresa una lista de data frames, por lo que se puede pipear.
+# Si la columna "nombre_anterior" no existe en un data frame de la lista, la
+# función no realiza cambios en ese data frame.
 renombra_columna <- function(lista_df, nombre_anterior, nombre_nuevo){
   llply(lista_df, function(df, nombre_anterior, nombre_nuevo){
     # Obteniendo nombres de las columnas del df
@@ -34,6 +37,36 @@ renombra_columnas_minusculas <- function(lista_df){
       tolower()
     return(df)
   })
+}
+
+# Función auxiliar para hacer un inner join de cada uno de los data frames en una
+# lista, con otro data frame:
+# lista_df: lista de data frames
+# df: data frame con el que se hará el inner join de cada uno de los data frames
+# en la lista.
+# llaves_union: parámetro pasado a "dplyr::inner_join" para especificar los campos
+# sobre los cuáles se realizará el join.
+# La función regresa una lista de los resultados de cada uno de los joins.
+# Si cambia el número de renglones de un data frame en la lista después del join
+# manda un warning de que se pudireon haber introducido artefactos.
+inner_join_lista <- function(lista_df, df, llaves_union){
+  n <- length(lista_df)
+  lista_joins <- llply(1:n, function(i){
+    resultado <- inner_join(lista_df[[i]], df, by = llaves_union)
+    
+    if(nrow(resultado) != nrow(lista_df[[i]]))
+      warning(
+        paste0("Cambio en número de renglones después del join, para el df: ",
+          names(lista_df)[i])
+      )
+
+    return(resultado)
+  })
+  
+  # Agregando nombres a "lista_joins"
+  names(lista_joins) <- names(lista_df)
+  
+  return(lista_joins)
 }
 
 ###### Funciones auxiliares sobre data frames
