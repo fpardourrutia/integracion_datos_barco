@@ -4,7 +4,104 @@ library("stringi")
 library("forcats") # Para trabajar con factores, en "genera_llave"
 library("purrr") # Para "genera_tabla_2"
 
-###### Funciones auxiliares sobre listas de data frames
+###################################################
+# Funciones auxiliares sobre listas de data frames
+###################################################
+
+# Función auxiliar para leer una hoja determinada de cada uno de los archivos de
+# Excel en una carpeta específica y guardar los data frames resultantes en una
+# lista:
+# ruta_carpeta_origen: ruta de la carpeta que contiene los archivos de excel.
+# hoja: hoja a seleccionar de cada archivo de Excel en la carpeta (la misma para
+# todos, ya que se supone tienen el mismo formato).
+# La función regresa una lista donde cada elemento es el data frame correspondiente
+# a un Excel en la carpeta. Todas las columnas son de tipo caracter para evitar
+# introducir NA's por incompatibilidad de datos. Cada uno de estos data frames
+# contiene una columna llamada "archivo_origen" que contiene el string
+# "nombre_carpeta_nombre_excel" para cada registro.
+# Notas:
+# 1. Un elemento en la carpeta especificada deben ser un archivo de Excel si y
+# sólo si su nombre empieza con una letra.
+# 2. Los nombres de dichos archivos sólo deben consistir en caracteres
+# alfanuméricos y guion bajo para que los nombres sean asignados correctamente
+# 3. Todos los exceles deben contener una columna llamada "Serie", que enliste los
+# renglones no vacíos.
+leer_exceles <- function(ruta_carpeta_origen, hoja){
+  
+  # Obteniendo el nombre de la carpeta origen para formar el campo "archivo_origen"
+  # y el nombre del archivo de warnings:
+  nombre_carpeta_origen <- basename(ruta_carpeta_origen)
+  
+  # Formando la ruta a cada uno de los exceles en "ruta_carpeta_origen" (supuesto 1):
+  rutas_exceles <- list.files(ruta_carpeta_origen,
+    full.names = TRUE,
+    pattern = "^[[:alpha:]].*")
+  
+  # Leyendo cada archivo de Excel:
+  lista_df_exceles <- llply(rutas_exceles, function(x){
+    
+    # Obteniendo el nombre del Excel para usarlo en el print y columna: "archivo_origen"
+    nombre_archivo <- (basename(x) %>%
+        stri_match_first_regex("(\\w+).xlsx"))[,2]
+    
+    # Primero se leerá cada archivo, no importando warnings, con el fin de saber
+    # el número de columnas de cada uno y poder especificar que todas sean leídas
+    # como texto (y así evitar warnings la segunda vez que se lean)
+    aux <- suppressWarnings(read_excel(x, sheet = hoja))
+    
+    # Leyendo el Excel por segunda vez, especificando las columnas como texto.
+    datos <- read_excel(x, sheet = hoja, col_types = rep("text", ncol(aux))) %>%
+      # Supuesto 3
+      filter(!is.na(Serie)) %>%
+      # Agregando el archivo origen a los datos correspondientes
+      mutate(
+        archivo_origen = nombre_carpeta_origen %>%
+          paste0("_", nombre_archivo)
+      )
+    
+    # Generando mensaje:
+    paste0(nombre_archivo, ": ", nrow(datos), " x ", ncol(datos)) %>%
+      print()
+    
+    return(datos)
+  })
+  
+  # Asignando nombres de los archivos a la lista correspondiente:
+  names(lista_df_exceles) <- nombre_carpeta_origen %>%
+    paste0("_", (basename(rutas_exceles) %>%
+        stri_match_first_regex("(\\w+).xlsx"))[,2])
+
+  return(lista_df_exceles)
+}
+
+# Función auxiliar para que, dada una lista de data frames, se haga un data frame
+# donde Aij = 1 si la j-ésima se encuentra en el i-ésimo data frame y 0 e.o.c.
+# lista_df: lista nombrada de data frames
+# La función regresa el data frame descrito anteriormente
+# Nota: Considerar explorar el data frame resultante con las funciones glimpse(),
+# encuentra_columnas()", y colSums().
+crear_resumen_columnas_df <- function(lista_df){
+  resultado <- ldply(lista_df, function(df){
+    
+    # Para df, creando un data frame con un columna llamada "nombre_columna" que
+    # contendrá los nombres de las columnas en df
+    resultado <- data_frame(nombre_columna = colnames(df))
+    return(resultado)
+  }) %>%
+    select(
+      # Por lo siguiente se requiere que la lista de data frames esté nombrada:
+      nombre_df = .id,
+      nombre_columna
+    ) %>%
+    # Generando una columna auxiliar para llenar un spread de nombres de columnas
+    # para cada excel
+    mutate(
+      uno = 1
+    ) %>%
+    spread(key = nombre_columna, value = uno, fill = 0)
+  
+  return(resultado)
+}
 
 # Función auxiliar para renombrar una columna en todos los data frames de una lista.
 # Para usarla, un supuesto es que la columna "nombre_nuevo" no existe si existe
@@ -48,7 +145,7 @@ renombra_columnas_minusculas <- function(lista_df){
 # sobre los cuáles se realizará el join.
 # La función regresa una lista de los resultados de cada uno de los joins.
 # Si cambia el número de renglones de un data frame en la lista después del join
-# manda un warning de que se pudireon haber introducido artefactos.
+# manda un warning de que se pudieron haber introducido artefactos.
 inner_join_lista <- function(lista_df, df, llaves_union){
   n <- length(lista_df)
   lista_joins <- llply(1:n, function(i){
@@ -69,7 +166,166 @@ inner_join_lista <- function(lista_df, df, llaves_union){
   return(lista_joins)
 }
 
-###### Funciones auxiliares sobre data frames
+# Función que recibe una lista de data frames y una de catálogos (que también son
+# data frames) y, por medio de un vector que especifica qué columnas de qué
+# data frames corresponden a qué columnas de qué catálogos permite revisar los
+# valores en cada data frame que no corresponden con los de catálogos.
+# lista_df: lista nombrada de data frames
+# lista_catalogos: lista nombrada de catalogos
+# relacion_columnas_catalogo: vector con nombres y entradas de la forma:
+# c("df.columna" = "catalogo.columna") que indicará qué data frame (y columna) de
+# "lista_df" debe corresponder con qué data frame (y columna) de "lista_catalogos".
+# La función regresa una lista de data frames, cada uno correspondiente a una
+# entrada de "relacion_columnas_catalogo". Estos data frames están nombrados como
+# "df.columna__catalogo" y contienen la "serie" y el valor de "columna" de todos
+# los registros que no tienen este valor en el catálogo correspondiente.
+# Notas:
+# 1. Las columnas de cada data frame en "lista_df" deben contener sólo caracteres
+# alfanuméricos y guiones bajos.
+# 2. Cada data frame en "lista_df" debe contener una columna llamada "serie".
+# 3. Las entradas de "relacion_columnas_catalogo" puede ser especificadas de la
+# manera c(".columna" = "catalogo.columna"), lo que significa que esa columna en
+# cada data frame debe estar en el catálogo correspondiente. En este caso el data
+# frame resultante contendrá el campo "tabla", que especifica el nombre del data
+# frame del que vino cada registro.
+
+revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_columnas_catalogo){
+  
+  # Calculando la longitud de "lista_df" que será de utilidad posteriormente
+  numero_df <- length(lista_df)
+  
+  # Transformando "relacion_columnas_catalogo" en un data frame para su fácil
+  # manipulación:
+  relacion_columnas_catalogo_df <- data_frame(
+    df.columna = names(relacion_columnas_catalogo),
+    catalogo.columna = relacion_columnas_catalogo
+  ) %>%
+    separate(df.columna, into = c("nombre_df", "nombre_columna_df"), sep = "\\.") %>%
+    separate(catalogo.columna, into = c("nombre_catalogo", "nombre_columna_catalogo"), sep = "\\.")
+  
+  # Verificando que todos los data frames y catálogos estén en las listas
+  # correspondientes:
+  data_frames_considerados <- relacion_columnas_catalogo_df %>%
+    # Filtrando los casos donde no se especifica un data frame
+    filter(nombre_df != "") %>%
+    pull(nombre_df) %>%
+    unique() 
+  
+  catalogos_considerados <- relacion_columnas_catalogo_df %>%
+    pull(nombre_catalogo) %>%
+    unique() 
+  
+  # Si hay data frames escritos en "relacion_columnas_catalogo" que no se encuentran
+  # en "lista_df", entonces parar la ejecución:
+  if(sum(data_frames_considerados %in% names(lista_df)) != length(data_frames_considerados)){
+    "Hay data frames especificados en 'relacion_columnas_catalogo' que no se " %>%
+      paste0("encuentran en 'lista_df'") %>%
+      stop()
+  }
+  
+  # Si hay catálogos escritos en "relacion_columnas_catalogo" que no se encuentran
+  # en "lista_catálogos", entonces parar la ejecución:
+  if(sum(catalogos_considerados %in% names(lista_catalogos)) != length(catalogos_considerados)){
+    "Hay catálogos especificados en 'relacion_columnas_catalogo' que no se " %>%
+      paste0("encuentran en 'lista_catalogos'") %>%
+      stop()
+  }
+  
+  # Ahora se pasará a interpretar cada renglón de relacion_columnas_catalogo_df
+  # para realizar los joins correspondientes.
+  lista_resultado <- apply(relacion_columnas_catalogo_df, 1, function(x){
+    
+    # Obteniendo valores de cada renglón del data frame
+    nombre_df <- x["nombre_df"]
+    nombre_columna_df <- x["nombre_columna_df"]
+    nombre_catalogo <- x["nombre_catalogo"]
+    nombre_columna_catalogo <- x["nombre_columna_catalogo"]
+    
+    # Si el data frame es especificado explícitamente:
+    if(nombre_df != ""){
+      
+      df <- lista_df[[nombre_df]]
+      catalogo <- lista_catalogos[[nombre_catalogo]]
+      
+      # Si la columna correspondiente no se encuentra en el data frame especificado
+      if(!(nombre_columna_df %in% colnames(df))){
+        paste0("La columna ", nombre_columna_df, " no se encuentra en el data frame ",
+          nombre_df) %>%
+          stop()
+      }
+      
+      # Si la columna correspondiente no se encuentra en el catálogo especificado
+      if(!(nombre_columna_catalogo %in% colnames(catalogo))){
+        paste0("La columna ", nombre_columna_catalogo, " no se encuentra en el catálogo ",
+          nombre_catalogo) %>%
+          stop()
+      }
+      
+      # Si se pasaron los dos filtros anteriores, hacer el anti join para
+      # obtener la información de los registros del data frame considerado, que
+      # para la columna considerada, no tienen valores en el catálogo
+      
+      # Generando la condición de unión para el anti_join
+      condicion <- nombre_columna_catalogo
+      names(condicion) <- nombre_columna_df
+      
+      # Generando la expresión para el select_:
+      expresion_select <- list("serie", nombre_columna_df)
+      names(expresion_select) <- c("serie", nombre_columna_df)
+      
+      resultado <- df %>%
+        anti_join(catalogo, by = condicion) %>%
+        # Seleccionando columnas de interés
+        select_(.dots = expresion_select)
+      
+    } else{
+      
+      catalogo <- lista_catalogos[[nombre_catalogo]]
+      
+      # Generando la condición de unión para el anti_join
+      condicion <- nombre_columna_catalogo
+      names(condicion) <- nombre_columna_df
+      
+      # Generando la expresión para el select_. Esta expresión contempla,
+      # adicionalmente, una columna con el nombre de la tabla de la que proviene
+      # el campo. Esto debido a que se regresará un sólo data frame con los
+      # registros con valores inesperados en la columna especificada, para todos
+      # los data frames en "lista_df"
+      
+      expresion_select <- list("tabla", "serie", nombre_columna_df)
+      # Se generará la columna "tabla"
+      names(expresion_select) <- c("tabla", "serie", nombre_columna_df)
+      
+      # Aplicar el anti_join a cada elemento en "lista_df"
+      resultado <- ldply(1:numero_df, function(i){
+        resultado <- lista_df[[i]] %>%
+          anti_join(catalogo, by = condicion) %>%
+          mutate(
+            tabla = names(lista_df)[i]
+          ) %>%
+          # Seleccionando columnas de interés
+          select_(.dots = expresion_select)
+      })
+    }
+  })
+  
+  names(lista_resultado) <- relacion_columnas_catalogo_df %>%
+    mutate(
+      nombre_tabla_resultado = paste0(
+        nombre_df, ".", nombre_columna_df, "__", nombre_catalogo)
+    ) %>%
+    pull(nombre_tabla_resultado)
+  
+  # Finalmente, eliminando data frames vacíos de "lista_resultado"
+  lista_resultado_corregida <- lista_resultado %>%
+    keep(function(df) nrow(df) > 0)
+  
+  return(lista_resultado_corregida)
+}
+
+#########################################
+# Funciones auxiliares sobre data frames
+#########################################
 
 # Función auxiliar a la hora de programar, que regresa los nombres de las columnas
 # de un df que contienen cierto string.
@@ -114,6 +370,7 @@ revisa_valores <- function(df){
 # valor_nuevo
 # la función regresa un data frame, por lo que se puede pipear.
 cambia_valor_columna <- function(df, nombre_columna, valor_anterior, valor_nuevo){
+  
   # Si la columna está en df, se cambia el valor de la misma, de lo contrario,
   # el df se deja idéntico y se envía un warning
   if(nombre_columna %in% names(df)){
@@ -131,6 +388,47 @@ cambia_valor_columna <- function(df, nombre_columna, valor_anterior, valor_nuevo
     warning("La columna especificada no está en el data frame")
   }
   return(df)
+}
+
+# Función auxiliar para sustituir el valor de un campo para todos los registros
+# de un data frame que cumplan una condición especificada.
+# df: data frame de interés
+# condicion: string de código de R que especifica una condición
+# sobre los registros del data frame, en notación de dplyr. Ejemplo: "col == 'algo'"
+# nombre_columna: nombre de la columna de interés
+# valor_nuevo: valor nuevo que tendrá cada registro que cumpla la condición en
+# la columna de interés.
+# la función regresa un data frame, por lo que se puede pipear.
+cambia_valor_columna_condicion <- function(df, condicion, nombre_columna, valor_nuevo){
+  
+  # Si la columna está en df, se cambia el valor de la misma, de lo contrario,
+  # el df se deja idéntico y se envía un warning
+  if(nombre_columna %in% names(df)){
+    
+    # Poniéndole comillas a "valor_nuevo" si es un string.
+    if(is.character(valor_nuevo))
+      valor_nuevo <- paste0("'", valor_nuevo, "'")
+    
+    # Generando la expresión para el mutate_:
+    expresion <- paste0(
+      "ifelse(", condicion, ", ",
+      valor_nuevo, ", ",
+      nombre_columna, ")"
+    )
+    
+    # Asignando nombres a la expreión porque el mutate_ los necesita para asignar
+    # nombres a las nuevas variables
+    names(expresion) <- nombre_columna
+    
+    # Creando el resultado:
+    resultado <- df %>%
+      mutate_(.dots = expresion)
+
+  }else{
+    warning("La columna especificada no está en el data frame")
+    resultado <- df
+  }
+  return(resultado)
 }
 
 # Función para eliminar columnas vacías (de puros NA's) de un data frame
@@ -409,7 +707,9 @@ genera_tabla_2 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
 # frecuente. Cabe destacar que "genera_tabla_2" es un poco más lenta que
 # "genera_tabla".
 
-###### Funciones auxiliares sobre vectores
+######################################
+# Funciones auxiliares sobre vectores
+######################################
 
 # Función para que, dado un vector de strings (frases), capitalice la primera
 # letra de cada palabra de cada una de sus entradas, y las otras letras las minimiza.
