@@ -199,7 +199,9 @@ revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_column
   relacion_columnas_catalogo_df <- data_frame(
     df.columna = names(relacion_columnas_catalogo),
     catalogo.columna = relacion_columnas_catalogo
-  ) %>%
+    ) %>%
+    # Quedándonos sólo con renglones distintos:
+    distinct() %>%
     separate(df.columna, into = c("nombre_df", "nombre_columna_df"), sep = "\\.") %>%
     separate(catalogo.columna, into = c("nombre_catalogo", "nombre_columna_catalogo"), sep = "\\.")
   
