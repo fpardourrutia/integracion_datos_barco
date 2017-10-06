@@ -10,11 +10,39 @@ library("readr")
 # Cargando funciones auxiliares:
 source("funciones_auxiliares.R")
 
-# Leyendo lista de exceles
-lista_datos_crudos <- readRDS("../productos/v3/lista_datos_crudos.RData")
+###############################################################
+# Leyendo cada una de las listas individuales:
+###############################################################
 
-## 1. Arreglando nombres de columnas que difieren entre DF's:
-lista_datos_columnas_homologadas <- lista_datos_crudos %>%
+# Leyendo listas de exceles
+lista_datos_crudos_conacyt_greenpeace_2016 <- readRDS("../productos/v3/lista_datos_crudos_conacyt_greenpeace_2016.RData")
+lista_catalogos <- readRDS("../productos/v3/lista_catalogos.RData") %>%
+  renombra_columnas_minusculas()
+
+# Generando data frame auxiliar con los nombres de las columnas de cada tabla,
+# para ver qué tanto renombrar.
+# df_resumen_conacyt_greenpeace_2016 <- crear_resumen_columnas_df(lista_datos_crudos_conacyt_greenpeace_2016)
+# glimpse(df_resumen_conacyt_greenpeace_2016)
+# encuentra_columnas(df_resumen_conacyt_greenpeace_2016, "Abundancia")
+
+# Revisando cuántos catálogos tienen cada columna, para ver si hay que renombrar
+# o no.
+# crear_resumen_columnas_df(lista_catalogos) %>%
+#   select(-nombre_df) %>%
+#   gather("variable", "valor") %>%
+#   group_by(variable) %>%
+#   summarise(
+#     n = sum(valor)
+#   ) %>%
+#   arrange(variable) %>%
+#   View()
+# Parece que todo bien
+
+######################################################################################
+# Arreglando nombres de columnas que difieren entre data frames (en la lista general)
+######################################################################################
+
+lista_datos_columnas_homologadas <- lista_datos_crudos_conacyt_greenpeace_2016 %>%
   renombra_columna("101a110cm", "tamanio_101cm_110cm") %>%
   renombra_columna("111a120cm", "tamanio_111cm_120cm") %>%
   renombra_columna("11a20cm     ll", "tamanio_11cm_20cm") %>%
@@ -35,8 +63,8 @@ lista_datos_columnas_homologadas <- lista_datos_crudos %>%
   renombra_columna("Autor_Administrador_Del_Proyecto", "autor_administrador_proyecto") %>%
   renombra_columna("Blaqueamieto", "blanqueamiento") %>%
   renombra_columna("Depredación", "depredacion") %>%
-  renombra_columna("Día", "dia") %>% #importante
-  renombra_columna("Dia", "dia") %>% #importante
+  renombra_columna("Día", "dia") %>%
+  renombra_columna("Dia", "dia") %>%
   renombra_columna("Fecha_de_inicio", "anio_inicio_proyecto") %>%
   renombra_columna("Fecha_de_termino", "anio_termino_proyecto") %>%
   renombra_columna("Longitud_del_cuadrante_m", "longitud_cuadrante_m") %>%
@@ -44,15 +72,17 @@ lista_datos_columnas_homologadas <- lista_datos_crudos %>%
   renombra_columna("menores_a_5m", "tamanio_0cm_5cm") %>%
   renombra_columna("Metodo_de_Seleccion_de_Sitios", "metodo_seleccion_sitios") %>%
   renombra_columna("Mortalidad_Transición", "mortalidad_transicion") %>%
+  renombra_columna("Muestreo_completo", "muestreo_completo") %>%
+  renombra_columna("Muestrreo_completo", "muestreo_completo") %>%
   renombra_columna("Nivel_de_agregacion_de_datos", "nivel_agregacion_datos") %>%
-  renombra_columna("Nombre_del_sitio", "nombre_sitio") %>% #importante
-  renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>% #importante
+  renombra_columna("Nombre_del_sitio", "nombre_sitio") %>%
+  renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>%
   renombra_columna("Nombre_del_Proyecto", "nombre_proyecto") %>%
   renombra_columna("Numero_de_sitios_agregados", "numero_sitios_agregados") %>%
   renombra_columna("Profundidad_final", "profundidad_final_m") %>%
   renombra_columna("Profundidad_inicial", "profundidad_inicial_m") %>%
-  renombra_columna("Profundidad_media_m", "profundidad_media_m") %>% #importante
-  renombra_columna("Profundidad_media_metros", "profundidad_media_m") %>% #importante
+  renombra_columna("Profundidad_media_m", "profundidad_media_m") %>%
+  renombra_columna("Profundidad_media_metros", "profundidad_media_m") %>%
   renombra_columna("Region_del_arrecife_HR", "region_healthy_reefs") %>%
   renombra_columna("Tamanio_de_cadena_metros", "tamanio_cadena_m") %>%
   renombra_columna("Temperatura_celsius", "temperatura_c") %>% #importante
@@ -71,13 +101,101 @@ ldply(lista_datos_columnas_homologadas, function(df){
 })
 # Perfecto!
 
+###############################################################
+# Revision de valores en catálogos:
+###############################################################
+
+# En esta sección se revisará que los campos asociados a un catálogo de cada
+# data frame en "lista_datos_columnas_homologadas" efectivamente tengan todos sus
+# valores tomados de dicho catálogo. En otro caso, se imprimirá la información
+# necesaria para corregirlo.
+
+# Revisando las columnas en cada data frame de las listas de tablas y catálogos:
+names(lista_datos_columnas_homologadas)
+resumen_df <- crear_resumen_columnas_df(lista_datos_columnas_homologadas)
+glimpse(resumen_df)
+encuentra_columnas(resumen_df, "agregacion")
+
+resumen_catalogos <- crear_resumen_columnas_df(lista_catalogos)
+View(resumen_catalogos)
+
+# Generando la relación de columnas en catálogo:
+relacion_columnas_catalogo <- c(
+  ".tema" = "catalogos_proyecto__proposito.categoria", # propósito
+  ".pais" = "catalogos_muestra_sitio__pais.categoria",
+  ".region_healthy_reefs" = "catalogos_muestra_sitio__region_healthy_reefs.categoria",
+  ".tipo_arrecife" = "catalogos_muestra_sitio__tipo_arrecife.categoria",
+  ".tipo_arrecife" = "catalogos_muestra_sitio__tipo_arrecife.categoria",
+  ".subtipo_arrecife" = "catalogos_muestra_sitio__subtipo_arrecife.categoria",
+  ".zona_arrecife" = "catalogos_muestra_sitio__zona_arrecifal.categoria",
+  ".anp" = "catalogos_muestra_sitio__nombre_area_natural_protegida.categoria",
+  ".metodo_seleccion_sitios" = "catalogos_muestra_sitio__metodo_seleccion.categoria",
+  ".protocolo" = "catalogos_muestra_sitio__metodologia.categoria",
+  
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.metodo" =
+    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.protocolo_utilizado" =
+    "catalogos_muestra_transecto_corales_info__metodo_muestreo.categoria",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_corales_info__nivel_agregacion_datos.categoria",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+  "conacyt_greenpeace_2016_corales_desagregados_v3.depredacion" =
+    "catalogos_muestra_transecto_corales_observacion__depredacion.categoria",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.lesiones" =
+    "catalogos_muestra_transecto_corales_observacion__lesion.categoria",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.enfermedades" =
+    "catalogos_muestra_transecto_corales_observacion__enfermedades.codigo",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.sobrecrecimiento" =
+    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.blanqueamiento" =
+    "catalogos_muestra_transecto_corales_observacion__tipo_blanqueamiento.categoria",
+  # Falta campo "criterio_seleccion_colonias".
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados_v3.metodo" =
+    "catalogos_muestra_transecto_invertebrados_info__metodo_muestreo.categoria",
+  "conacyt_greenpeace_2016_invertebrados_desagregados_v3.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_invertebrados_info__nivel_agregacion_datos.categoria",
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.metodo" =
+    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+  # Falta el catálogo de nombres científicos de peces y el de "peces_muestreados"
+  
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.nivel_agregacion_datos" =
+    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.sustrato" =
+    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo" # Falta crear el catálogo de corales
+)
+
+# Catálogos por agregar:
+# 1. Falta catálogo de "datum"
+# 2. Falta catálogo de "peces_muestreados
+
+valores_revision_esme_catalogos <- revisa_columnas_catalogos(
+  lista_datos_columnas_homologadas, lista_catalogos, relacion_columnas_catalogo) %>%
+  group_by(tabla, campo, catalogo, valor) %>%
+  tally()
+# write_csv(valores_revision_esme_catalogos, "../productos/v3/valores_revision_esme_catalogos.csv")
+  
 ## 2. Creando una tabla con la información de todos los Exceles
 # Para crear las tablas, primero se unirán los datos de todos los exceles
 # (agregando columnas según se necesite), y luego se separarán esos datos en
 # tablas
 
+# Revisiones de la tabla siguiente:
+# datos_globales_conacyt_greenpeace$anio_inicio_proyecto %>% table(useNA = "always")
+
 #!!! = precaución con la generalidad a la hora de integrar más Exceles.
-datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
+datos_globales_conacyt_greenpeace <- Reduce(rbind.fill, lista_datos_columnas_homologadas_conacyt_greenpeace) %>%
   mutate(
     id = 1:nrow(.)
   ) %>%
@@ -91,18 +209,20 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
       paste0("Evaluación de la efectividad de las Áreas Marinas Protegidas ",
         "en los sistemas arrecifales del Caribe Mexicano")
   ) %>%
-  # Arreglando el valor de "documento"
-  mutate(
-    documento = "datos de campo" #!!!
+  # Arreglando el valor de "documento" para los datos de "conacyt_greenpeace"
+  cambia_valor_columna_condicion(
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace')",
+    "documento", "datos de campo"
   ) %>%
-  cambia_valor_columna("nombre_proyecto", "NA", "CONACYT 247104 2016") %>% #!!!
-  cambia_valor_columna("proposito", "Estrategic", "Evaluación ANPs") %>%
-  cambia_valor_columna("tema", NA, "Monitoreo") %>% #!!!
-  cambia_valor_columna("anio_inicio_proyecto", "42713", "2016") %>%
-  cambia_valor_columna("anio_termino_proyecto", "42722", "2016") %>%
-  cambia_valor_columna("anio_termino_proyecto", "NA", "2016") %>% #!!!
+  cambia_valor_columna_condicion(
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace') & anio_inicio_proyecto == '42713'",
+    "anio_inicio_proyecto", "2016"
+  ) %>%
+  cambia_valor_columna_condicion(
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace') & anio_termino_proyecto == '42722'",
+    "anio_termino_proyecto", "2016"
+  ) %>%
   cambia_valor_columna("metodo_seleccion_sitios", "Estrategic", "Estratégico") %>%
-  cambia_valor_columna("metodo_seleccion_sitios", "NA", "Estratégico") %>% #!!!
   cambia_valor_columna("metodo_seleccion_sitios", "Estrategico", "Estratégico") %>%
   cambia_valor_columna("cita",
     paste0("Álvarez-Filip, L. 2016. Evaluación de la efectividadde las Áreas ",
@@ -112,7 +232,6 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
         "Marinas Protegidas en los arrecifales del Caribe Mexicano. ",
         "Proyecto CONACYT 247104.")
     ) %>%
-  
   # las siguientes columnas desaparecerán al hacer los siguientes cambios y eliminar
   # columnas vacías
   cambia_valor_columna("anio_publicacion", "NA", NA) %>%
@@ -122,8 +241,9 @@ datos_globales <- Reduce(rbind.fill, lista_exceles_columnas_homologadas) %>%
   
   # Site_sample
   cambia_valor_columna("pais", "Mexico", "México") %>%
+  cambia_valor_columna("anp", "NA", NA) %>%
   
-  cambia_valor_columna("anp", "NA", NA) %>% #!!!
+  ############## AQUÍ ME QUEDÉ###############
   mutate(
     # Haciendo columna "dentro de ANP, sabemos que si "anp" es NA
     # quiere decir que no. No se será un NA en "dentro_anp
@@ -503,28 +623,33 @@ crv <- function(nombre_columna){
 # saveRDS(datos_globales, "../productos/datos_globales.RData")
 
 # Comentarios Esme y Nuria:
-# 1. Falta localidad del proyecto
-# 2. "tipo_arrecife", "zona_arrecifal" y "subzona_habitat" siguen muy revueltas!
-# 3. Falta "inside_non_fishing_area"
-# 4. Esme me va a calcular "profundidad_sitio_m", por mientras usar "profundidad_media_m"
-# 5. Esme va a revisar los datos con "blanqueamiento" NA, pero con porcentaje y viceversa.
+# 1. Falta localidad del proyecto. Esme la va a poner
+# 2. Esme va a revisar los datos con "blanqueamiento" NA, pero con porcentaje y viceversa. RESUELTO
 # datos_globales %>% group_by(blanqueamiento, porcentaje) %>% tally() %>% View()
-# 6. Esme me va a difereciar transectos con el mismo nombre en el mismo muestreo
-# de sitio, pero que en realidad son distintos, por ejemplo, el transecto 1 de peces
-# y el de bentos.
-# 7. Esme va a checar qué significa el sustrato "0". Cuadrantes que no se hicieron
-# 8. Esme va a checar SC con "codigo NA.
-# 9. En Corales, ¿qué es "fisión" y "S"?
-# 10. NECESITO que todos los registros de un mismo muestreo de sitio tengan la misma
-# hora, sino, al homologar nombres de sitio (ante remuestreos), va a ser muy difícil
-# distinguir entre remuestreos.
-# 11. Necesito una columa informativa con el protocolo utilizado a nivel de sitio, por
-# ejemplo: AGRRA_V5, AGRRA_V5 + (AGRRA V_5 y adicionales), Otro, etc.
-# 12. ¿La temperatura está bien por sitio, o la recomiendan por transecto?
-# 13. Hay cuentas de peces duplicadas en el archivo "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2".
-# 14. ¿Por qué los transectos de corales tienen longitudes tan variables?
-# Si la respuesta es que dejan de muestrear porque ya no ven más corales, entonces
-# eso hay que considerarlo, por ejemplo, poniendo que la longitud del transecto es
-# 10m (pensarlo más).
-# 15. Lorenzo me confirmó que los peces muestreados en CONACyT / GreenPeace no
-# fueron sólo AGRRA, sino todos.
+# 3. ¿Por qué los transectos de corales tienen longitudes tan variables?
+# Porque a veces no te da tiempo terminar...
+# 4. ¿Qué diferencia hay entre "Anio" y "Anio_de_muestreo". Ninguna, usar Anio.
+# 5. En "anio_inicio_proyecto" y "anio_termino_proyecto" aún hay datos con formato
+# de fecha de Excel (todos los archivos)
+# 6. En "conacyt_greenpeace_rugosidad_v3" hay unos que tienen "Anio" 2017, está bien? Error.
+# 7. Hay algunos sitios sin información de "area_no_pesca". Será que falta actualizar
+# la tabla de "datos_anexos?" No, si no está no tenemos info.
+# 8. ¿Qué es fisión y S? S: sana. Dejarla porque en algunos proyectos es importante.
+# fisión: colonia rota en fragmentos.
+# 9. Igual y convendría poner un campo de texto para explicar el "método de selección
+# de sitios".
+
+# Revisión para datos históricos:
+# 1. Revisar campos de catálogo.
+# 2. Revisar campos de tablas adicionales.
+# 3. Esme me va a difereciar transectos con el mismo nombre en el mismo muestreo 
+#   de sitio, pero que en realidad son distintos, por ejemplo, el transecto 1 de peces
+#   y el de bentos.
+# 4. Checar qué significa el sustrato "0". Cuadrantes que no se hicieron
+# 5. Checar SC (Small Coral) con codigo NA. RESUELTO
+# 6. NECESITO que todos los registros de un mismo muestreo de sitio tengan la misma
+#    hora, sino, al homologar nombres de sitio (ante remuestreos), va a ser muy difícil
+#    distinguir entre remuestreos.
+# 7. Lorenzo me confirmó que los peces muestreados en CONACyT / GreenPeace no
+#    fueron sólo AGRRA, sino todos.
+

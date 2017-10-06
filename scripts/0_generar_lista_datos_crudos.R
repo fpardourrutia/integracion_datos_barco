@@ -17,87 +17,77 @@ library("lubridate")
 # Cargando funciones auxiliares:
 source("funciones_auxiliares.R")
 
-
 # Poniendo las opciones para las warnings
 options(nwarnings=50000)
 
-ruta_exceles <- "~/Dropbox/carpetas_compartidas/barco_lab/BASES_INTEGRACION/conacyt_greenpeace/respaldos/datos_v3_preeliminar"
+# Ruta de la carpeta con los datos V3:
+ruta_carpeta_datos_v3 <- "~/Dropbox/carpetas_compartidas/barco_lab/bases_integracion/datos_v3_preeliminar"
 
-nombres_archivos <- list.files(ruta_exceles,
-  full.names = TRUE,
-  pattern = "^[[:alpha:]].*")
+##########################################################
+# Procesando datos del proyecto CONACyT / GreenPeace 2016
+##########################################################
 
-# Leyendo cada archivo de Excel, que contiene información de cada aspecto:
-lista_exceles_cruda <- llply(nombres_archivos, function(x){
-  # Primero se leerá cada archivo, no importando warnings, con el fin de saber
-  # el número de columnas de cada uno y poder especificar que todas sean leídas
-  # como texto (y así evitar warnings la segunda vez que se lean)
-  aux <- read_excel(x, sheet = 2)
-  print(ncol(aux))
-  datos <- read_excel(x, sheet = 2, col_types = rep("text", ncol(aux))) %>%
-    # Se revisaron los datos, y todos los renglones no vacíos tienen el siguiente campo
-    filter(!is.na(Serie)) %>%
-    # Agregando el archivo origen a los datos correspondientes
-    mutate(
-      archivo_origen = (basename(x) %>%
-          stri_match_first_regex("(\\w+).xlsx"))[,2]
-    )
-  return(datos)
-})
+ruta_carpeta_conacyt_greenpeace_2016 <- paste0(ruta_carpeta_datos_v3, "/conacyt_greenpeace_2016")
+lista_exceles_conacyt_greenpeace_2016 <- leer_exceles(ruta_carpeta_conacyt_greenpeace_2016, 2)
 
-names(lista_exceles_cruda) <- (basename(nombres_archivos) %>%
-    stri_match_first_regex("(\\w+).xlsx"))[,2]
-
-# Escribiendo Warnings para tener el control sobre ellos.
-sink("../productos/v3/warnings_lectura_archivos_excel.txt")
-warnings()
-sink()
-# Creo que no hay problemas porque al final todo lo transformo en caracter.
-
-# Revisando que los exceles se hayan leído correctamente:
-llply(lista_exceles_cruda, function(x){
-  nombres_columnas <- colnames(x) %>%
-    sort()
-  return(nombres_columnas)
-})
-# Perfecto! No hay nombres aproximadamente duplicados en las columnas dentro de
-# cada Excel.
-
-num_registros <- read_excel(paste0(ruta_exceles, "/_numero_registros_excel_v3.xlsx"))
-View(num_registros)
-llply(lista_exceles_cruda, nrow)
+# Revisando números de registros:
+ruta_carpeta_conacyt_greenpeace_2016 %>%
+  paste0("/_auxiliares/numero_registros.xlsx") %>%
+  read_excel() %>%
+  View()
 # Perfecto!
 
-# Ahora se procederá a realizar el join de cada una de las tablas en "lista_exceles_cruda"
+# # Revisando que los exceles estén en el formato correcto:
+# llply(lista_exceles_conacyt_greenpeace_2016, function(x){
+#   nombres_columnas <- colnames(x) %>%
+#     sort()
+#   return(nombres_columnas)
+# })
+# # Perfecto! No hay nombres aproximadamente duplicados en las columnas dentro de
+# # cada Excel.
+
+# Ahora se procederá a realizar el join de cada una de las tablas en "lista_exceles_conacyt_greenpeace_2016"
 # con la tabla de campos adicionales de cada muestreo de sitio, con el fin de
 # homologar el formato y reutilizar los scripts.
 
 # Leyendo la tabla de campos adicionales por sitio:
-tabla_campos_adicionales_sitio <- read_excel(paste0(ruta_exceles, "/_tablas_individuales/campos_adicionales_sitio.xlsx"))
+tabla_campos_adicionales_sitio_conacyt_greenpeace_2016 <- ruta_carpeta_conacyt_greenpeace_2016 %>%
+  paste0("/_tablas_individuales/campos_adicionales_sitio.xlsx") %>%
+  read_excel()
 
-# Revisando los nombres de las columnas de cada data frame en "lista_exceles_cruda".
-# nos interesa el campo de "Nombre_del_sitio", pues sobre éste se realizará el join:
-l_ply(lista_exceles_cruda, glimpse)
+# Revisando los nombres de las columnas de cada data frame en
+# "lista_exceles_conacyt_greenpeace_2016" nos interesa el campo de
+# "Nombre_del_sitio", pues sobre éste se realizará el join:
+# l_ply(lista_exceles_conacyt_greenpeace_2016, glimpse)
 
 # Generando joins con las tablas
-lista_datos_crudos <- lista_exceles_cruda %>%
+lista_datos_crudos_conacyt_greenpeace_2016 <- lista_exceles_conacyt_greenpeace_2016 %>%
   renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>%
   renombra_columna("Nombre_del_sitio", "nombre_sitio") %>%
-  llply(function(x){
-    x %>%
+  llply(function(df){
+    df %>%
       mutate(
         nombre_sitio = estandariza_strings(nombre_sitio)
         )
   }) %>%
   inner_join_lista(
-    tabla_campos_adicionales_sitio %>%
+    tabla_campos_adicionales_sitio_conacyt_greenpeace_2016 %>%
       mutate(nombre_sitio = estandariza_strings(nombre_sitio)),
     "nombre_sitio"
   )
 # Como no sacó ningún warning el inner_join_lista, los tamaños de todos los data
 # frames se quedaron igual (no hubo artefactos).
 
-# Escribiendo los data frames leídos en un objeto
-#saveRDS(lista_datos_crudos, "../productos/v3/lista_datos_crudos.RData")
+#saveRDS(lista_datos_crudos_conacyt_greenpeace_2016, "../productos/v3/lista_datos_crudos_conacyt_greenpeace_2016.RData")
+
+#####################################################
+# Leyendo catálogos:
+#####################################################
 
 # Finalmente se leerán los catálogos (falta que Esme tenga las versiones finales)
+ruta_catalogos <- paste0(ruta_carpeta_datos_v3, "/catalogos")
+lista_catalogos <- leer_exceles(ruta_catalogos, 1)
+
+#saveRDS(lista_catalogos, "../productos/v3/lista_catalogos.RData")
+
+

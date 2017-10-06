@@ -168,27 +168,23 @@ inner_join_lista <- function(lista_df, df, llaves_union){
 
 # Función que recibe una lista de data frames y una de catálogos (que también son
 # data frames) y, por medio de un vector que especifica qué columnas de qué
-# data frames corresponden a qué columnas de qué catálogos permite revisar los
+# data frames corresponden a qué columnas de qué catálogos, permite revisar los
 # valores en cada data frame que no corresponden con los de catálogos.
 # lista_df: lista nombrada de data frames
 # lista_catalogos: lista nombrada de catalogos
 # relacion_columnas_catalogo: vector con nombres y entradas de la forma:
 # c("df.columna" = "catalogo.columna") que indicará qué data frame (y columna) de
 # "lista_df" debe corresponder con qué data frame (y columna) de "lista_catalogos".
-# La función regresa una lista de data frames, cada uno correspondiente a una
-# entrada de "relacion_columnas_catalogo". Estos data frames están nombrados como
-# "df.columna__catalogo" y contienen la "serie" y el valor de "columna" de todos
-# los registros que no tienen este valor en el catálogo correspondiente.
+# La función regresa un data frame donde cada registro tiene los campos:
+# "tabla", "campo", "catálogo" "serie" y "valor" y corresponde a un registro
+# que no contiene un valor en el catálogo correspondiente.
 # Notas:
 # 1. Las columnas de cada data frame en "lista_df" deben contener sólo caracteres
 # alfanuméricos y guiones bajos.
 # 2. Cada data frame en "lista_df" debe contener una columna llamada "serie".
 # 3. Las entradas de "relacion_columnas_catalogo" puede ser especificadas de la
 # manera c(".columna" = "catalogo.columna"), lo que significa que esa columna en
-# cada data frame debe estar en el catálogo correspondiente. En este caso el data
-# frame resultante contendrá el campo "tabla", que especifica el nombre del data
-# frame del que vino cada registro.
-
+# cada data frame debe estar en el catálogo correspondiente.
 revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_columnas_catalogo){
   
   # Calculando la longitud de "lista_df" que será de utilidad posteriormente
@@ -233,9 +229,9 @@ revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_column
       stop()
   }
   
-  # Ahora se pasará a interpretar cada renglón de relacion_columnas_catalogo_df
+  # Ahora se pasará a interpretar cada renglón de "relacion_columnas_catalogo_df"
   # para realizar los joins correspondientes.
-  lista_resultado <- apply(relacion_columnas_catalogo_df, 1, function(x){
+  resultado <- apply(relacion_columnas_catalogo_df, 1, function(x){
     
     # Obteniendo valores de cada renglón del data frame
     nombre_df <- x["nombre_df"]
@@ -271,12 +267,18 @@ revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_column
       condicion <- nombre_columna_catalogo
       names(condicion) <- nombre_columna_df
       
-      # Generando la expresión para el select_:
-      expresion_select <- list("serie", nombre_columna_df)
-      names(expresion_select) <- c("serie", nombre_columna_df)
+      # Generando la expresión para el select_.
+      # Se generarán las columnas "tabla", "campo" y "catalogo"
+      expresion_select <- list("tabla", "campo", "catalogo", "serie", nombre_columna_df)
+      names(expresion_select) <- c("tabla", "campo", "catalogo", "serie", "valor")
       
       resultado <- df %>%
         anti_join(catalogo, by = condicion) %>%
+        mutate(
+          tabla = nombre_df,
+          campo = nombre_columna_df,
+          catalogo = nombre_catalogo
+        ) %>%
         # Seleccionando columnas de interés
         select_(.dots = expresion_select)
       
@@ -288,41 +290,28 @@ revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_column
       condicion <- nombre_columna_catalogo
       names(condicion) <- nombre_columna_df
       
-      # Generando la expresión para el select_. Esta expresión contempla,
-      # adicionalmente, una columna con el nombre de la tabla de la que proviene
-      # el campo. Esto debido a que se regresará un sólo data frame con los
-      # registros con valores inesperados en la columna especificada, para todos
-      # los data frames en "lista_df"
-      
-      expresion_select <- list("tabla", "serie", nombre_columna_df)
-      # Se generará la columna "tabla"
-      names(expresion_select) <- c("tabla", "serie", nombre_columna_df)
+      # Generando la expresión para el select_.
+      # Se generarán las columnas "tabla", "campo" y "catalogo"
+      expresion_select <- list("tabla", "campo", "catalogo", "serie", nombre_columna_df)
+      names(expresion_select) <- c("tabla", "campo", "catalogo", "serie", "valor")
       
       # Aplicar el anti_join a cada elemento en "lista_df"
       resultado <- ldply(1:numero_df, function(i){
         resultado <- lista_df[[i]] %>%
           anti_join(catalogo, by = condicion) %>%
           mutate(
-            tabla = names(lista_df)[i]
+            tabla = names(lista_df)[i],
+            campo = nombre_columna_df,
+            catalogo = nombre_catalogo
           ) %>%
           # Seleccionando columnas de interés
           select_(.dots = expresion_select)
       })
-    }
-  })
+    }}) %>%
+    # Uniendo los data frames
+    reduce(rbind)
   
-  names(lista_resultado) <- relacion_columnas_catalogo_df %>%
-    mutate(
-      nombre_tabla_resultado = paste0(
-        nombre_df, ".", nombre_columna_df, "__", nombre_catalogo)
-    ) %>%
-    pull(nombre_tabla_resultado)
-  
-  # Finalmente, eliminando data frames vacíos de "lista_resultado"
-  lista_resultado_corregida <- lista_resultado %>%
-    keep(function(df) nrow(df) > 0)
-  
-  return(lista_resultado_corregida)
+  return(resultado)
 }
 
 #########################################
