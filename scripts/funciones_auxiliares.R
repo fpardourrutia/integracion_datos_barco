@@ -503,8 +503,7 @@ mutate_logical <- function(df, ...){
   return(resultado)
 }
 
-# Función auxiliar para transformar NA's en "" en columnas de tipo
-# caracter.
+# Función auxiliar para transformar NA's en "" para columnas de tipo caracter.
 # df: data frame de interés
 # El resultado es un data frame con los NA's sustituídos por "" en columnas de
 # tipo caracter.

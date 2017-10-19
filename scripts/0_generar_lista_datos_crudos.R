@@ -37,14 +37,14 @@ ruta_carpeta_conacyt_greenpeace_2016 %>%
   View()
 # Perfecto!
 
-# # Revisando que los exceles estén en el formato correcto:
-# llply(lista_exceles_conacyt_greenpeace_2016, function(x){
-#   nombres_columnas <- colnames(x) %>%
-#     sort()
-#   return(nombres_columnas)
-# })
-# # Perfecto! No hay nombres aproximadamente duplicados en las columnas dentro de
-# # cada Excel.
+# Revisando que los exceles estén en el formato correcto:
+llply(lista_exceles_conacyt_greenpeace_2016, function(x){
+  nombres_columnas <- colnames(x) %>%
+    sort()
+  return(nombres_columnas)
+})
+# Perfecto! No hay nombres aproximadamente duplicados en las columnas dentro de
+# cada Excel.
 
 # Ahora se procederá a realizar el join de cada una de las tablas en "lista_exceles_conacyt_greenpeace_2016"
 # con la tabla de campos adicionales de cada muestreo de sitio, con el fin de

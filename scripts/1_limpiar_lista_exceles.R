@@ -79,6 +79,7 @@ lista_datos_columnas_homologadas <- lista_datos_crudos_conacyt_greenpeace_2016 %
   renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>%
   renombra_columna("Nombre_del_Proyecto", "nombre_proyecto") %>%
   renombra_columna("Numero_de_sitios_agregados", "numero_sitios_agregados") %>%
+  renombra_columna("Protocolo_utilizado", "metodo") %>% #!!!
   renombra_columna("Profundidad_final", "profundidad_final_m") %>%
   renombra_columna("Profundidad_inicial", "profundidad_inicial_m") %>%
   renombra_columna("Profundidad_media_m", "profundidad_media_m") %>%
@@ -114,7 +115,7 @@ ldply(lista_datos_columnas_homologadas, function(df){
 names(lista_datos_columnas_homologadas)
 resumen_df <- crear_resumen_columnas_df(lista_datos_columnas_homologadas)
 glimpse(resumen_df)
-encuentra_columnas(resumen_df, "agregacion")
+#encuentra_columnas(resumen_df, "agregacion")
 
 resumen_catalogos <- crear_resumen_columnas_df(lista_catalogos)
 View(resumen_catalogos)
@@ -139,7 +140,7 @@ relacion_columnas_catalogo <- c(
   "conacyt_greenpeace_2016_bentos_desagregados_v3.codigo" =
     "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
   
-  "conacyt_greenpeace_2016_corales_desagregados_v3.protocolo_utilizado" =
+  "conacyt_greenpeace_2016_corales_desagregados_v3.metodo" =
     "catalogos_muestra_transecto_corales_info__metodo_muestreo.categoria",
   "conacyt_greenpeace_2016_corales_desagregados_v3.nivel_agregacion_datos" =
     "catalogos_muestra_transecto_corales_info__nivel_agregacion_datos.categoria",
@@ -187,22 +188,27 @@ valores_revision_esme_catalogos <- revisa_columnas_catalogos(
 # write_csv(valores_revision_esme_catalogos, "../productos/v3/valores_revision_esme_catalogos.csv")
   
 ## 2. Creando una tabla con la información de todos los Exceles
-# Para crear las tablas, primero se unirán los datos de todos los exceles
-# (agregando columnas según se necesite), y luego se separarán esos datos en
-# tablas
+# Para construir las tablas especificadas en el esquema de bases de datos,
+# primero se unirán los datos de todos los exceles (agregando columnas según se
+# necesite), y luego se separarán esos datos en tablas
 
 # Revisiones de la tabla siguiente:
-# datos_globales_conacyt_greenpeace$anio_inicio_proyecto %>% table(useNA = "always")
+# datos_globales$anio_inicio_proyecto %>% table(useNA = "always")
 
-#!!! = precaución con la generalidad a la hora de integrar más Exceles.
-datos_globales_conacyt_greenpeace <- Reduce(rbind.fill, lista_datos_columnas_homologadas_conacyt_greenpeace) %>%
+#!!! = "código posiblemente no generalizable a la hora de integrar más Exceles".
+
+datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
   mutate(
     id = 1:nrow(.)
   ) %>%
   elimina_columnas_vacias() %>%
+  
   ## Arreglando valores de las columnas
   
-  # Project
+  ################
+  # Proyecto
+  ################
+  
   cambia_valor_columna("titulo",
     paste0("Evaluación de la efectividadde las Áreas Marinas Protegidas en los ",
       "arrecifales del Caribe Mexicano"),
@@ -211,19 +217,17 @@ datos_globales_conacyt_greenpeace <- Reduce(rbind.fill, lista_datos_columnas_hom
   ) %>%
   # Arreglando el valor de "documento" para los datos de "conacyt_greenpeace"
   cambia_valor_columna_condicion(
-    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace')",
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016')",
     "documento", "datos de campo"
   ) %>%
   cambia_valor_columna_condicion(
-    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace') & anio_inicio_proyecto == '42713'",
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & anio_inicio_proyecto == '42713'",
     "anio_inicio_proyecto", "2016"
   ) %>%
   cambia_valor_columna_condicion(
-    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace') & anio_termino_proyecto == '42722'",
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & anio_termino_proyecto == '42722'",
     "anio_termino_proyecto", "2016"
   ) %>%
-  cambia_valor_columna("metodo_seleccion_sitios", "Estrategic", "Estratégico") %>%
-  cambia_valor_columna("metodo_seleccion_sitios", "Estrategico", "Estratégico") %>%
   cambia_valor_columna("cita",
     paste0("Álvarez-Filip, L. 2016. Evaluación de la efectividadde las Áreas ",
       "Marinas Protegidas en los arrecifales del Caribe Mexicano. ",
@@ -239,26 +243,58 @@ datos_globales_conacyt_greenpeace <- Reduce(rbind.fill, lista_datos_columnas_hom
   cambia_valor_columna("numero_sitios_agregados", "NA", NA) %>%
   cambia_valor_columna("numero_sitios_agregados", "Especie", NA) %>%
   
-  # Site_sample
-  cambia_valor_columna("pais", "Mexico", "México") %>%
-  cambia_valor_columna("anp", "NA", NA) %>%
+  ################
+  # Muestra_sitio
+  ################
+
+  # Debido a que hay varios typos en los campos de fecha y hora de muestreo de
+  # sitio, se utilizará "genera_tabla_2" para crear esta tabla
   
-  ############## AQUÍ ME QUEDÉ###############
+  # Creando los nombres de los sitios: recordar que para los datos CONACyT /
+  # GreenPeace tenemos nombres de muestreo de sitio, que son casi nombres de sitio,
+  # Sólo Chankanaab y ChankanaabGP son el mismo sitio con distintos nombres.
+  # Recordar que podemos seguirlos diferenciando porque ya agregamos la columna
+  # "identificador_muestreo_sitio".
   mutate(
-    # Haciendo columna "dentro de ANP, sabemos que si "anp" es NA
-    # quiere decir que no. No se será un NA en "dentro_anp
-    dentro_anp = ifelse(is.na(anp), FALSE, TRUE) #!!!
+    nombre_sitio = estandariza_strings(nombre_sitio),
+    nombre_sitio = ifelse(nombre_sitio == "chankanaabgp",
+      "chankanaab", nombre_sitio)
   ) %>%
   
-  cambia_valor_columna("region_healthy_reefs",
-    "Nothern Quintana Roo",
-    "Norte de Quintana Roo") %>%
-  cambia_valor_columna("region_healthy_reefs",
-    "Central Quintana Roo (Sian Ka´an)",
-    "Centro de Quintana Roo (Sian Ka'an)") %>%
-  cambia_valor_columna("region_healthy_reefs",
-    "Southern Quintana Roo",
-    "Sur de Quintana Roo") %>%
+  # Creando fecha y hora de muestreo de sitio
+  # Arreglando valores (que lo requieran) para formar los campos "fecha" y "hora"
+  cambia_valor_columna_condicion(
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016')",
+    "anio", "2016") %>%
+  
+  mutate(
+    # Arreglando las horas de acuerdo a la regla que me dio Esme para los datos
+    # CONACyT / GreenPeace:
+    hora = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & hora == "1" ~ "13",
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & hora == "2" ~ "14",
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & hora == "3" ~ "15",
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & hora == "4" ~ "16",
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & hora == "5" ~ "17",
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & hora == "6" ~ "18",
+      TRUE ~ hora
+    ),
+    
+    # Agregando un 0 antes de meses y días cuando se requiera:
+    mes = ifelse(as.numeric(mes) %in% c(1:9), paste0("0", mes), mes),
+    dia = ifelse(as.numeric(dia) %in% c(1:9), paste0("0", dia), dia),
+    fecha_muestreo_sitio = paste0(anio, "-", mes, "-", dia),
+    
+    # Agregando un 0 antes de horas y minutos cuando se requiera:
+    hora = ifelse(as.numeric(hora) %in% c(0:9), paste0("0", hora), hora),
+    # A veces "minutos" no es entero
+    minutos = as.integer(minutos),
+    minutos = ifelse(as.numeric(minutos) %in% c(0:9), paste0("0", minutos), minutos),
+    hora_muestreo_sitio = ifelse(
+      is.na(hora) | is.na(minutos), NA,
+      paste0(hora, ":", minutos))
+  ) %>%
+
   cambia_valor_columna("localidad", "Arrecife Alacranes", "Alacranes") %>%
   cambia_valor_columna("localidad", "Arrecife Triangulos", "Triángulos") %>%
   cambia_valor_columna("localidad", "Triangulos", "Triángulos") %>%
@@ -267,43 +303,37 @@ datos_globales_conacyt_greenpeace <- Reduce(rbind.fill, lista_datos_columnas_hom
   cambia_valor_columna("localidad", "PUERTO MORELOS", "Puerto Morelos") %>%
   cambia_valor_columna("localidad", "Triangulos", "Triángulos") %>%
   
-  # Estandarizando nombres de los sitios
-  mutate(
-    nombre_sitio = estandariza_strings(nombre_sitio)
-    ) %>%
+  cambia_valor_columna("anp", "NA", NA) %>%
   
-  cambia_valor_columna("anio", "2017", "2016") %>% #!!!
-  cambia_valor_columna("anio", "2017", "2016") %>% #!!!
-  cambia_valor_columna("minutos", "0.37", "0") %>% #!!!
-  cambia_valor_columna("protocolo", "Evaluación ANPs", "AGRRA_V5") %>%
-  cambia_valor_columna("metodo", NA, "BT") %>% #!!! son los de corales
-  cambia_valor_columna("metodo", "CADENA", "Cadena") %>% #!!! son los de corales
-  # como la columna nivel_agregacion_datos se tiene que recodificar por completo,
-  # y con reglas específicas, se usará un mutate %>%
+  # Haciendo columna "dentro de ANP, para los datos CONACyT / GreenPeace 2016.
+  # Sabemos que si "anp" es NA quiere decir que no.
+  # "No se" será un NA en "dentro_anp
   mutate(
-    nivel_agregacion_datos = case_when( #!!! Checarlo bien, aquí estoy suponiendo
-      # que los exceles están por nivel de agregación de datos (tanto espacial
-      # como biológico), y que los nombres de las tablas "Benthos_transect_sample_info",
-      # etc... en la base de datos brindarán la información sobre el nivel de
-      # agregación espacial de los datos. Esta info irá a parar a dichas tablas,
-      # para brindar información del nivel de agregación biológica de los mismos.
-      archivo_origen == "BENTOS_DESAGREGADOS_V2" ~
-        "desagregados: puntos/interceptos",
-      archivo_origen == "CORALES_DESAGREGADOS_V2" ~
-        "desagregados: colonias",
-      archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" ~
-        "desagregados: observaciones",
-      archivo_origen == "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2" ~
-        "agregados por especie y categoría de tamaño",
-      archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" ~
-        "desagregados: observaciones",
-      # Por triste que sea, los reclutas son observaciones, no incidencias.
-      archivo_origen == "RUGOSIDAD_DESAGREGADA_V2" ~
-        "desagregados: medida por transecto"
-    )
+    # Haciendo columna "dentro de ANP, para los datos CONACyT / GreenPeace 2016.
+    # Sabemos que si "anp" es NA quiere decir que no.
+    # "No se" será un NA en "dentro_anp
+    dentro_anp = ifelse(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & is.na(anp),
+      FALSE, TRUE),
+    
+    dentro_area_no_pesca = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & area_no_pesca == "si" ~ TRUE,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & area_no_pesca == "no" ~ FALSE,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & is.na(area_no_pesca) ~ NA)
   ) %>%
   
-  # Transect_sample. Esme me dijo que los 0's daban igual, entonces decido a
+  # Arreglando "protocolo"
+  cambia_valor_columna_condicion(
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016')",
+    "protocolo", "AGRRA V5 modificado"
+  ) %>%
+  
+  ####################
+  # Muestra_transecto
+  ####################
+
+  # Arreglando nombres de transecto:
+  # Esme me dijo que los 0's daban igual, entonces decido a
   # ponerles 0's a los que lo requieran, porque quiero que me los ordene por
   # número, pero son caracteres
   cambia_valor_columna("transecto", "1", "01") %>%
@@ -316,6 +346,55 @@ datos_globales_conacyt_greenpeace <- Reduce(rbind.fill, lista_datos_columnas_hom
   cambia_valor_columna("transecto", "8", "08") %>%
   cambia_valor_columna("transecto", "9", "09") %>%
   
+  cambia_valor_columna_condicion("transecto_fijo == 'no'",
+    "transecto_fijo", FALSE) %>%
+  
+  # Para los transectos de CONACyT / GreenPeace 2016, asociarles la medida teórica
+  # (30m los de peces y 10m los de bentos). En esta base es fácil distinguirlos
+  # por el nombre (los de peces tienen una P)
+  mutate(
+    longitud_teorica_transecto_m = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & stri_detect_coll(transecto, 'P') ~ 30,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !stri_detect_coll(transecto, 'P') ~ 10,
+      # Si no, no jala...
+      TRUE ~ NA_real_)
+  ) %>%
+
+  mutate(
+    # Para los muestreos de sitio del proyecto CONACyT / GREENPEACE, todos los
+    # transectos de nombre 01...06 tienen 5 cuadrantes declarados...
+    subcuadrantes_planeados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ TRUE,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ FALSE,
+      TRUE ~ NA),
+    
+    numero_subcuadrantes_planeados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ 5,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA_real_,
+      TRUE ~ NA_real_),
+      
+    seleccion_aleatoria_centros_subcuadrantes = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ FALSE,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA,
+      TRUE ~ NA
+    ),
+    
+    longitud_subcuadrante_m = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ 0.25,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA_real_,
+      TRUE ~ NA_real_
+    ),
+    
+    ancho_subcuadrante_m = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ 0.25,
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA_real_,
+      TRUE ~ NA_real_
+    )
+  )
+  
+
+  cambia_valor_columna("metodo", "CADENA", "Cadena") %>% 
+
   # Benthos_transect_sample_info
   cambia_valor_columna("profundidad_inicial_m", "NA", NA) %>%
   cambia_valor_columna("profundidad_final_m", "M", NA) %>%
@@ -453,19 +532,6 @@ datos_globales_conacyt_greenpeace <- Reduce(rbind.fill, lista_datos_columnas_hom
       TRUE ~ hora
     ),
     
-    # Agregando un 0 antes de meses, días, horas y minutos cuando se requiera:
-    mes = ifelse(as.numeric(mes) %in% c(1:9), paste0("0", mes), mes),
-    dia = ifelse(as.numeric(dia) %in% c(1:9), paste0("0", dia), dia),
-    hora = ifelse(as.numeric(hora) %in% c(0:9), paste0("0", hora), hora),
-    minutos = ifelse(as.numeric(minutos) %in% c(0:9), paste0("0", minutos), minutos),
-    
-    # Creando las fecha_horas de muestreo para cada registro
-    fecha_hora = ifelse(
-      is.na(anio) | is.na(mes) | is.na (dia) | is.na(hora) | is.na(minutos),
-      NA,
-      paste0(anio, "-", mes, "-", dia, " ", hora, ":", minutos)
-    ),
-
     # Arreglando los transectos: si protocolo == AGRRA_V5, entonces hay dos tipos de
     # transectos:
     # 1. Bentos, Corales, Reclutas, Complejidad, Invertebrados.
@@ -619,6 +685,10 @@ names(revision_valores)
 crv <- function(nombre_columna){
   return(revision_valores[[nombre_columna]])
 }
+
+# encuentra_columnas(datos_globales, "prof") %>%
+#   set_names(.) %>%
+#   llply(function(x) crv(x))
 
 # saveRDS(datos_globales, "../productos/datos_globales.RData")
 

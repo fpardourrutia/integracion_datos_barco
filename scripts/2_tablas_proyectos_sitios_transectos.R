@@ -32,65 +32,60 @@ datos_globales_llaves_primarias <- datos_globales %>%
 #saveRDS(datos_globales_llaves_primarias, "../productos/datos_globales_llaves_primarias.RData")
 
 ##############################
-# Generando la tabla "Project"
+# Generando la tabla "Proyecto"
 ##############################
 
-lista_columnas_project <- list(
-  name = "nombre_proyecto",
-  description = "titulo",
-  purpose = "tema",
-  #location falta
-  start_year = "anio_inicio_proyecto",
-  end_year = "anio_termino_proyecto",
-  organization = "institucion",
-  suborganization = "suborganizacion",
-  person_in_charge = "autor_administrador_proyecto",
-  contact = "contacto",
-  reference = "cita",
-  comments = "strings_vacios"
-  
+lista_columnas_proyecto <- list(
+  nombre = "nombre_proyecto",
+  descripcion = "titulo",
+  proposito = "tema",
+  #localizacion falta
+  anio_inicio = "anio_inicio_proyecto",
+  anio_termino = "anio_termino_proyecto",
+  organizacion = "institucion",
+  suborganizacion = "suborganizacion",
+  encargado = "autor_administrador_proyecto",
+  contacto = "contacto",
+  referencia = "cita",
+  comentarios = "strings_vacios"
   # Faltan columnas del cliente de captura
 )
 
-project <- genera_tabla_2(
+proyecto <- genera_tabla_2(
   df = datos_globales_llaves_primarias,
   nombre_columna_llave = "id_proyecto",
   nombre_nuevo_columna_llave = "id",
-  lista_columnas_adicionales = lista_columnas_project
+  lista_columnas_adicionales = lista_columnas_proyecto
   ) %>%
   # Para los datos CONACyT / GreenPeace no se necesita, pero igual y para los
   # datos históricos sí.
   cambia_na_strings_vacios()
 
-#################################
-# Generando la tabla "Site_sample"
-#################################
+####################################
+# Generando la tabla "Muestra_sitio"
+####################################
 
-lista_columnas_site_sample <- list(
-  project_id = "id_proyecto",
-  name = "nombre_sitio",
-  datetime = "fecha_hora_muestreo_sitio",
-  country = "pais",
-  healthy_reefs_region = "region_healthy_reefs",
-  location = "localidad",
-  
-  # Falta definir (y depurar) las variables "tipo_arrecide, "zona_arrecifal",
-  # "subzona_habitat", "nombre_arrecife".
-  
-  inside_protected_area = "dentro_anp",
-  protected_area_name = "anp",
-  # Falta "dentro_area_no_pesca" (inside_non_fishing_area)
-  latitude = "latitud",
-  longitude = "longitud",
+lista_columnas_muestra_sitio <- list(
+  proyecto_id = "id_proyecto",
+  nombre = "nombre_sitio", #
+  fecha_hora = "fecha_hora_muestreo_sitio", #
+  pais = "pais", # Esme lo corregirá
+  region_healthy_reefs = "region_healthy_reefs", # Esme lo corregirá
+  localidad = "localidad",
+  tipo_arrecife = "tipo_arrecife",
+  subtipo_arrecife = "subtipo_arrecife",
+  zona_arrecifal = "zona_arrecife",
+  dentro_area_natural_protegida = "dentro_anp", #
+  nombre_area_natural_protegida = "anp",
+  dentro_area_no_pesca = "dentro_area_no_pesca"
+  latitud = "latitud",
+  longitud = "longitud",
   datum = "datum",
-  
-  selection_method = "metodo_seleccion_sitios", # Cambios en el esquema!
-  methodology = "protocolo_muestreo_sitio",
-  
-  # Esme me calculará la profundidad por sitio
-  depth_m = "profundidad_media_m",
-  temperature_c = "temperatura_c",
-  comments = "strings_vacios"
+  metodo_seleccion = "metodo_seleccion_sitios", # Esme lo corregirá
+  metodologia = "protocolo", # Los que dicen "Sin Protocolo" son los que tienen transectos de invertebrados
+  profundidad_m = "profundidad_media_m_sitio",
+  temperatura_c = "temperatura_c", # Esta es por transecto para "CONACyT_GREENPEACE"
+  comentarios = "strings_vacios"
   
   # Faltan columnas del cliente de captura
 )
