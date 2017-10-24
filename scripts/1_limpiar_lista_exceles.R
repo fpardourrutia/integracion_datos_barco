@@ -390,8 +390,28 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
       stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA_real_,
       TRUE ~ NA_real_
     )
-  )
+  ) %>%
   
+  ##################################################
+  # Muestra_transecto_bentos_info
+  ##################################################
+
+######## Aquí me quedé
+
+  
+  ##################################################
+  # Muestra_subcuadrante_de_transecto_reclutas_info
+  ##################################################
+
+  # Estoy cambiando el nivel de agregación de datos para el archivo:
+  # "conacyt_greenpeace_2016_reclutas_desagregados_v3", debido a que estos datos
+  # se agregarán antes de ser insertados (puesto que no se tienen mediciones de
+  # cada organismo individual.)
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_reclutas_desagregados_v3'",
+    "nivel_agregacion_datos",
+    "Agregados: conteos por especie y categoría de talla"
+  ) %>%
 
   cambia_valor_columna("metodo", "CADENA", "Cadena") %>% 
 
@@ -674,7 +694,10 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
     -protocolo
   )
   
+################################################################################
 # Revisando valores de las columnas de datos_globales:
+################################################################################
+  
 revision_valores <- revisa_valores(datos_globales)
 names(revision_valores)
 
