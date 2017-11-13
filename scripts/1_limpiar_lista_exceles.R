@@ -186,7 +186,7 @@ valores_revision_esme_catalogos <- revisa_columnas_catalogos(
   group_by(tabla, campo, catalogo, valor) %>%
   tally()
 # write_csv(valores_revision_esme_catalogos, "../productos/v3/valores_revision_esme_catalogos.csv")
-  
+
 ## 2. Creando una tabla con la información de todos los Exceles
 # Para construir las tablas especificadas en el esquema de bases de datos,
 # primero se unirán los datos de todos los exceles (agregando columnas según se
@@ -215,19 +215,41 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
       paste0("Evaluación de la efectividad de las Áreas Marinas Protegidas ",
         "en los sistemas arrecifales del Caribe Mexicano")
   ) %>%
+  
   # Arreglando el valor de "documento" para los datos de "conacyt_greenpeace"
   cambia_valor_columna_condicion(
     "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016')",
     "documento", "datos de campo"
   ) %>%
-  cambia_valor_columna_condicion(
-    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & anio_inicio_proyecto == '42713'",
-    "anio_inicio_proyecto", "2016"
+  
+  # Arreglando diversos campos:
+  mutate(
+    nombre_proyecto_sin_anio = case_when(
+      nombre_proyecto == "CONACYT 247104 2016" ~ "CONACYT 247104",
+      nombre_proyecto == "GreenPeace 2016" ~ "GreenPeace",
+      TRUE ~ nombre_proyecto
+    ),
+    
+    anio_en_curso = case_when(
+      nombre_proyecto == "CONACYT 247104 2016" ~ "2016",
+      nombre_proyecto == "GreenPeace 2016" ~ "2016",
+      TRUE ~ NA_character_
+    ),
+    
+    anio_inicio_proyecto = case_when(
+      nombre_proyecto == "CONACYT 247104 2016" ~ "2016",
+      nombre_proyecto == "GreenPeace 2016" ~ "2016",
+      TRUE ~ anio_inicio_proyecto
+    ),
+    
+    anio_termino_proyecto = case_when(
+      nombre_proyecto == "CONACYT 247104 2016" ~ "2017",
+      nombre_proyecto == "GreenPeace 2016" ~ "2016",
+      TRUE ~ anio_termino_proyecto
+    )
+    
   ) %>%
-  cambia_valor_columna_condicion(
-    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & anio_termino_proyecto == '42722'",
-    "anio_termino_proyecto", "2016"
-  ) %>%
+  
   cambia_valor_columna("cita",
     paste0("Álvarez-Filip, L. 2016. Evaluación de la efectividadde las Áreas ",
       "Marinas Protegidas en los arrecifales del Caribe Mexicano. ",
@@ -359,6 +381,8 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
       # Si no, no jala...
       TRUE ~ NA_real_)
   ) %>%
+  
+  cambia_valor_columna("profundidad_inicial_m", "NA", NA) %>%
 
   mutate(
     # Para los muestreos de sitio del proyecto CONACyT / GREENPEACE, todos los
@@ -396,96 +420,270 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
   # Muestra_transecto_bentos_info
   ##################################################
 
-######## Aquí me quedé
-
+  mutate(
+    distancia_entre_puntos_pit_cm = ifelse(archivo_origen == "conacyt_greenpeace_2016_bentos_desagregados_v3", 10, NA),
+    
+    # En realidad, el siguiente campo sive para varios aspectos
+    muestreo_completo = case_when(
+      muestreo_completo == "no" ~ FALSE,
+      muestreo_completo == "si" ~ TRUE,
+      TRUE ~ NA
+      )
+  ) %>%
   
   ##################################################
-  # Muestra_subcuadrante_de_transecto_reclutas_info
+  # Muestra_transecto_corales_observacion
   ##################################################
 
-  # Estoy cambiando el nivel de agregación de datos para el archivo:
-  # "conacyt_greenpeace_2016_reclutas_desagregados_v3", debido a que estos datos
-  # se agregarán antes de ser insertados (puesto que no se tienen mediciones de
-  # cada organismo individual.)
+  # Para los datos de CONACYT / GreenPeace, cuando en las variables:
+  # - blanqueamiento
+  # - mortalidad_antigua
+  # - mortalidad_reciente
+  # - mortalidad_transicion
+  # - mortalidad_total
+  # - enfermedades
+  # - sobrecrecimiento
+  # - depredacion
+  # - lesión (si hubiera)
+  # Dice NA, en realidad es que no se encontró.
+
+  # Para porcentaje, si blanqueamiento es NO o NA, vale NA. en otro caso, puede
+  # valer el porcentaje de blanqueamiento del tipo seleccionado o NA si no se
+  # registró el porcentaje.
+
   cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_reclutas_desagregados_v3'",
-    "nivel_agregacion_datos",
-    "Agregados: conteos por especie y categoría de talla"
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(blanqueamiento)",
+    "blanqueamiento",
+    "NO"
   ) %>%
+  
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_antigua)",
+    "mortalidad_antigua",
+    "0"
+  ) %>%
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_reciente)",
+    "mortalidad_reciente",
+    "0"
+  ) %>%
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_transicion)",
+    "mortalidad_transicion",
+    "0"
+  ) %>%
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_total)",
+    "mortalidad_total",
+    "0"
+  ) %>%
+  
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(enfermedades)",
+    "enfermedades",
+    "NO"
+  ) %>%
+  
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(sobrecrecimiento)",
+    "sobrecrecimiento",
+    "NO"
+  ) %>%
+  
+  cambia_valor_columna_condicion(
+    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(depredacion)",
+    "depredacion",
+    "NO"
+  ) %>%
+  
+  # cambia_valor_columna_condicion(
+  #   "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(lesion)",
+  #   "lesion",
+  #   "NO"
+  # ) %>%
+  
+  ##################################################
+  # Muestra_transecto_invertebrados_info
+  ##################################################
 
-  cambia_valor_columna("metodo", "CADENA", "Cadena") %>% 
-
-  # Benthos_transect_sample_info
-  cambia_valor_columna("profundidad_inicial_m", "NA", NA) %>%
-  cambia_valor_columna("profundidad_final_m", "M", NA) %>%
-  cambia_valor_columna("profundidad_media_m", "NA", NA) %>%
-  
-  # Benthos_transect_sample_point
-  # Comparar código de bentos con catálogo, para ver si está bien escrito.
-  
-  # Coral_transect_sample_info
-  
-  # Coral_transect_sample_observation
-  # Comparar "código" de coral con catálogo, para ver si está bien escrito.
-  # Comparar "enfermedades" y "sobrecrecimiento" con catálogos tmb.
+  # Generando variables de muestreo de invertebrados:
   mutate(
-    sobrecrecimiento = toupper(sobrecrecimiento)
+    
+    todos_invertebrados_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ TRUE,
+      TRUE ~ NA
+    ),
+    
+    crustaceos_decapodos_carideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    crustaceos_decapodos_estenopodideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    crustaceos_decapodos_aquelados_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    crustaceos_decapodos_astacideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    crustaceos_decapodos_braquiuros_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    crustaceos_decapodos_anomuros_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    crustaceos_decapodos_estomatopodos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    crustaceos_decapodos_palinuridos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    
+    crustaceos_no_decapodos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    
+    moluscos_gastropodos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    moluscos_bivalvos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    moluscos_cefalopodos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    otros_moluscos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    
+    equinodermos_crinoideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    equinodermos_asteroideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    equinodermos_ofiuroideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    equinodermos_equinoideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    equinodermos_holothuroideos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    otros_equinodermos_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    
+    otros_invertebrados_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
+      TRUE ~ NA
+    ),
+    
+    detalles_invertebrados_muestreados = case_when(
+      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ "",
+      TRUE ~ NA_character_
+    )
+    
   ) %>%
-  cambia_valor_columna("depredacion", "BITES", "BITE") %>%
   
-  
-  # Invertebrates_transect_sample_info
-  # Comparar "especie" con catálogo para eliminar posibles errores ortográficos.
-  # "numero" siempre es 1 y sólo está lleno para "INVERTEBRADOS_DESAGREGADOS_V2"
-  
-  # Fish_transect_sample_info
-  # Ya se revisaron sus columnas al revisar las anteriores "transect_sample_info"
-  
-  # Fish_transect_sample_count
-  # Comparar "codigo" y "especie" con catálogos.
-  
-  # Complexity_transect_sample_info
+  ##################################################
+  # Muestra_transecto_invertebrados_cuenta
+  ##################################################
 
-  # Complexity_transect_sample_mrm
-  # No hay datos en la base.
+  cambia_valor_columna("especie", "NA", NA) %>%
 
-  # Subquadrat_samples_transect_info
-  # Ya se revisaron la mayoría de sus datos con anterioridad
-
-  # Recruit_quadrant_sample_transect_info
-  # Comparar sustratos con catálogo
   mutate(
-    sustrato = toupper(sustrato)
+    es_invertebrado_juvenil = case_when(
+      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
+      stri_detect_coll(especie, 'juvenil', case_insensitive = TRUE) ~ TRUE,
+      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
+        stri_detect_coll(especie, 'adulto', case_insensitive = TRUE) ~ FALSE,
+      # En otro caso
+      TRUE ~ NA
+    ),
+    
+    invertebrados_nombre_cientifico = case_when(
+      # Obteniendo el nombre científico de un invertebrado quitando si es juvenil o
+      # adulto del nombre:
+      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
+        !is.na(es_invertebrado_juvenil) & # Si no lo especifico me marca error
+        es_invertebrado_juvenil == TRUE ~
+        stri_match_first_regex(especie, ".*(?= juvenil)", case_insensitive = TRUE) %>%
+        as.character(),
+      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
+        !is.na(es_invertebrado_juvenil) &
+        es_invertebrado_juvenil == FALSE ~
+        stri_match_first_regex(especie, ".*(?= adulto)", case_insensitive = TRUE) %>%
+        as.character(),
+      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
+        is.na(es_invertebrado_juvenil) ~
+        especie,
+      # En otro caso
+      TRUE ~ NA_character_
+    )
+  ) %>%
+
+##################################################
+# Muestra_transecto_complejidad_info
+##################################################
+
+  mutate(
+    rugosidad_longitud_lineal_m = case_when(
+      archivo_origen == 'conacyt_greenpeace_2016_rugosidad_v3' ~ 10,
+      TRUE ~ NA_real_
+    ),
+    rugosidad_longitud_lineal_fija = case_when(
+      archivo_origen == 'conacyt_greenpeace_2016_rugosidad_v3' ~ TRUE,
+      TRUE ~ NA
+    )
+  ) %>%
+
+####################################################
+# Muestra_subcuadrante_de_transecto_reclutas_cuenta
+####################################################
+
+  mutate(
+    minimo_tamanio_cm = case_when(
+      archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
+        !is.na(categoria_tamanio) & categoria_tamanio == "R" ~ 0.01,
+      archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
+        !is.na(categoria_tamanio) & categoria_tamanio == "SC" ~ 2.01,
+      TRUE ~ NA_real_
+    ),
+    
+    maximo_tamanio_cm = case_when(
+      archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
+        !is.na(categoria_tamanio) & categoria_tamanio == "R" ~ 2,
+      archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
+        !is.na(categoria_tamanio) & categoria_tamanio == "SC" ~ 4,
+      TRUE ~ NA_real_
+    )
   ) %>%
   
-  # Recruit_quadrant_sample_transect_count
-  # En realidad no son cuentas, sino incidencias, por lo que se deben introducir
-  # en otra tabla.
-  cambia_valor_columna("codigo", "NA", NA) %>%
+  ######################################
+  # Arreglando detalles finales
+  ######################################
   
-  # Eliminando columnas que pudieron haber quedado vacías al hacer cambios en
-  # sus valores
-  elimina_columnas_vacias() %>%
-  
-  # Eliminando columnas superfluas
-  select(
-    -sitio_autor, # No se usa
-    -curp_proyecto, # No se usa
-    -nombre_remuestreo, # No se usa
-    -unidades_profundidad, #!!! Todo es en m.
-    -conteo, #!!! Siempre es 1
-    -cobertura, #!!! Columna calculable a partir de las anteriores
-    -protocolo_utilizado, #!!! Es redundante con "metodo"
-    -numero, #!!! Siempre es 1
-    -abundancia, #!!! suma de todas las columnas de abundancia por tamaño de peces
-    -numero_cuadrantes, #!!! Siempre es 1
-    -s, #!!! Coral sano, hay 8 registros
-    -fision, #!!! número de roturas en el coral, hay 11 registros
-    -tejido_vivo #!!! hay 6 observaciones
-  ) %>%
-  
-  ## Ya que se terminó la revisión de columnas, lo siguiente es transformar en
-  ## numéricas y lógicas las que así sean.
   mutate_numeric(
     "serie",
     "anio_inicio_proyecto",
@@ -495,16 +693,20 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
     "anio_muestreo",
     "longitud_transecto_m",
     "puntos_o_cm_reales_transecto",
-    #"dia", # Me conviene tenerlos como string
-    #"mes",
-    #"anio",
-    #"hora",
-    #"minutos",
     "profundidad_inicial_m",
     "profundidad_final_m",
     "profundidad_media_m",
     "temperatura_c",
     "altura_algas_cm",
+    "conteo",
+    "cobertura",
+    "profundidad_media_m_sitio",
+    "longitud_teorica_m_bentos",
+    "longitud_teorica_m_corales",
+    "longitud_teorica_m_peces",
+    "longitud_teorica_m_invertebrados_agrra_v5",
+    "longitud_teorica_m_invertebrados_otros",
+    "identificador_muestreo_sitio",
     "ancho_transecto_m",
     "altura_maxima_cm",
     "d1_max_diam_cm",
@@ -513,7 +715,10 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
     "mortalidad_reciente",
     "mortalidad_transicion",
     "mortalidad_antigua",
+    "fision",
+    "s",
     "porcentaje",
+    "numero",
     "tamanio_0cm_5cm",
     "tamanio_6cm_10cm",
     "tamanio_11cm_20cm",
@@ -527,10 +732,50 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
     "tamanio_91cm_100cm",
     "tamanio_111cm_120cm",
     "tamanio_191cm_200cm",
+    "abundancia",
+    "cuadrante",
     "longitud_cuadrante_m",
     "ancho_cuadrante_m",
     "tamanio_cadena_m",
-    "id"
+    "id",
+    "anio_en_curso",
+    "longitud_teorica_transecto_m",
+    "numero_subcuadrantes_planeados",
+    "longitud_subcuadrante_m",
+    "ancho_subcuadrante_m",
+    "distancia_entre_puntos_pit_cm"
+  ) %>%
+  
+  mutate_logical(
+    "muestreo_completo",
+    "area_no_pesca",
+    "transecto_fijo",
+    "dentro_anp",
+    "dentro_area_no_pesca",
+    "subcuadrantes_planeados",
+    "seleccion_aleatoria_centros_subcuadrantes",
+    "todos_invertebrados_muestreados",
+    "crustaceos_decapodos_carideos_muestreados",
+    "crustaceos_decapodos_estenopodideos_muestreados",
+    "crustaceos_decapodos_aquelados_muestreados",
+    "crustaceos_decapodos_astacideos_muestreados",
+    "crustaceos_decapodos_braquiuros_muestreados",
+    "crustaceos_decapodos_anomuros_muestreados",
+    "crustaceos_decapodos_estomatopodos_muestreados",
+    "crustaceos_decapodos_palinuridos_muestreados",
+    "crustaceos_no_decapodos_muestreados",
+    "moluscos_gastropodos_muestreados",
+    "moluscos_bivalvos_muestreados",
+    "moluscos_cefalopodos_muestreados",
+    "otros_moluscos_muestreados",
+    "equinodermos_crinoideos_muestreados",
+    "equinodermos_asteroideos_muestreados",
+    "equinodermos_ofiuroideos_muestreados",
+    "equinodermos_equinoideos_muestreados",
+    "equinodermos_holothuroideos_muestreados",
+    "otros_equinodermos_muestreados",
+    "otros_invertebrados_muestreados",
+    "es_invertebrado_juvenil"
   ) %>%
   
   mutate(
@@ -538,89 +783,32 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
     profundidad_inicial_m = round(profundidad_inicial_m, 1),
     profundidad_final_m = round(profundidad_final_m, 1),
     profundidad_media_m = round(profundidad_media_m, 2),
+    profundidad_media_m_sitio = round(profundidad_media_m_sitio, 2),
     temperatura_c = round(temperatura_c, 2),
     
-    # Para esta versión, como las horas no tienen am ni pm,
-    # usaré la regla de Esme: todo se hace entre las 7 am y las 6 pm
-    hora = case_when( #!!!
-      hora == "1" ~ "13",
-      hora == "2" ~ "14",
-      hora == "3" ~ "15",
-      hora == "4" ~ "16",
-      hora == "5" ~ "17",
-      hora == "6" ~ "18",
-      TRUE ~ hora
-    ),
+    # Creando columnas auxiliares útiles a la hora de generar las tablas
+    strings_vacios = "",
+    verdadero = TRUE,
+    falso = FALSE,
+    na_numerico = NA_real_,
+    datum = "WGS84"
+  ) %>%
+  
+  # mutate(
+    # Invertebrates_transect_sample_info
+    # "numero" siempre es 1 para conacyt_greenpeace_2016_invertebrados_desagregados_v3"
     
-    # Arreglando los transectos: si protocolo == AGRRA_V5, entonces hay dos tipos de
-    # transectos:
-    # 1. Bentos, Corales, Reclutas, Complejidad, Invertebrados.
-    # 2. Peces.
-    #
-    # Si protocolo == "Sin Protocolo", estos son:
-    # 1. Bentos, Corales, Reclutas, Complejidad
-    # 2. Peces, Invertebrados
-    # 
-    # Cabe destacar que el protocolo está por aspecto, entonces sólo los registros
-    # provenientes del archivo "INVERTEBRADOS_DESAGREGADOS_V2" lo contienen.
-    # Esto lo arreglarán Esme y Nuria en versiones posteriores del monitoreo.
+    # Fish_transect_sample_count
+    # Falta comparar "codigo" y "especie" con catálogos.
     
-    transecto = case_when(
-      archivo_origen == "BENTOS_DESAGREGADOS_V2" ~ paste0(transecto, "_bentos"),
-      archivo_origen == "CORALES_DESAGREGADOS_V2" ~ paste0(transecto, "_bentos"),
-      archivo_origen == "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2" ~ paste0(transecto, "_bentos"),
-      archivo_origen == "RUGOSIDAD_DESAGREGADA_V2" ~ paste0(transecto, "_bentos"),
-      archivo_origen == "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2" ~ paste0(transecto, "_peces"),
-      archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" & protocolo == "AGRRA_V5" ~
-        paste0(transecto, "_bentos"),
-      archivo_origen == "INVERTEBRADOS_DESAGREGADOS_V2" & protocolo == "Sin Protocolo" ~
-        paste0(transecto, "_peces")
-    ),
-    
-    # Agregando la columna de "muestreo_completo": todos los transectos están completos
-    # menos uno de bentos y reclutas
-    muestreo_transecto_completo = case_when(
-      nombre_proyecto == "CONACYT 247104 2016" &
-        nombre_sitio == "xm04" &
-        transecto == "03_bentos" &
-        archivo_origen %in% c(
-          "BENTOS_DESAGREGADOS_V2",
-          "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2"
-        ) ~ FALSE,
-      # Lo siguiente hace que sea más general esta parte del código:
-      archivo_origen %in% c(
-        "BENTOS_DESAGREGADOS_V2",
-        "CORALES_DESAGREGADOS_V2",
-        "INVERTEBRADOS_DESAGREGADOS_V2",
-        "PECES_DESAGREGADOS_CONACYT_GREENPEACE_V2",
-        "RECLUTAS_Y_SUSTRATO_DESAGREGADO_V2",
-        "RUGOSIDAD_DESAGREGADA_V2"
-      ) ~ TRUE
-    ),
-    
-    ## Cambiando NA's por 0's en mediciones sobre colonias de coral:
-    mortalidad_antigua = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(mortalidad_antigua), 0, mortalidad_antigua),
-    mortalidad_reciente = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(mortalidad_reciente), 0, mortalidad_reciente),
-    mortalidad_transicion = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(mortalidad_transicion), 0, mortalidad_transicion),
-    mortalidad_total = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(mortalidad_total), 0, mortalidad_total),
-    blanqueamiento = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(blanqueamiento), "ND", blanqueamiento), # No detectado
-    enfermedades = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(enfermedades), "ND", enfermedades),
-    sobrecrecimiento = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(sobrecrecimiento), "ND", sobrecrecimiento),
-    depredacion = ifelse(archivo_origen == "CORALES_DESAGREGADOS_V2" &
-        is.na(depredacion), "ND", depredacion),
+    # Recruit_quadrant_sample_transect_count
+    # En realidad no son cuentas, sino incidencias
     
     # # arreglando mortalidades si suman más de 100. Ésto se corregirá en v3.
     # suma_mortalidades = mortalidad_antigua +
     #   mortalidad_reciente +
     #   mortalidad_transicion +
-    #   mortalidad_total,
+    #   mortalidad_total
     # 
     # # Notar que si alguna mortalidad es NA, entonces la suma es NA y todas se
     # # hacen NA (lo cuál no es un problema porque acabamos de castear mortalidades
@@ -638,62 +826,8 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
     #   (mortalidad_total / suma_mortalidades) * 100 ,
     #   mortalidad_total)
     
-    # Creando columnas auxiliares útiles a la hora de generar las tablas
-    strings_vacios = "",
-    verdadero = TRUE,
-    falso = FALSE,
-    na_numerico = NA_real_,
-    datum = "WGS84"
-  ) %>%
-  # Calculando una sóla hora para cada muestreo de sitio: !!! Esto puede fallar si
-  # los sitios ya tienen nombre único.
-  ddply(.(nombre_sitio), function(df){
-    fecha_hora_muestreo_sitio <- df %>%
-      filter(!is.na(fecha_hora)) %>%
-      arrange(fecha_hora) %>%
-      # Obteniendo el primer renglón
-      slice(1) %>%
-      pull(fecha_hora)
-    
-    resultado <- df %>%
-      mutate(
-        fecha_hora_muestreo_sitio = fecha_hora_muestreo_sitio
-      )
-  }) %>%
-  
-  # Para esta versión, cambiar manualmente el "nombre_sitio" ChankanaabGP a
-  # Chankanaab, porque es remuestreo. No se podía cambiar antes de arreglar
-  # horas de muestreo, pues se perdía la info del remuestreo.
-  cambia_valor_columna("nombre_sitio", "chankanaabgp", "chankanaab") %>%
-  
-  # Generando una columna puramente informativa con el protocolo utilizado a
-  # nivel de muestreo de sitio 
-  ddply(.(nombre_sitio, fecha_hora_muestreo_sitio), function(df){
-    # Para los datos CONACyT / GreenPeace, si se encuentra un "Sin protocolo" para
-    # un muestreo de sitio, es un dato de invertebrado que se obtuvo de muestrear
-    # invertebrados en el transecto de peces (lo cuál es adicional a AGRRA_V5)
-    protocolo_muestreo_sitio = ifelse(
-      "Sin Protocolo" %in% df$protocolo, "AGRRA_V5+", "AGRRA_V5")
-    
-    resultado <- df %>%
-      mutate(
-        protocolo_muestreo_sitio = protocolo_muestreo_sitio
-      )
-    
-    return(resultado)
-  }) %>% #!!! 
-  select(
-    # Eliminando columnas auxiliares
-    -anio,
-    -mes,
-    -dia,
-    -hora,
-    -minutos,
-    -fecha_hora,
-    -anio_muestreo,
-    -protocolo
-  )
-  
+  # )
+
 ################################################################################
 # Revisando valores de las columnas de datos_globales:
 ################################################################################
@@ -713,24 +847,25 @@ crv <- function(nombre_columna){
 #   set_names(.) %>%
 #   llply(function(x) crv(x))
 
-# saveRDS(datos_globales, "../productos/datos_globales.RData")
+saveRDS(datos_globales, "../productos/v3/datos_globales.RData")
 
 # Comentarios Esme y Nuria:
-# 1. Falta localidad del proyecto. Esme la va a poner
+# 1. Falta localidad del proyecto. RESUELTO
 # 2. Esme va a revisar los datos con "blanqueamiento" NA, pero con porcentaje y viceversa. RESUELTO
 # datos_globales %>% group_by(blanqueamiento, porcentaje) %>% tally() %>% View()
 # 3. ¿Por qué los transectos de corales tienen longitudes tan variables?
 # Porque a veces no te da tiempo terminar...
 # 4. ¿Qué diferencia hay entre "Anio" y "Anio_de_muestreo". Ninguna, usar Anio.
 # 5. En "anio_inicio_proyecto" y "anio_termino_proyecto" aún hay datos con formato
-# de fecha de Excel (todos los archivos)
-# 6. En "conacyt_greenpeace_rugosidad_v3" hay unos que tienen "Anio" 2017, está bien? Error.
-# 7. Hay algunos sitios sin información de "area_no_pesca". Será que falta actualizar
+# de fecha de Excel (todos los archivos). RESUELTO (ver código arriba)
+# 6. Hay algunos sitios sin información de "area_no_pesca". Será que falta actualizar
 # la tabla de "datos_anexos?" No, si no está no tenemos info.
-# 8. ¿Qué es fisión y S? S: sana. Dejarla porque en algunos proyectos es importante.
+# 7. ¿Qué es fisión y S? S: sana. Dejarla porque en algunos proyectos es importante.
 # fisión: colonia rota en fragmentos.
-# 9. Igual y convendría poner un campo de texto para explicar el "método de selección
+# 8. Igual y convendría poner un campo de texto para explicar el "método de selección
 # de sitios".
+# 9. Falta "criterio de selección de colonias"
+# 10. ¿Los datos de "ancho_transecto_m" son el ancho, el semi ancho o combinados?
 
 # Revisión para datos históricos:
 # 1. Revisar campos de catálogo.
