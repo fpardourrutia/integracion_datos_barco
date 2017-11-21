@@ -3,12 +3,20 @@ library("dplyr")
 library("tidyr")
 library("readxl")
 library("readr")
+source("funciones_auxiliares.R")
 
-# Revisar duplicados en catálogo de peces
-datos <- read_excel("../../../../Dropbox/carpetas_compartidas/barco_lab/bases_integracion/datos_v3_preeliminar/catalogos/_Fish_transect_sample_count.species__especie.xlsx", sheet = 1)
-glimpse(datos)
+lista_datos_crudos_conacyt_greenpeace_2016 <- readRDS("../productos/v3/lista_datos_crudos_conacyt_greenpeace_2016.RData")
+lista_catalogos <- readRDS("../productos/v3/lista_catalogos.RData")
 
-duplicados <- datos %>%
+###################################
+# Revisión de catálogos
+###################################
+
+# Revisar duplicados varios catálogos:
+
+# 
+
+duplicados <- lista_catalogos$ %>%
   select(Especie) %>%
   filter(duplicated(.)) %>%
   unique()

@@ -1,5 +1,5 @@
 # En este script se generarán las tablas de muestreos de aspectos a nivel de transecto
-# Es decir, todas las llamadas "...transect_sample_info" y asociadas a ellas.
+# Es decir, todas las llamadas "Muestreo_transecto_..._info" y asociadas a ellas.
 
 # Supuesto para generar las tablas de aspecto (bentos, peces, corales, reclutas,
 # complejidad, invertebrados):
@@ -7,9 +7,9 @@
 # agrupación de datos (transecto / sitio) .
 # 2. Cada Excel tiene información correspondiente a un sólo nivel biológico de
 # agregación de datos (por observacion, coberturas por especie, etc)...
-# Esto es necesario para generar las tablas de "...info" (que tienen información)
-# del nivel de agrupación de los datos en el nombre, y del nivel de agrupación
-# biológica de los datos en el campo "...info.data_aggregation_level".
+# Esto es necesario para generar las tablas de "..._info" (que tienen información)
+# del nivel de agrupación geográfica de los datos en el nombre, y del nivel de
+# agrupación biológica de los datos en el campo "...info.data_aggregation_level".
 
 library("plyr")
 library("dplyr")
@@ -22,47 +22,10 @@ source("funciones_auxiliares.R")
 
 # Leyendo datos globales con llaves primarias de proyecto, muestreo de sitio y
 # muestreo de transecto
-datos_globales_llaves_primarias <- readRDS("../productos/datos_globales_llaves_primarias.RData")
-
-# Generando un subconjunto de la tabla anterior con información sólo a nivel transecto,
-# para fácil manipulación de la misma:
-datos_globales_transecto_llave_primaria <- datos_globales_llaves_primarias %>%
-  select(
-    -fuente,
-    -autor_administrador_proyecto,
-    -contacto,
-    -titulo,
-    -documento,
-    -cita,
-    -institucion,
-    -suborganizacion,
-    -nombre_proyecto,
-    -metodo_seleccion_sitios,
-    -tema,
-    -proposito,
-    -anio_inicio_proyecto,
-    -anio_termino_proyecto,
-    -pais,
-    -anp,
-    -region_healthy_reefs,
-    -localidad,
-    #-nombre_sitio, # Sirve para revisiones
-    #-fecha_hora_muestreo_sitio, # Sirve para revisiones
-    -tipo_arrecife,
-    -zona_arrecifal,
-    -subzona_habitat,
-    -latitud,
-    -longitud,
-    -profundidad_media_m,
-    -dentro_anp,
-    -datum,
-    -id_proyecto,
-    -id_muestreo_sitio,
-    -protocolo_muestreo_sitio
-  )
+datos_globales_llaves_primarias <- readRDS("../productos/v3/datos_globales_llaves_primarias.RData")
 
 # Revisando valores de las columnas de datos_globales:
-revision_valores <- revisa_valores(datos_globales_transecto_llave_primaria)
+revision_valores <- revisa_valores(datos_globales_llaves_primarias)
 names(revision_valores)
 
 # Función para consultar el objeto anterior:
@@ -74,84 +37,83 @@ crv <- function(nombre_columna){
 }
 
 ##############
-# Benthos
+# Bentos
 ##############
-###################################################
-# Generando la tabla "Benthos_transect_sample_info"
-###################################################
+####################################################
+# Generando la tabla "Muestra_transecto_bentos_info"
+####################################################
 # Supuestos:
 # 1. Cada muestreo de benthos en transecto realizado fue registrado en los Exceles
 # correspondientes (independientemente de si tuvo observaciones o no).
 # 2. Cada muestreo de transecto tiene a lo más un muestreo de bentos asociado (por
 # ejemplo, no es válido tener PIT y LIT sobre el mismo transecto)
 # Nota: posteriormente, para crear todas las tablas asociadas a
-# "Benthos_transect_sample_info" se tendrá que segmentar aún más la tabla creada
+# "Muestra_transecto_bentos_info" se tendrá que segmentar aún más la tabla creada
 # en esta sección.
 
-muestreo_bentos_transecto_llave_primaria <- datos_globales_transecto_llave_primaria %>%
-  filter(archivo_origen == "BENTOS_DESAGREGADOS_V2") %>%
-  elimina_columnas_vacias() %>%
+datos_muestra_transecto_bentos_llaves_primarias <- datos_globales_llaves_primarias %>%
+  filter(archivo_origen %in% c(
+    # Por flexibilidad
+    "conacyt_greenpeace_2016_bentos_desagregados_v3"
+  )) %>%
   # Segundo supuesto:
-  genera_llave("id_muestreo_bentos_transecto", "id_muestreo_transecto") %>%
-  # Para que sea más natural la llave "id_punto_muestreo_bentos"
-  arrange(id_muestreo_bentos_transecto, serie) %>%
-  genera_llave("id_punto_muestreo_bentos") # Que sea una simple cuenta en órden
+  genera_llave("muestra_transecto_bentos_info_id", "muestra_transecto_id") %>%
+  # Para que sea más natural la llave "muestra_transecto_bentos_punto_id"
+  arrange(muestra_transecto_bentos_info_id, serie) %>%
+  genera_llave("muestra_transecto_bentos_punto_id") # Que sea una simple cuenta en órden
 
-lista_columnas_benthos_transect_sample_info <- list(
-  transect_sample_id = "id_muestreo_transecto",
-  sampling_method = "metodo",
-  data_aggregation_level = "nivel_agregacion_datos",
-  surveyor = "observador",
-  sampled_length_m = "longitud_transecto_m",
-  puntos_o_cm_reales_transecto = "puntos_o_cm_reales_transecto",
-  sampling_completed = "muestreo_transecto_completo",
-  comments = "strings_vacios"
+lista_columnas_muestra_transecto_bentos_info <- list(
+  muestra_transecto_id = "muestra_transecto_id",
+  metodo_muestreo = "metodo",
+  nivel_agregacion_datos = "nivel_agregacion_datos",
+  observador = "observador",
+  longitud_muestreada_m = "longitud_transecto_m",
+  distancia_entre_puntos_pit_cm = "distancia_entre_puntos_pit_cm",
+  muestreo_completado = "muestreo_completo",
+  comentarios = "strings_vacios"
 )
 
-benthos_transect_sample_info <- genera_tabla_2(
-  df = muestreo_bentos_transecto_llave_primaria,
-  nombre_columna_llave = "id_muestreo_bentos_transecto",
+muestra_transecto_bentos_info <- genera_tabla_2(
+  df = datos_muestra_transecto_bentos_llaves_primarias,
+  nombre_columna_llave = "muestra_transecto_bentos_info_id",
   nombre_nuevo_columna_llave = "id",
-  lista_columnas_adicionales = lista_columnas_benthos_transect_sample_info
-) %>%
-  mutate(
-    # Primero recalculo y luego renombro para que la columna se quede en el
-    # mismo lugar
-    puntos_o_cm_reales_transecto = (sampled_length_m / puntos_o_cm_reales_transecto) * 100
-  ) %>%
-  rename(
-    distance_between_points_if_pit_cm = puntos_o_cm_reales_transecto
+  lista_columnas_adicionales = lista_columnas_muestra_transecto_bentos_info
   ) %>%
   cambia_na_strings_vacios()
 
-####################################################
-# Generando la tabla "Benthos_transect_sample_point"
-####################################################
+######################################################
+# Generando la tabla "Muestra_transecto_bentos_punto"
+######################################################
 
-lista_columnas_benthos_transect_sample_point <- list(
-  benthos_transect_sample_info_id = "id_muestreo_bentos_transecto",
+lista_columnas_muestra_transecto_bentos_punto <- list(
+  muestra_transecto_bentos_info_id = "muestra_transecto_bentos_info_id",
   # Para generar el número de punto y preservar el órden:
   serie = "serie",
-  species_code = "codigo",
-  height_if_algae_cm  = "altura_algas_cm"
+  codigo = "codigo",
+  altura_si_alga_cm  = "altura_algas_cm"
 )
 
-benthos_transect_sample_point <- genera_tabla(
-  df = muestreo_bentos_transecto_llave_primaria,
-  nombre_columna_llave = "id_punto_muestreo_bentos",
+muestra_transecto_bentos_punto <- genera_tabla(
+  df = datos_muestra_transecto_bentos_llaves_primarias,
+  nombre_columna_llave = "muestra_transecto_bentos_punto_id",
   nombre_nuevo_columna_llave = "id",
-  lista_columnas_adicionales = lista_columnas_benthos_transect_sample_point
+  lista_columnas_adicionales = lista_columnas_muestra_transecto_bentos_punto
 ) %>%
-  # generando el campo "point_no", con ayuda del órden en "serie".
-  ddply(.(benthos_transect_sample_info_id), function(df){
+  
+  # Generando el número de punto, utilizando el orden de la serie, y suponiendo
+  # que sólo hay un muestreo de bentos en cada transecto. Esto se hace en este
+  # momento por facilidad, ya que ya tenemos definido el campo:
+  # "muestra_transecto_bentos_info_id"
+  
+  ddply(.(muestra_transecto_bentos_info_id), function(df){
     resultado <- df %>%
       arrange(serie) %>%
+      # Para que no cambie de lugar las columnas primero mutate y luego rename
       mutate(
         serie = 1:nrow(.)
       ) %>%
-      # Para que no cambie de lugar las columnas primero mutate y luego rename
       rename(
-        point_no = serie
+        numero_punto = serie
       )
     
     return(resultado)
@@ -159,12 +121,13 @@ benthos_transect_sample_point <- genera_tabla(
   # Creo que en esta tabla no debe haber strings vacíos.
   # cambia_na_strings_vacios()
 
+### AQUÍ ME QUEDÉ
 ##############
 # Corales
 ##############
-###################################################
-# Generando la tabla "Coral_transect_sample_info"
-###################################################
+#####################################################
+# Generando la tabla "Muestra_transecto_corales_info"
+#####################################################
 # Supuestos:
 # 1. Cada muestreo de corales en transecto realizado fue registrado en los Exceles
 # correspondientes (independientemente de si tuvo observaciones o no).
@@ -593,17 +556,17 @@ recruit_subquadrat_sample_from_transect_count <- muestreo_reclutas_cuadrante_lla
     count = cuenta
   )
 
-# save(
-#   benthos_transect_sample_info,
-#   benthos_transect_sample_point,
-#   coral_transect_sample_info,
-#   coral_transect_sample_observation,
-#   invertebrate_transect_sample_info,
-#   invertebrate_transect_sample_observation,
-#   fish_transect_sample_info,
-#   fish_transect_sample_count,
-#   complexity_transect_sample_info,
-#   recruit_subquadrat_sample_from_transect_info,
-#   recruit_subquadrat_sample_from_transect_count,
-#   file = "../productos/tablas_muestreo_aspectos_transecto.RData"
-# )
+save(
+  muestra_transecto_bentos_info,
+  muestra_transecto_bentos_punto,
+  coral_transect_sample_info,
+  coral_transect_sample_observation,
+  invertebrate_transect_sample_info,
+  invertebrate_transect_sample_observation,
+  fish_transect_sample_info,
+  fish_transect_sample_count,
+  complexity_transect_sample_info,
+  recruit_subquadrat_sample_from_transect_info,
+  recruit_subquadrat_sample_from_transect_count,
+  file = "../productos/v3/prueba_tablas_muestra_transecto_aspectos.RData"
+)

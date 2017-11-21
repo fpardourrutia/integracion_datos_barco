@@ -3,7 +3,8 @@
 # introducir NA's.
 
 # Este script está diseñado para los datos v3, por lo que se complementará con
-# las columnas que faltan a partir de las tablas simplificadas ("_tablas_individuales")
+# las columnas que faltan a partir de las tablas simplificadas
+# ("_tablas_individuales")
 
 # También se leerán los catálogos ("_catalogos") para realizar la revisión de los
 # registros en los campos correspondientes a éstos, y también integrarlos a la base.
@@ -24,7 +25,7 @@ options(nwarnings=50000)
 ruta_carpeta_datos_v3 <- "~/Dropbox/carpetas_compartidas/barco_lab/bases_integracion/datos_v3_preeliminar"
 
 ##########################################################
-# Procesando datos del proyecto CONACyT / GreenPeace 2016
+# Leyendo datos del proyecto CONACyT / GreenPeace 2016
 ##########################################################
 
 ruta_carpeta_conacyt_greenpeace_2016 <- paste0(ruta_carpeta_datos_v3, "/conacyt_greenpeace_2016")
@@ -84,10 +85,9 @@ lista_datos_crudos_conacyt_greenpeace_2016 <- lista_exceles_conacyt_greenpeace_2
 # Leyendo catálogos:
 #####################################################
 
-# Finalmente se leerán los catálogos (falta que Esme tenga las versiones finales)
+# Finalmente se leerán los catálogos
 ruta_catalogos <- paste0(ruta_carpeta_datos_v3, "/catalogos")
-lista_catalogos <- leer_exceles(ruta_catalogos, 1)
+lista_catalogos <- leer_exceles(ruta_catalogos, 1) %>%
+  renombra_columnas_minusculas()
 
 #saveRDS(lista_catalogos, "../productos/v3/lista_catalogos.RData")
-
-

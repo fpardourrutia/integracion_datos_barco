@@ -16,8 +16,7 @@ source("funciones_auxiliares.R")
 
 # Leyendo listas de exceles
 lista_datos_crudos_conacyt_greenpeace_2016 <- readRDS("../productos/v3/lista_datos_crudos_conacyt_greenpeace_2016.RData")
-lista_catalogos <- readRDS("../productos/v3/lista_catalogos.RData") %>%
-  renombra_columnas_minusculas()
+lista_catalogos <- readRDS("../productos/v3/lista_catalogos.RData")
 
 # Generando data frame auxiliar con los nombres de las columnas de cada tabla,
 # para ver qué tanto renombrar.
@@ -132,6 +131,7 @@ relacion_columnas_catalogo <- c(
   ".anp" = "catalogos_muestra_sitio__nombre_area_natural_protegida.categoria",
   ".metodo_seleccion_sitios" = "catalogos_muestra_sitio__metodo_seleccion.categoria",
   ".protocolo" = "catalogos_muestra_sitio__metodologia.categoria",
+  # Falta catálogo de "datum"
   
   "conacyt_greenpeace_2016_bentos_desagregados_v3.metodo" =
     "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
@@ -167,8 +167,11 @@ relacion_columnas_catalogo <- c(
     "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
   "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.nivel_agregacion_datos" =
     "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
-  # Falta el catálogo de nombres científicos de peces y el de "peces_muestreados"
-  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.peces_muestreados" =
+    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.especie" =
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
+
   "conacyt_greenpeace_2016_reclutas_desagregados_v3.nivel_agregacion_datos" =
     "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
   "conacyt_greenpeace_2016_reclutas_desagregados_v3.sustrato" =
@@ -176,10 +179,6 @@ relacion_columnas_catalogo <- c(
   "conacyt_greenpeace_2016_reclutas_desagregados_v3.codigo" =
     "catalogos_muestra_transecto_bentos_observacion__codigo.codigo" # Falta crear el catálogo de corales
 )
-
-# Catálogos por agregar:
-# 1. Falta catálogo de "datum"
-# 2. Falta catálogo de "peces_muestreados
 
 valores_revision_esme_catalogos <- revisa_columnas_catalogos(
   lista_datos_columnas_homologadas, lista_catalogos, relacion_columnas_catalogo) %>%
@@ -216,6 +215,15 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
         "en los sistemas arrecifales del Caribe Mexicano")
   ) %>%
   
+  # Arreglando el valor de "nombre_proyecto" == "NA" para los datos de
+  # "conacyt_greenpeace". Esto es importante pues "nombre_proyecto" se
+  # usará para crear una llave primaria de "proyecto_anual"
+  cambia_valor_columna_condicion(
+    "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') &
+    nombre_proyecto == 'NA'",
+    "nombre_proyecto", "CONACYT 247104 2016"
+  ) %>%
+  
   # Arreglando el valor de "documento" para los datos de "conacyt_greenpeace"
   cambia_valor_columna_condicion(
     "stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016')",
@@ -226,25 +234,25 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
   mutate(
     nombre_proyecto_sin_anio = case_when(
       nombre_proyecto == "CONACYT 247104 2016" ~ "CONACYT 247104",
-      nombre_proyecto == "GreenPeace 2016" ~ "GreenPeace",
+      nombre_proyecto == "Greenpeace 2016" ~ "GreenPeace 2016",
       TRUE ~ nombre_proyecto
     ),
     
     anio_en_curso = case_when(
       nombre_proyecto == "CONACYT 247104 2016" ~ "2016",
-      nombre_proyecto == "GreenPeace 2016" ~ "2016",
+      nombre_proyecto == "Greenpeace 2016" ~ "2016",
       TRUE ~ NA_character_
     ),
     
     anio_inicio_proyecto = case_when(
       nombre_proyecto == "CONACYT 247104 2016" ~ "2016",
-      nombre_proyecto == "GreenPeace 2016" ~ "2016",
+      nombre_proyecto == "Greenpeace 2016" ~ "2016",
       TRUE ~ anio_inicio_proyecto
     ),
     
     anio_termino_proyecto = case_when(
       nombre_proyecto == "CONACYT 247104 2016" ~ "2017",
-      nombre_proyecto == "GreenPeace 2016" ~ "2016",
+      nombre_proyecto == "Greenpeace 2016" ~ "2016",
       TRUE ~ anio_termino_proyecto
     )
     
@@ -792,14 +800,11 @@ datos_globales <- Reduce(rbind.fill, lista_datos_columnas_homologadas) %>%
     falso = FALSE,
     na_numerico = NA_real_,
     datum = "WGS84"
-  ) %>%
+  ) # %>%
   
   # mutate(
     # Invertebrates_transect_sample_info
     # "numero" siempre es 1 para conacyt_greenpeace_2016_invertebrados_desagregados_v3"
-    
-    # Fish_transect_sample_count
-    # Falta comparar "codigo" y "especie" con catálogos.
     
     # Recruit_quadrant_sample_transect_count
     # En realidad no son cuentas, sino incidencias
@@ -847,9 +852,9 @@ crv <- function(nombre_columna){
 #   set_names(.) %>%
 #   llply(function(x) crv(x))
 
-saveRDS(datos_globales, "../productos/v3/datos_globales.RData")
+# saveRDS(datos_globales, "../productos/v3/datos_globales.RData")
 
-# Comentarios Esme y Nuria:
+# Comentarios Esme y Nuria CONACyT / GreenPeace 2016:
 # 1. Falta localidad del proyecto. RESUELTO
 # 2. Esme va a revisar los datos con "blanqueamiento" NA, pero con porcentaje y viceversa. RESUELTO
 # datos_globales %>% group_by(blanqueamiento, porcentaje) %>% tally() %>% View()
@@ -866,6 +871,13 @@ saveRDS(datos_globales, "../productos/v3/datos_globales.RData")
 # de sitios".
 # 9. Falta "criterio de selección de colonias"
 # 10. ¿Los datos de "ancho_transecto_m" son el ancho, el semi ancho o combinados?
+# 11. FALTA: en cuanto Esme revise los datos de peces para que todas las especies
+# coincidan con las del catálogo, hago el join para que la tabla de peces tenga
+# el nombre científico (no la especie sólamente).
+# 12. FALTA: renombrar "temperatura_en_celsius" a "temperatura_en_celsius_transecto"
+# porque se requerirá una nueva columna si hay temperaturas a nivel de sitio.
+# 13. FALTA: los códigos en el catálogo de bentos no son únicos...
+# La "temperatura_c" copiarla al sitio porque no cambia entre transecto y sitio.
 
 # Revisión para datos históricos:
 # 1. Revisar campos de catálogo.

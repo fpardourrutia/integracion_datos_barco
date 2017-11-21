@@ -314,6 +314,274 @@ revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_column
   return(resultado)
 }
 
+# Función que recibe una lista nombrada de data frames y, por medio de un vector
+# que especifica ciertas columnas de cada data frame, permite revisar si tiene
+# valores no numéricos.
+# lista_df: lista nombrada de data frames
+# relacion_columnas_consideradas: vector con nombres y entradas de la forma:
+# c("df.columna", ..., ) que indicará qué data frame (y columna) de "lista_df" se
+# considerarán para esta revisión.
+# ceros_aceptables: parámetro de tipo lógico que indica si los ceros se
+# considerarán aceptables o no. Éste parámetro es útil cuando un valor 0 en una
+# variable numérica significa NA.
+
+# La función regresa un data frame donde cada registro tiene los campos:
+# "tabla", "campo" y "valor", donde cada registro corresponde a un valor que no
+# satisface la condición correspondiente.
+
+# Notas:
+# 1. Las columnas de cada data frame en "lista_df" deben contener sólo caracteres
+# alfanuméricos y guiones bajos.
+# 2. Cada data frame en "lista_df" debe contener una columna llamada "serie".
+# 3. Las entradas de "vector_columnas" puede ser especificadas de la
+# manera ".columna", lo que significa que esa columna en
+# cada data frame debe satisfacer la condicion.
+# 4. Los valores lógicos / nulos se consideran numéricos.
+
+revisa_columnas_numericas <- function(lista_df, relacion_columnas_consideradas,
+  ceros_aceptables = TRUE){
+  
+  # Definiendo funciones auxiliares que reportarán valores no aceptables (ya sea
+  # no numéricos, o no numéricos + 0):
+  
+  # La siguiente función, dado un dato "valor", regresará "valor" si éste no
+  # es (o casteable a) numérico , en otro caso, regresará "__eliminar__"
+  reporta_valor_no_numerico <- function(valor){
+    
+    # La siguiente variable contiene:
+    # el valor de "as.numeric(valor)" si se pudo evaluar dicha expresión.
+    # un warning o error si la expresión lanzó cualesquiera de las anteriores
+    valor_error_warning <- tryCatch(as.numeric(valor),
+      error = function(e) e,
+      warning = function(w) w)
+    
+    if(is(valor_error_warning, "error") | is(valor_error_warning, "warning")){
+      resultado <- valor
+    } else{
+      resultado <- "__eliminar__"
+    }
+    
+    return(resultado)
+  }
+  
+  # La siguiente función, dado un dato "valor", regresará "valor" si éste no
+  # es (o casteable a) numérico o si es 0, en otro caso, regresará "__eliminar__"
+  reporta_valor_no_numerico_0 <- function(valor){
+    
+    # La siguiente variable contiene:
+    # el valor de "as.numeric(valor)" si se pudo evaluar dicha expresión.
+    # un warning o error si la expresión lanzó cualesquiera de las anteriores
+    valor_error_warning <- tryCatch(as.numeric(valor),
+      error = function(e) e,
+      warning = function(w) w)
+    
+    if(is(valor_error_warning, "error") | is(valor_error_warning, "warning")){
+      resultado <- valor
+    } else{
+      if(!is.na(valor_error_warning) & valor_error_warning == 0){
+        resultado <- valor
+      } else{
+        resultado <- "__eliminar__"
+      }
+    }
+    
+    return(resultado)
+  }
+  
+  # Transformando "relacion_columnas_consideradas" en un data frame para su fácil
+  # manipulación:
+  relacion_columnas_consideradas_df <- data_frame(
+    df.columna = relacion_columnas_consideradas
+  ) %>%
+    # Quedándonos sólo con renglones distintos:
+    distinct() %>%
+    separate(df.columna, into = c("nombre_df", "nombre_columna_df"), sep = "\\.")
+  
+  # Verificando que todos los data frames estén en lista_df:
+  data_frames_considerados <- relacion_columnas_consideradas_df %>%
+    # Filtrando los casos donde no se especifica un data frame
+    filter(nombre_df != "") %>%
+    pull(nombre_df) %>%
+    unique()
+  
+  # Si hay data frames escritos en "relacion_columnas_condicion" que no se
+  # encuentran en "lista_df", entonces parar la ejecución:
+  if(sum(data_frames_considerados %in% names(lista_df)) != length(data_frames_considerados)){
+    "Hay data frames especificados en 'relacion_columnas_consideradas' que no se " %>%
+      paste0("encuentran en 'lista_df'") %>%
+      stop()
+  }
+  
+  # Ahora se pasará a interpretar cada renglón de "relacion_columnas_consideradas_df"
+  # para realizar la revisión correspondiente.
+  resultado <- apply(relacion_columnas_consideradas_df, 1, function(x){
+    
+    # Obteniendo valores de cada renglón del data frame
+    nombre_df <- x["nombre_df"]
+    nombre_columna_df <- x["nombre_columna_df"]
+    
+    # Si el data frame es especificado explícitamente:
+    if(nombre_df != ""){
+      
+      df <- lista_df[[nombre_df]]
+      # Si la columna correspondiente no se encuentra en el data frame especificado
+      if(!(nombre_columna_df %in% colnames(df))){
+        paste0("La columna ", nombre_columna_df, " no se encuentra en el data frame ",
+          nombre_df) %>%
+          stop()
+      }
+      
+      # Obteniendo los valores de la columna de interés del df
+      valores_columna_df <- df[[nombre_columna_df]] %>%
+        unique()
+      
+      # Obteniendo los valores de "df.columna" que no cumplen la condición especificada
+      if(ceros_aceptables == TRUE){
+        evaluacion_valores_columna_df <- laply(valores_columna_df, reporta_valor_no_numerico)
+      } else{
+        evaluacion_valores_columna_df <- laply(valores_columna_df, reporta_valor_no_numerico_0)
+      }
+      
+      valores_columnas_df_no_aceptables <- evaluacion_valores_columna_df[
+        evaluacion_valores_columna_df != "__eliminar__"]
+      
+      # Generando el data frame de valores no aceptables
+        resultado <- data_frame(
+          "tabla" = rep(nombre_df, length(valores_columnas_df_no_aceptables)),
+          "campo" = rep(nombre_columna_df, length(valores_columnas_df_no_aceptables)),
+          "valor" = valores_columnas_df_no_aceptables
+        )
+
+      # Si el data frame no es especificado explícitamente, aplicar la revisión
+      # a la columna "nombre_columna_df" de cada data frame.
+      
+    } else{
+      
+      resultado <- ldply(1:length(lista_df), function(i){
+        
+        # Encontrando el data frame de trabajo y su nombre:
+        df <- lista_df[[i]]
+        nombre_df <- names(lista_df)[i]
+        
+        # Si la columna correspondiente no se encuentra en el data frame especificado
+        if(!(nombre_columna_df %in% colnames(df))){
+          paste0("La columna ", nombre_columna_df, " no se encuentra en el data frame ",
+            nombre_df) %>%
+            stop()
+        }
+        
+        # Obteniendo los valores de la columna de interés del df
+        valores_columna_df <- df[[nombre_columna_df]] %>%
+          unique()
+        
+        # Obteniendo los valores de "df.columna" que no cumplen la condición especificada
+        if(ceros_aceptables == TRUE){
+          evaluacion_valores_columna_df <- laply(valores_columna_df, reporta_valor_no_numerico)
+        } else{
+          evaluacion_valores_columna_df <- laply(valores_columna_df, reporta_valor_no_numerico_0)
+        }
+        
+        valores_columnas_df_no_aceptables <- evaluacion_valores_columna_df[
+          evaluacion_valores_columna_df != "__eliminar__"]
+        
+        # Generando el data frame de valores no aceptables
+        resultado <- data_frame(
+          "tabla" = rep(nombre_df, length(valores_columnas_df_no_aceptables)),
+          "campo" = rep(nombre_columna_df, length(valores_columnas_df_no_aceptables)),
+          "valor" = valores_columnas_df_no_aceptables
+        )
+        
+        return(resultado)
+      })
+    }
+    
+    return(resultado)
+  }) %>%
+  # Uniendo los data frames
+  reduce(rbind)
+  
+  return(resultado)
+}
+      
+# Función que recibe una lista nombrada de data frames y una lista llaves naturales
+# para cada data frame. La función identifica los renglones duplicados de cada
+# data frame con respecto a su llave correspondiente.
+# lista_df: lista nombrada de data frames
+# lista_llaves_naturales: una lista de la forma list("df1" = c("col1", "col2"),...)
+# que especifique la llave natural correspondiente a cada data frame.
+# tipo_resultado: "completo", regresa los registros duplicados completos
+#                 "llaves_naturales", regresa sólo las columnas de "serie" y
+#                 las especificadas como llaves naturales para ese data frame.
+# La función regresa una lista de data frames, cada elemento de ésta contiene
+# los registros duplicados de un data frame especificado en  "lista_llaves_naturales".
+# Nota:
+# "lista_llaves_naturales" puede ser de menor tamaño que "lista_df". En este
+# caso, los data frames no especificados en "lista_llaves_naturales" no serán
+# tomados en cuenta
+
+encuentra_duplicados <- function(lista_df, lista_llaves_naturales,
+  tipo_resultado = "llaves_naturales"){
+  
+  if(!tipo_resultado %in% c("completo", "llaves_naturales")){
+    stop("\"tipo_resultado\" debe ser \"completo\" o \"llaves_naturales\"")
+  }
+  
+  # Revisando que todos los data_frames especificados en "lista_llaves_naturales"
+  # Se encuentren en "lista_df"
+  if(sum(names(lista_llaves_naturales) %in% names(lista_df)) !=
+      length(lista_llaves_naturales)){
+    paste0("Hay data frames especificados en \"lista_llaves_naturales\" que no ",
+      "se encuentran en \"lista_df\"") %>%
+      stop()
+  } else{
+    
+    resultado <- llply(1:length(lista_llaves_naturales), function(i){
+      
+      # Obteniendo un data frame de interés de la lista
+      nombre_df <- names(lista_llaves_naturales)[i]
+      df <- lista_df[[nombre_df]]
+      
+      # Revisando que las columnas especificadas en "lista_llaves_naturales[[i]]"
+      # se encuentren en df:
+      nombres_columnas_llave_natural_df <- lista_llaves_naturales[[i]]
+      if(sum(nombres_columnas_llave_natural_df %in% names(df)) !=
+          length(nombres_columnas_llave_natural_df)){
+        paste0("El data frame \"", nombre_df, "\" no contiene alguna de las siguientes ",
+          "columnas: \"", paste0(nombres_columnas_llave_natural_df, collapse = "\",
+            \""), "\"") %>%
+          stop()
+      } else{
+        
+        # Encontrando los valores de la llave natural que están repetidos
+        valores_duplicados_llave_natural <- df %>%
+          select_(.dots = nombres_columnas_llave_natural_df) %>%
+          filter(duplicated(.)) %>%
+          # Se eliminan los que posiblemente están repetidos más de una vez.
+          unique()
+        
+        registros_duplicados <- df %>%
+          inner_join(valores_duplicados_llave_natural,
+            by = nombres_columnas_llave_natural_df)
+        
+        if(tipo_resultado == "completo"){
+          resultado <- registros_duplicados
+        } else{
+          
+          columnas_interes <- c("serie", nombres_columnas_llave_natural_df)
+          resultado <- registros_duplicados %>%
+            select_(.dots = columnas_interes)
+        }
+        
+        return(resultado)
+      }
+    })
+    
+    # Nombrando los data_frames de duplicados:
+    names(resultado) <- names(lista_llaves_naturales)
+    return(resultado)
+  }
+}
+
 #########################################
 # Funciones auxiliares sobre data frames
 #########################################
@@ -767,3 +1035,5 @@ estandariza_strings <- function(vec){
   
   return(resultado)
 }
+
+
