@@ -1,13 +1,14 @@
-# En este script se genera el DF global de datos limpios, listo para partirse
-# en tablas distintas.
+# En este script se revisan las listas de data frames con la información leída
+# de los archivos de Excel. Básicamente:
+# 1. Se leen las listas de tablas y catálogos que tienen los nombre de columnas
+# homologados.
+# 2. Se revisan los campos ligados a catálogo contra su correspondiente catálogo.
+# 3. Se revisan columnas numéricas.
+# 4. Se revistan registros duplicados con respecto a una llave natural
 
-library("plyr")
-library("dplyr")
-library("tidyr")
-library("stringi")
-library("lubridate")
+# Cargando archivo de configuración y funciones auxiliares
 library("readr")
-# Cargando funciones auxiliares:
+source("config.R")
 source("funciones_auxiliares.R")
 
 ###############################################################
@@ -15,91 +16,47 @@ source("funciones_auxiliares.R")
 ###############################################################
 
 # Leyendo listas de exceles
-lista_datos_crudos_conacyt_greenpeace_2016 <- readRDS("../productos/v3/lista_datos_crudos_conacyt_greenpeace_2016.RData")
-lista_catalogos <- readRDS("../productos/v3/lista_catalogos.RData")
+lista_catalogos <- readRDS(
+  paste0(ruta_salidas_0_leer_exceles, "/lista_catalogos.RData"))
+lista_tablas_columnas_homologadas <- readRDS(
+  paste0(ruta_salidas_1_homologar_columnas, "/lista_tablas_columnas_homologadas.RData"))
 
-# Generando data frame auxiliar con los nombres de las columnas de cada tabla,
-# para ver qué tanto renombrar.
-# df_resumen_conacyt_greenpeace_2016 <- crear_resumen_columnas_df(lista_datos_crudos_conacyt_greenpeace_2016)
-# glimpse(df_resumen_conacyt_greenpeace_2016)
-# encuentra_columnas(df_resumen_conacyt_greenpeace_2016, "Abundancia")
+###############################################################
+# Revisiones varias
+###############################################################
+
+# Generando una tabla preliminar para ayudar a la revisión de los valores en cada
+# campo
+tabla_revision <- Reduce(rbind.fill, lista_tablas_columnas_homologadas)
+lista_revision <- revisa_valores(tabla_revision)
+#encuentra_columnas(tabla_revision, "altura")
+
+# Creando varios resúmenes de qué columnas contiene cada data frame
+names(lista_tablas_columnas_homologadas)
+
+lista_tablas_columnas_homologadas %>%
+  crear_resumen_columnas_df() %>%
+  glimpse()
+
+lista_tablas_columnas_homologadas[lista_tablas_columnas_homologadas %>%
+    names() %>%
+    stri_detect_regex("bentos")
+  ] %>%
+  crear_resumen_columnas_df() %>%
+  glimpse()
 
 # Revisando cuántos catálogos tienen cada columna, para ver si hay que renombrar
 # o no.
-# crear_resumen_columnas_df(lista_catalogos) %>%
-#   select(-nombre_df) %>%
-#   gather("variable", "valor") %>%
-#   group_by(variable) %>%
-#   summarise(
-#     n = sum(valor)
-#   ) %>%
-#   arrange(variable) %>%
-#   View()
+crear_resumen_columnas_df(lista_catalogos) %>%
+  select(-nombre_df) %>%
+  gather("variable", "valor") %>%
+  group_by(variable) %>%
+  summarise(
+    n = sum(valor)
+  ) %>%
+  arrange(variable) %>%
+  View()
 # Parece que todo bien
-
-######################################################################################
-# Arreglando nombres de columnas que difieren entre data frames (en la lista general)
-######################################################################################
-
-lista_datos_columnas_homologadas <- lista_datos_crudos_conacyt_greenpeace_2016 %>%
-  renombra_columna("101a110cm", "tamanio_101cm_110cm") %>%
-  renombra_columna("111a120cm", "tamanio_111cm_120cm") %>%
-  renombra_columna("11a20cm     ll", "tamanio_11cm_20cm") %>%
-  renombra_columna("191a200cm", "tamanio_191cm_200cm") %>%
-  renombra_columna("21a30cm", "tamanio_21cm_30cm") %>%
-  renombra_columna("31a40cm", "tamanio_31cm_40cm") %>%
-  renombra_columna("41a50cm", "tamanio_41cm_50cm") %>%
-  renombra_columna("51a60cm", "tamanio_51cm_60cm") %>%
-  renombra_columna("61a70cm", "tamanio_61cm_70cm") %>%
-  renombra_columna("6a10cm", "tamanio_6cm_10cm") %>%
-  renombra_columna("71a80cm", "tamanio_71cm_80cm") %>%
-  renombra_columna("81a90cm", "tamanio_81cm_90cm") %>%
-  renombra_columna("91a100cm", "tamanio_91cm_100cm") %>%
-  renombra_columna("Ancho_del_cuadrante_m", "ancho_cuadrante_m") %>%
-  renombra_columna("Ancho_del_transecto_metros", "ancho_transecto_m") %>%
-  renombra_columna("Anio_de_muestreo", "anio_muestreo") %>%
-  renombra_columna("Anio_De_Publicacion", "anio_publicacion") %>%
-  renombra_columna("Autor_Administrador_Del_Proyecto", "autor_administrador_proyecto") %>%
-  renombra_columna("Blaqueamieto", "blanqueamiento") %>%
-  renombra_columna("Depredación", "depredacion") %>%
-  renombra_columna("Día", "dia") %>%
-  renombra_columna("Dia", "dia") %>%
-  renombra_columna("Fecha_de_inicio", "anio_inicio_proyecto") %>%
-  renombra_columna("Fecha_de_termino", "anio_termino_proyecto") %>%
-  renombra_columna("Longitud_del_cuadrante_m", "longitud_cuadrante_m") %>%
-  renombra_columna("Longitud_del_transecto_metro", "longitud_transecto_m") %>%
-  renombra_columna("menores_a_5m", "tamanio_0cm_5cm") %>%
-  renombra_columna("Metodo_de_Seleccion_de_Sitios", "metodo_seleccion_sitios") %>%
-  renombra_columna("Mortalidad_Transición", "mortalidad_transicion") %>%
-  renombra_columna("Muestreo_completo", "muestreo_completo") %>%
-  renombra_columna("Muestrreo_completo", "muestreo_completo") %>%
-  renombra_columna("Nivel_de_agregacion_de_datos", "nivel_agregacion_datos") %>%
-  renombra_columna("Nombre_del_sitio", "nombre_sitio") %>%
-  renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>%
-  renombra_columna("Nombre_del_Proyecto", "nombre_proyecto") %>%
-  renombra_columna("Numero_de_sitios_agregados", "numero_sitios_agregados") %>%
-  renombra_columna("Protocolo_utilizado", "metodo") %>% #!!!
-  renombra_columna("Profundidad_final", "profundidad_final_m") %>%
-  renombra_columna("Profundidad_inicial", "profundidad_inicial_m") %>%
-  renombra_columna("Profundidad_media_m", "profundidad_media_m") %>%
-  renombra_columna("Profundidad_media_metros", "profundidad_media_m") %>%
-  renombra_columna("Region_del_arrecife_HR", "region_healthy_reefs") %>%
-  renombra_columna("Tamanio_de_cadena_metros", "tamanio_cadena_m") %>%
-  renombra_columna("Temperatura_celsius", "temperatura_c") %>% #importante
-  renombra_columna("Temperatura_en _Celcius", "temperatura_c") %>% #importante
-  renombra_columna("Unidades_de_profundidad", "unidades_profundidad") %>%
-  renombra_columnas_minusculas()
-
-# Revisando que no haya duplicados en los nombres de las columnas dentro de cada
-# Excel, causados, por ejemplo, por renombrar una columna a un nombre anteriormente
-# usado
-ldply(lista_datos_columnas_homologadas, function(df){
-  numero_columnas_nombres_duplicados <- colnames(df) %>%
-    duplicated() %>%
-    sum()
-  return(numero_columnas_nombres_duplicados)
-})
-# Perfecto!
 
 ###############################################################
 # Revision de valores en catálogos:
@@ -110,21 +67,14 @@ ldply(lista_datos_columnas_homologadas, function(df){
 # valores tomados de dicho catálogo. En otro caso, se imprimirá la información
 # necesaria para corregirlo.
 
-# Revisando las columnas en cada data frame de las listas de tablas y catálogos:
-names(lista_datos_columnas_homologadas)
-resumen_df <- crear_resumen_columnas_df(lista_datos_columnas_homologadas)
-glimpse(resumen_df)
-#encuentra_columnas(resumen_df, "agregacion")
-
-resumen_catalogos <- crear_resumen_columnas_df(lista_catalogos)
-View(resumen_catalogos)
-
 # Generando la relación de columnas en catálogo:
 relacion_columnas_catalogo <- c(
+  
+  # Proyecto y sitio
   ".tema" = "catalogos_proyecto__proposito.categoria", # propósito
+  
   ".pais" = "catalogos_muestra_sitio__pais.categoria",
   ".region_healthy_reefs" = "catalogos_muestra_sitio__region_healthy_reefs.categoria",
-  ".tipo_arrecife" = "catalogos_muestra_sitio__tipo_arrecife.categoria",
   ".tipo_arrecife" = "catalogos_muestra_sitio__tipo_arrecife.categoria",
   ".subtipo_arrecife" = "catalogos_muestra_sitio__subtipo_arrecife.categoria",
   ".zona_arrecife" = "catalogos_muestra_sitio__zona_arrecifal.categoria",
@@ -133,58 +83,394 @@ relacion_columnas_catalogo <- c(
   ".protocolo" = "catalogos_muestra_sitio__metodologia.categoria",
   # Falta catálogo de "datum"
   
-  "conacyt_greenpeace_2016_bentos_desagregados_v3.metodo" =
-    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
-  "conacyt_greenpeace_2016_bentos_desagregados_v3.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+  # Bentos:
   "conacyt_greenpeace_2016_bentos_desagregados_v3.codigo" =
     "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
   
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.metodo" =
+    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.metodo" =
+    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.metodo" =
+    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.metodo" =
+    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.metodo" =
+    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+  
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+  
+  # Corales
   "conacyt_greenpeace_2016_corales_desagregados_v3.metodo" =
     "catalogos_muestra_transecto_corales_info__metodo_muestreo.categoria",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.metodo" =
+    "catalogos_muestra_transecto_corales_info__metodo_muestreo.categoria",
+  
   "conacyt_greenpeace_2016_corales_desagregados_v3.nivel_agregacion_datos" =
     "catalogos_muestra_transecto_corales_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_corales_info__nivel_agregacion_datos.categoria",
+  
   "conacyt_greenpeace_2016_corales_desagregados_v3.codigo" =
     "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+  
   "conacyt_greenpeace_2016_corales_desagregados_v3.depredacion" =
     "catalogos_muestra_transecto_corales_observacion__depredacion.categoria",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.depredacion" =
+    "catalogos_muestra_transecto_corales_observacion__depredacion.categoria",
+  
   "conacyt_greenpeace_2016_corales_desagregados_v3.lesiones" =
     "catalogos_muestra_transecto_corales_observacion__lesion.categoria",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.lesiones" =
+    "catalogos_muestra_transecto_corales_observacion__lesion.categoria",
+  
   "conacyt_greenpeace_2016_corales_desagregados_v3.enfermedades" =
-    "catalogos_muestra_transecto_corales_observacion__enfermedades.codigo",
+    "catalogos_muestra_transecto_corales_observacion__enfermedad.codigo",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.enfermedades" =
+    "catalogos_muestra_transecto_corales_observacion__enfermedad.codigo",
+  
   "conacyt_greenpeace_2016_corales_desagregados_v3.sobrecrecimiento" =
     "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.sobrecrecimiento" =
+    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.sobrecrecimiento__1" =
+    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.sobrecrecimiento__1" =
+    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+  
   "conacyt_greenpeace_2016_corales_desagregados_v3.blanqueamiento" =
+    "catalogos_muestra_transecto_corales_observacion__tipo_blanqueamiento.categoria",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.blanqueamiento" =
     "catalogos_muestra_transecto_corales_observacion__tipo_blanqueamiento.categoria",
   # Falta campo "criterio_seleccion_colonias".
   
+  # Invertebrados
   "conacyt_greenpeace_2016_invertebrados_desagregados_v3.metodo" =
     "catalogos_muestra_transecto_invertebrados_info__metodo_muestreo.categoria",
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.metodo" =
+    "catalogos_muestra_transecto_invertebrados_info__metodo_muestreo.categoria",
+  
   "conacyt_greenpeace_2016_invertebrados_desagregados_v3.nivel_agregacion_datos" =
     "catalogos_muestra_transecto_invertebrados_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_invertebrados_info__nivel_agregacion_datos.categoria",
   
+  # Peces
   "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.metodo" =
     "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.metodo" = 
+    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.metodo" =
+    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.metodo" = 
+    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+  
   "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.nivel_agregacion_datos" =
     "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nivel_agregacion_datos" = 
+    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" =
+    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.nivel_agregacion_datos" = 
+    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+  
   "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.peces_muestreados" =
     "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_muestreados" = 
+    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_muestreados" =
+    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_muestreados" = 
+    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+  
   "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.especie" =
     "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
-
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.especie" = 
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.especie" =
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.especie" = 
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
+  
+  # Reclutas
   "conacyt_greenpeace_2016_reclutas_desagregados_v3.nivel_agregacion_datos" =
     "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" =
+    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
+  
   "conacyt_greenpeace_2016_reclutas_desagregados_v3.sustrato" =
     "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.sustrato" =
+    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
+  
   "conacyt_greenpeace_2016_reclutas_desagregados_v3.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.codigo" =
     "catalogos_muestra_transecto_bentos_observacion__codigo.codigo" # Falta crear el catálogo de corales
 )
 
-valores_revision_esme_catalogos <- revisa_columnas_catalogos(
-  lista_datos_columnas_homologadas, lista_catalogos, relacion_columnas_catalogo) %>%
+valores_no_presentes_en_catalogo <- revisa_columnas_catalogos(
+  lista_tablas_columnas_homologadas, lista_catalogos, relacion_columnas_catalogo) %>%
   group_by(tabla, campo, catalogo, valor) %>%
   tally()
-# write_csv(valores_revision_esme_catalogos, "../productos/v3/valores_revision_esme_catalogos.csv")
+
+# saveRDS(valores_no_presentes_en_catalogo,
+#   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_no_presentes_en_catalogo.RDS"))
+# write_csv(valores_no_presentes_en_catalogo,
+#   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_no_presentes_en_catalogo.csv"))
+
+###############################################################
+# Revision de valores numéricos:
+###############################################################
+
+# En esta sección se revisará que las columnas que deben ser numéricas en los
+# data frames de "lista_datos_columnas_homologadas" efectivamente lo sean.
+# En otro caso, se imprimirá la información necesaria para corregirlo.
+# Por facilidad, se revisarán todas las columnas numéricas como si no aceptaran
+# 0's.
+
+relacion_columnas_numericas <- c(
+  
+  # Proyecto y sitio
+  ".anio",
+  ".anio_inicio_proyecto",
+  ".anio_muestreo",
+  ".anio_publicacion",
+  ".anio_termino_proyecto",
+  ".latitud",
+  ".longitud",
+  ".longitud_transecto_m",
+  ".dia",
+  ".mes",
+  ".minutos",
+  ".numero_sitios_agregados",
+  ".profundidad_final_m",
+  ".profundidad_inicial_m",
+  ".profundidad_media_m",
+  ".profundidad_media_m_sitio",
+  ".temperatura_c",
+  
+  # Bentos
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.altura_algas_cm",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.altura_algas_cm",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.altura_algas_cm",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.altura_algas_cm",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.altura_algas_cm",
+  
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.cobertura",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.cobertura",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.cobertura",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.cobertura",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.cobertura",
+  
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.conteo",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.conteo",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.conteo",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.conteo",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.conteo",
+  
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.identificador_muestreo_sitio",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.identificador_sitio",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.identificador_sitio",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.identificador_sitio",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.identificador_sitio",
+  
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.longitud_teorica_m_bentos",
+  # "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.longitud_teorica_m_bentos",
+  # "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.longitud_teorica_m_bentos",
+  # "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.longitud_teorica_m_bentos",
+  # "historicos_y_2017_transecto_bentos_desagregado_pit_lit.longitud_teorica_m_bentos",
+  
+  "conacyt_greenpeace_2016_bentos_desagregados_v3.puntos_o_cm_reales_transecto",
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.puntos_o_cm_reales_transecto",
+  "historicos_y_2017_sitio_bentos_desagregados_pit_lit_privados.puntos_o_cm_reales_transecto",
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.puntos_o_cm_reales_transecto",
+  "historicos_y_2017_transecto_bentos_desagregado_pit_lit.puntos_o_cm_reales_transecto",
+  
+  # Corales
+  "conacyt_greenpeace_2016_corales_desagregados_v3.altura_maxima_cm",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.altura_maxima_cm",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.ancho_transecto_m",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.ancho_transecto_m",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.d1_max_diam_cm",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.d1_max_diam_cm",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.d2_min_diam_cm",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.d2_min_diam_cm",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.identificador_muestreo_sitio",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.identificador_sitio",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.longitud_teorica_m_corales",
+  # "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.longitud_teorica_m_corales",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.mortalidad_antigua",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.mortalidad_antigua",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.mortalidad_reciente",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.mortalidad_reciente",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.mortalidad_total",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.mortalidad_total",
+  "conacyt_greenpeace_2016_corales_desagregados_v3.mortalidad_transicion",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.mortalidad_transicion",
+  
+  "conacyt_greenpeace_2016_corales_desagregados_v3.porcentaje",
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.porcentaje",
+  
+  # Invertebrados
+  "conacyt_greenpeace_2016_invertebrados_desagregados_v3.ancho_transecto_m",
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.ancho_transecto_m",
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados_v3.conteo",
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.conteo",
+  
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.cuadrante",
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados_v3.identificador_muestreo_sitio",
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.identificador_sitio",
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados_v3.longitud_teorica_m_invertebrados_agrra_v5",
+  "conacyt_greenpeace_2016_invertebrados_desagregados_v3.longitud_teorica_m_invertebrados_otros",
+  #"historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.longitud_teorica_m_invertebrados"
+  
+  # Peces
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.abundancia",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.abundancia",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.abundancia",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.abundancia",
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.ancho_transecto_m",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.ancho_transecto_m",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.ancho_transecto_m",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.ancho_transecto_m",
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.identificador_muestreo_sitio",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.identificador_sitio",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.identificador_sitio",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.identificador_sitio",
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.longitud_teorica_m_peces",
+  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.longitud_teorica_m_peces",
+  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.longitud_teorica_m_peces",
+  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.longitud_teorica_m_peces",
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_0cm_5cm",                            
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_0cm_5cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_0cm_5cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_0cm_5cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_101cm_110cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_101cm_110cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_101cm_110cm",
+  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_101cm_110cm",
+  # "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_101cm_9999cm",
+  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_101cm_9999cm",
+  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_101cm_9999cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_101cm_9999cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_111cm_120cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_111cm_120cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_111cm_120cm",
+  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_111cm_120cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_11cm_20cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_11cm_20cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_11cm_20cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_11cm_20cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_191cm_200cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_191cm_200cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_191cm_200cm",
+  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_191cm_200cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_21cm_30cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_21cm_30cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_21cm_30cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_21cm_30cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_31cm_40cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_31cm_40cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_31cm_40cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_31cm_40cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_41cm_50cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_41cm_50cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_41cm_50cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_41cm_50cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_51cm_60cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_51cm_60cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_51cm_60cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_51cm_60cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_61cm_70cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_61cm_70cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_61cm_70cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_61cm_70cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_6cm_10cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_6cm_10cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_6cm_10cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_6cm_10cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_71cm_80cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_71cm_80cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_71cm_80cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_71cm_80cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_81cm_90cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_81cm_90cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_81cm_90cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_81cm_90cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla_v3.tamanio_91cm_100cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_91cm_100cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_91cm_100cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_91cm_100cm",
+  
+  # Reclutas
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.longitud_cuadrante_m",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.longitud_cuadrante_m",
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.ancho_cuadrante_m",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.ancho_cuadrante_m",
+  
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.identificador_muestreo_sitio",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.identificador_sitio",
+  
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.n",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.n",
+  
+  "conacyt_greenpeace_2016_reclutas_desagregados_v3.tamanio_cm",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.tamanio_cm",
+  
+  # Complejidad
+  "conacyt_greenpeace_2016_rugosidad_v3.identificador_muestreo_sitio",
+  "historicos_y_2017_transecto_complejidad_desagregada_cadena.identificador_sitio",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.identificador_sitio",
+  
+  "conacyt_greenpeace_2016_rugosidad_v3.relieve",
+  "historicos_y_2017_transecto_complejidad_desagregada_cadena.relieve",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.relieve",
+  
+  "conacyt_greenpeace_2016_rugosidad_v3.tamanio_cadena_m",
+  "historicos_y_2017_transecto_complejidad_desagregada_cadena.tamanio_cadena_m",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.tamanio_cadena_m"
+)
+
+valores_esperados_numericos <- revisa_columnas_numericas(lista_tablas_columnas_homologadas, relacion_columnas_numericas,
+  ceros_aceptables = FALSE)
+# saveRDS(valores_esperados_numericos,
+#   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.RDS"))
+# write_csv(valores_esperados_numericos,
+#   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.csv"))
 
 ## 2. Creando una tabla con la información de todos los Exceles
 # Para construir las tablas especificadas en el esquema de bases de datos,

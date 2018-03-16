@@ -1,5 +1,8 @@
 library("plyr")
 library("dplyr")
+library("tidyr")
+library("readxl")
+library("lubridate")
 library("stringi")
 library("forcats") # Para trabajar con factores, en "genera_llave"
 library("purrr") # Para "genera_tabla_2"
@@ -333,9 +336,9 @@ revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_column
 # 1. Las columnas de cada data frame en "lista_df" deben contener sólo caracteres
 # alfanuméricos y guiones bajos.
 # 2. Cada data frame en "lista_df" debe contener una columna llamada "serie".
-# 3. Las entradas de "vector_columnas" puede ser especificadas de la
-# manera ".columna", lo que significa que esa columna en
-# cada data frame debe satisfacer la condicion.
+# 3. Las entradas de "relacion_columnas_consideradas" puede ser especificadas de la
+# manera ".columna", lo que significa que esa columna en cada data frame debe
+# satisfacer la condicion.
 # 4. Los valores lógicos / nulos se consideran numéricos.
 
 revisa_columnas_numericas <- function(lista_df, relacion_columnas_consideradas,
@@ -599,7 +602,7 @@ encuentra_columnas <- function(df, x){
   return(nombres_columnas[indice])
 }
 
-# Función auxiliar a la hora de programar, para hacer una tabla para cada columna
+# Función auxiliar a la hora de programar, para crear una tabla para cada columna
 # de un data frame, y así visualizar valores a corregir
 # df: data frame cuyas valores en cada columna se quieren revisar
 # La función regresa una lista de tablas con los valores de cada columna de df.
@@ -1035,5 +1038,3 @@ estandariza_strings <- function(vec){
   
   return(resultado)
 }
-
-
