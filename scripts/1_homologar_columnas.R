@@ -243,7 +243,7 @@ ldply(lista_tablas_columnas_homologadas, function(df){
 })
 # Perfecto!
 
-# saveRDS(lista_tablas_columnas_homologadas,
-#   paste0(ruta_salidas_1_homologar_columnas, "/lista_tablas_columnas_homologadas.RData"))
+saveRDS(lista_tablas_columnas_homologadas,
+  paste0(ruta_salidas_1_homologar_columnas, "/lista_tablas_columnas_homologadas.RData"))
 
 

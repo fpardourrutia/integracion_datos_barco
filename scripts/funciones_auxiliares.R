@@ -733,7 +733,7 @@ elimina_columnas_vacias <- function(df){
 # Función para transformar un conjunto de variables a tipo numérico:
 # df: data_frame cuyas variables se quieren transformar
 # ...: nombres de las variables a transformar
-mutate_numeric <- function(df, ...){
+mutate_numeric <- function(df, ..., warnings = TRUE){
   # Obteniendo variables como un vector
   variables <- list(...) %>%
     as.character() 
@@ -746,8 +746,11 @@ mutate_numeric <- function(df, ...){
   # nombres a las nuevas variables
   names(expresion) <- variables
   
-  resultado <- df %>%
-    mutate_(.dots = expresion)
+  if(warnings == TRUE){
+    resultado <- mutate_(df, .dots = expresion)
+  } else{
+    resultado <- suppressWarnings(mutate_(df, .dots = expresion))
+  }
   
   return(resultado)
 }
