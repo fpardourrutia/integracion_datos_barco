@@ -59,11 +59,12 @@ obtiene_archivos_columna <- function(datos, nombre_columna){
 }
 
 ################################################################################
+# *: llave natural necesaria para crear tablas
 
 ### Muestreo ###
-names(revision_valores[["nombre_proyecto"]]) # Nombre del muestreo. No debe haber "NA"
-names(revision_valores[["proposito"]]) # Descripción del proyecto
-names(revision_valores[["tema"]]) # Propósito del proyecto. Catálogo
+names(revision_valores[["nombre_proyecto"]]) # Nombre del muestreo. No debe haber "NA" *
+names(revision_valores[["proposito"]]) # Descripción del muestreo
+names(revision_valores[["tema"]]) # Propósito del muestreo Catálogo
 names(revision_valores[["localidad_proyecto"]]) # Área de estudio
 names(revision_valores[["institucion"]]) # Organización
 names(revision_valores[["suborganizacion"]])
@@ -77,13 +78,13 @@ names(revision_valores[["anio_termino_proyecto"]]) # Numérico
 ### Muestra_sitio ###
 names(revision_valores[["identificador_muestreo_sitio"]]) # Sólo presente en datos del CONACyT/GreenPeace
 names(revision_valores[["identificador_sitio"]]) # Sólo presente en datos históricos y del 2017
-names(revision_valores[["nombre_sitio"]])
+names(revision_valores[["nombre_sitio"]]) *
 names(revision_valores[["nombre_original"]])
 # Si este campo está lleno, entonces el nombre original del sitio es éste, sino
 # copiarle "nombre_sitio".
-names(revision_valores[["anio"]]) # Numérico
-names(revision_valores[["mes"]]) # Numérico
-names(revision_valores[["dia"]]) # Numérico
+names(revision_valores[["anio"]]) # Numérico *
+names(revision_valores[["mes"]]) # Numérico *
+names(revision_valores[["dia"]]) # Numérico *
 names(revision_valores[["hora"]]) # Natural. Esme debe revisar el formato 24h #####
 names(revision_valores[["minutos"]]) # Entero #####
 names(revision_valores[["pais"]])
