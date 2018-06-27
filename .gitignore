@@ -32,8 +32,10 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
-# Otras carpetas
+# Otras carpetas y archivos
 productos
+referencias
+archivo_aux_caribe.txt
 
 .DS_Store
 .README.md.icloud
