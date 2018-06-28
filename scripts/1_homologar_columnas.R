@@ -176,6 +176,7 @@ lista_tablas_columnas_homologadas_historicos_y_2017 <- lista_tablas_crudas_excel
   renombra_columna("Region_del_arrecife_HR", "region_healthy_reefs") %>%
   renombra_columna("Suborganizacion", "suborganizacion") %>%
   renombra_columna("Suborganización", "suborganizacion") %>%
+  renombra_columna("subtipo_de_arrecife", "subtipo_arrecife") %>%
   renombra_columna("Subzona_de_habitat", "subzona_habitat") %>%
   renombra_columna("Tamanio_de_cadena", "tamanio_cadena_m") %>%
   renombra_columna("Temperatura_celsius", "temperatura_c") %>%

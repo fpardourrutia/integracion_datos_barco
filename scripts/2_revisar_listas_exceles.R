@@ -1,6 +1,6 @@
 # En este script se revisan las listas de data frames con la información leída
 # de los archivos de Excel. Básicamente:
-# 1. Se leen las listas de tablas y catálogos que tienen los nombre de columnas
+# 1. Se leen las listas de tablas y catálogos que tienen los nombres de columnas
 # homologados.
 # 2. Se revisan los campos ligados a catálogo contra su correspondiente catálogo.
 # 3. Se revisan columnas numéricas.
@@ -40,10 +40,22 @@ lista_tablas_columnas_homologadas %>%
 
 lista_tablas_columnas_homologadas[lista_tablas_columnas_homologadas %>%
     names() %>%
-    stri_detect_regex("bentos")
+    stri_detect_regex("peces")
   ] %>%
   crear_resumen_columnas_df() %>%
   glimpse()
+
+tabla_revision %>%
+  filter(stri_detect_regex(archivo_origen, pattern = "invertebrados")) %>%
+  d_ply(.(archivo_origen), function(df){
+    df %>%
+      pull(archivo_origen) %>%
+      unique() %>%
+      print()
+    df %>%
+      elimina_columnas_vacias() %>%
+      glimpse()
+    })
 
 # Revisando cuántos catálogos tienen cada columna, para ver si hay que renombrar
 # o no.
@@ -175,6 +187,11 @@ relacion_columnas_catalogo <- c(
   "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.nivel_agregacion_datos" =
     "catalogos_muestra_transecto_invertebrados_info__nivel_agregacion_datos.categoria",
   
+  "conacyt_greenpeace_2016_invertebrados_desagregados.tipo" =
+    "catalogos_muestra_transecto_invertebrados__tipo.tipo",
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.tipo" =
+    "catalogos_muestra_transecto_invertebrados__tipo.tipo",
+  
   # Peces
   "conacyt_greenpeace_2016_peces_agregados_especie_talla.metodo" =
     "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
@@ -203,14 +220,14 @@ relacion_columnas_catalogo <- c(
   "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_muestreados" = 
     "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
   
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.especie" =
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.especie" = 
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.especie" =
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.especie" = 
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico.especie",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.nombre_cientifico_abreviado" =
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nombre_cientifico_abreviado" = 
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nombre_cientifico_abreviado" =
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.nombre_cientifico_abreviado" = 
+    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
   
   # Reclutas
   "conacyt_greenpeace_2016_reclutas_desagregados.nivel_agregacion_datos" =

@@ -1,7 +1,11 @@
+################## Cambios en peces.especie -> peces.nombre_cientifico_abreviado.
+################## Cambios en invertebrados.especie -> invertebrados.tipo
+################## Los catálogos correspondientes también se actualizaron.
+
 # En este script se crea un data frame homologado con la información en
 # "lista_tablas_columnas_homologadas".
 
-# EL procedimiento seguido es el siguiente:
+# El procedimiento seguido es el siguiente:
 # 1. Agregar los data frames en "lista_tablas_columnas_homologadas" en un sólo
 # data frame.
 # 2. Arreglar campos con valores incorrectos
