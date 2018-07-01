@@ -737,7 +737,7 @@ revisa_valores <- function(df){
   # Generando una lista con tablas de valores, una para cada columna
   resultado <- llply(nombres_columnas, function(x){
     resultado <- df[[x]] %>%
-      table(useNA = "always")
+      table(useNA = "ifany")
     return(resultado)
   })
   
