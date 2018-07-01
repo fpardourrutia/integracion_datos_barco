@@ -505,6 +505,126 @@ revisa_columnas_numericas <- function(lista_df, relacion_columnas_consideradas,
   
   return(resultado)
 }
+
+# Función que recibe una lista de data frames y, por medio de un vector que
+# especifica un filtro de registros de interés en dichos data frames, regresa una
+# tabla con los series de los registros que cumplen alguna de las condiciones
+# establecidas.
+# lista_df: lista nombrada de data frames
+# relacion_columnas_valores: vector con condiciones de la forma:
+# c("df.columna" = "valor") 
+# La función regresa un data frame donde cada registro tiene los campos:
+# "tabla", "campo", "valor" y "serie" y corresponde a un registro donde es válida
+# alguna de las condiciones especificadas
+# Notas:
+# 1. Los nombres de las columnas de cada data frame en "lista_df" deben contener
+# sólo caracteres alfanuméricos y guiones bajos.
+# 2. Cada data frame en "lista_df" debe contener una columna llamada "serie".
+# 3. Las entradas de "relacion_columnas_valores" puede ser especificadas de la
+# manera c(".columna" = "valor"), lo que significa que cualquier registro que
+# cumpla con dicha condición.
+# 4. Esta función es útil para crear listas de valores a corregir en los data
+# data frames especificados.
+
+revisa_columnas_valores <- function(lista_df, relacion_columnas_valores){
+  
+  # Calculando la longitud de "lista_df" que será de utilidad posteriormente
+  numero_df <- length(lista_df)
+  
+  # Transformando "relacion_columnas_valores" en un data frame para su fácil
+  # manipulación:
+  relacion_columnas_valores_df <- data_frame(
+    df.columna = names(relacion_columnas_valores),
+    valor = relacion_columnas_valores
+  ) %>%
+    # Quedándonos sólo con renglones distintos:
+    distinct() %>%
+    separate(df.columna, into = c("nombre_df", "nombre_columna_df"), sep = "\\.")
+  
+  # Verificando que todos los data frames estén en "lista_df":
+  data_frames_considerados <- relacion_columnas_valores_df %>%
+    # Filtrando los casos donde no se especifica un data frame
+    filter(nombre_df != "") %>%
+    pull(nombre_df) %>%
+    unique() 
+  
+  # Si hay data frames escritos en "relacion_columnas_valores" que no se encuentran
+  # en "lista_df", entonces parar la ejecución:
+  if(sum(data_frames_considerados %in% names(lista_df)) != length(data_frames_considerados)){
+    "Hay data frames especificados en 'relacion_columnas_valores' que no se " %>%
+      paste0("encuentran en 'lista_df'") %>%
+      stop()
+  }
+  
+  # Ahora se pasará a interpretar cada renglón de "relacion_columnas_valores_df"
+  # para realizar los joins correspondientes.
+  resultado <- apply(relacion_columnas_valores_df, 1, function(x){
+    
+    # Obteniendo valores de cada renglón del data frame
+    nombre_df <- x["nombre_df"]
+    nombre_columna_df <- x["nombre_columna_df"]
+    valor <- x["valor"]
+
+    # Si el data frame es especificado explícitamente:
+    if(nombre_df != ""){
+      
+      df <- lista_df[[nombre_df]]
+
+      # Si la columna correspondiente no se encuentra en el data frame especificado
+      if(!(nombre_columna_df %in% colnames(df))){
+        paste0("La columna ", nombre_columna_df, " no se encuentra en el data frame ",
+               nombre_df) %>%
+          stop()
+      }
+      
+      # Si se pasaron los dos filtros anteriores, hacer el filtro adecuado.
+      
+      # Generando la expresión para el filter_.
+      expresion_filter <- ifelse(is.na(valor), paste0("is.na(", nombre_columna_df, ")"),
+        paste0(nombre_columna_df, "==", valor))
+      
+      # Generando la expresión para el select_.
+      # Se generarán las columnas "tabla" y "campo"
+      expresion_select <- list("tabla", "campo", nombre_columna_df, "serie")
+      names(expresion_select) <- c("tabla", "campo", "valor", "serie")
+      
+      resultado <- df %>%
+        filter_(expresion_filter) %>%
+        mutate(
+          tabla = nombre_df,
+          campo = nombre_columna_df
+        ) %>%
+        # Seleccionando columnas de interés
+        select_(.dots = expresion_select)
+      
+    } else{
+      
+      # Generando la expresión para el filter_.
+      expresion_filter <- ifelse(is.na(valor), paste0("is.na(", nombre_columna_df, ")"),
+        paste0(nombre_columna_df, "==", valor))
+      
+      # Generando la expresión para el select_.
+      # Se generarán las columnas "tabla" y "campo"
+      expresion_select <- list("tabla", "campo", nombre_columna_df, "serie")
+      names(expresion_select) <- c("tabla", "campo", "valor", "serie")
+      
+      # Aplicar el filter a cada elemento en "lista_df"
+      resultado <- ldply(1:numero_df, function(i){
+        resultado <- lista_df[[i]] %>%
+          filter_(expresion_filter) %>%
+          mutate(
+            tabla = names(lista_df)[i],
+            campo = nombre_columna_df
+          ) %>%
+          # Seleccionando columnas de interés
+          select_(.dots = expresion_select)
+      })
+    }}) %>%
+    # Uniendo los data frames
+    reduce(rbind)
+  
+  return(resultado)
+}
       
 # Función que recibe una lista nombrada de data frames y una lista llaves naturales
 # para cada data frame. La función identifica los renglones duplicados de cada
@@ -602,8 +722,8 @@ encuentra_columnas <- function(df, x){
   return(nombres_columnas[indice])
 }
 
-# Función auxiliar a la hora de programar, para crear una tabla para cada columna
-# de un data frame, y así visualizar valores a corregir
+# Función auxiliar a la hora de revisar los datos, para crear una tabla para cada
+# columna de un data frame, y así visualizar valores a corregir
 # df: data frame cuyas valores en cada columna se quieren revisar
 # La función regresa una lista de tablas con los valores de cada columna de df.
 revisa_valores <- function(df){

@@ -54,6 +54,7 @@ names(revision_valores)
 # nombre_columna: nombre de la columna a revisar
 # Outputs:
 # vector con los nombres de los archivos que la contienen
+
 obtiene_archivos_columna <- function(datos, nombre_columna){
   resultado <- datos %>%
     filter_(paste0("!is.na(", nombre_columna, ")")) %>%
