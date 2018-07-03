@@ -1,19 +1,21 @@
-################## Cambios en invertebrados.especie -> invertebrados.tipo
-################## Los catálogos correspondientes también se actualizaron.
-
 # En este script se crea un data frame homologado con la información en
 # "lista_tablas_columnas_homologadas".
 
 # El procedimiento seguido es el siguiente:
 # 1. Agregar los data frames en "lista_tablas_columnas_homologadas" en un sólo
 # data frame.
-# 2. Arreglar campos con valores incorrectos
+# 2. Revisar la tabla con la información integrada, para encontrar campos con
+# valores incorrectos.
+# 3. Crear un nuevo data frame a partir del que contiene los datos crudos. Este
+# data frame contendrá las columnas necesarias para definir las tablas diseñadas
+# en el esquema de datos correspondientes.
 
-# Se supone que los datos están perfectos a la hora de hacer este data frame, por
-# ejemplo, que si el sitio no está dentro de un ANP hay un NA y no una palabra "NA".
-# Toda imperfección en la base de datos de Excel la tendrá que arreglar Esme.
+# Se supone que los datos están perfectos a la hora de hacer el data frame, anterior.
+# Por ejemplo, que si el sitio no está dentro de un ANP hay un NA y no una palabra
+# "NA". Toda imperfección en la base de datos de Excel la tendrá que arreglar Esme.
 
-# En scripts subsecuentes, este data frame se segmentará apropiadamente en tablas.
+# En scripts subsecuentes, el data frame producido por este script se segmentará
+# apropiadamente en tablas.
 
 # Cargando archivo de configuración y funciones auxiliares
 library("readr")
@@ -21,488 +23,288 @@ source("config.R")
 source("funciones_auxiliares.R")
 
 ###############################################################
-# Leyendo la lista de tablas con las columnas homologadas:
+# 1. Creando data frame con la información integrada:
 ###############################################################
 
+# Leyendo lista de tablas con columnas homologadas
 lista_tablas_columnas_homologadas <- readRDS(
   paste0(ruta_salidas_1_homologar_columnas, "/lista_tablas_columnas_homologadas.RData"))
 
-###############################################################
-# Creando la tabla con la información integrada:
-###############################################################
-
+# Agregando dichas tablas en un solo data frame
 datos_globales_crudos <- Reduce(rbind.fill, lista_tablas_columnas_homologadas) %>%
   mutate(
     id = 1:nrow(.)
   )
 
 ###############################################################
-# Revisando la tabla con la información integrada:
+# 2. Revisando la tabla con la información integrada:
 ###############################################################
 
 names(lista_tablas_columnas_homologadas)
 crear_resumen_columnas_df(lista_tablas_columnas_homologadas) %>%
   glimpse()
 
-revision_valores <- revisa_valores(datos_globales_crudos)
-names(revision_valores)
-
-# Definiendo una función para revisar qué archivos contienen determinada columnas
-# Inputs:
-# datos: data frame que contiene "columna" y otra columna llamada "archivo_origen"
-# nombre_columna: nombre de la columna a revisar
-# Outputs:
-# vector con los nombres de los archivos que la contienen
-
-obtiene_archivos_columna <- function(datos, nombre_columna){
-  resultado <- datos %>%
-    filter_(paste0("!is.na(", nombre_columna, ")")) %>%
-    pull(archivo_origen) %>%
-    unique()
-  return(resultado)
-}
+lista_revision <- revisa_valores(datos_globales_crudos)
+names(lista_revision)
 
 ################################################################################
 # *: llave natural necesaria para crear tablas
 
 ### Muestreo ###
-names(revision_valores[["nombre_proyecto"]]) # Nombre del muestreo. *
-names(revision_valores[["proposito"]]) # Descripción del muestreo
-names(revision_valores[["tema"]]) # Propósito del muestreo. Catálogo
-names(revision_valores[["localidad_proyecto"]]) # Área de estudio
-names(revision_valores[["institucion"]]) # Organización
-names(revision_valores[["suborganizacion"]])
-names(revision_valores[["autor_administrador_proyecto"]]) # Encargado
-names(revision_valores[["contacto"]])
-names(revision_valores[["cita"]]) # Referencia
-names(revision_valores[["titulo"]]) # Nombre del proyecto
-names(revision_valores[["anio_inicio_proyecto"]]) # Numérico
-names(revision_valores[["anio_termino_proyecto"]]) # Numérico
+names(lista_revision[["nombre_proyecto"]]) # Nombre del muestreo. *
+names(lista_revision[["proposito"]]) # Descripción del muestreo
+names(lista_revision[["tema"]]) # Propósito del muestreo. Catálogo
+names(lista_revision[["localidad_proyecto"]]) # Área de estudio
+names(lista_revision[["institucion"]]) # Organización
+names(lista_revision[["suborganizacion"]])
+names(lista_revision[["autor_administrador_proyecto"]]) # Encargado
+names(lista_revision[["contacto"]])
+names(lista_revision[["cita"]]) # Referencia
+names(lista_revision[["titulo"]]) # Nombre del proyecto
+names(lista_revision[["anio_inicio_proyecto"]]) # Numérico
+names(lista_revision[["anio_termino_proyecto"]]) # Numérico
 
 ### Muestra_sitio ###
-names(revision_valores[["identificador_muestreo_sitio"]]) # Sólo presente en datos del CONACyT/GreenPeace
-names(revision_valores[["identificador_sitio"]]) # Sólo presente en datos históricos y del 2017
-names(revision_valores[["nombre_sitio"]]) # *
-names(revision_valores[["nombre_original"]])
+names(lista_revision[["identificador_muestreo_sitio"]]) # Sólo presente en datos del CONACyT/GreenPeace
+names(lista_revision[["identificador_sitio"]]) # Sólo presente en datos históricos y del 2017
+names(lista_revision[["nombre_sitio"]]) # *
+names(lista_revision[["nombre_original"]])
 # Si este campo está lleno, entonces el nombre original del sitio es éste, sino
 # copiarle "nombre_sitio".
-names(revision_valores[["anio"]]) # Numérico *
-names(revision_valores[["mes"]]) # Numérico *
-names(revision_valores[["dia"]]) # Numérico *
-names(revision_valores[["hora"]]) # Natural. Esme debe revisar el formato 24h #####
-names(revision_valores[["minutos"]]) # Entero #####
-names(revision_valores[["pais"]])
-names(revision_valores[["region_healthy_reefs"]]) # Catálogo
-names(revision_valores[["localidad"]])
-names(revision_valores[["tipo_arrecife"]]) # Ya se revisó al comparar con catálogos #####
-names(revision_valores[["subtipo_arrecife"]]) # Catálogo
-names(revision_valores[["zona_arrecife"]]) # Catálogo
-names(revision_valores[["anp"]]) # Catálogo.
-names(revision_valores[["area_no_pesca"]]) # Booleano
-names(revision_valores[["latitud"]]) # Numérico
-names(revision_valores[["longitud"]]) # Numérico
-names(revision_valores[["metodo_seleccion_sitios"]]) # Catálogo
-names(revision_valores[["protocolo"]]) # Catálogo. Metodología
-names(revision_valores[["temperatura_c"]]) # Numérico
-names(revision_valores[["profundidad_media_m_sitio"]]) # Numérico
-names(revision_valores[["notas"]])
-names(revision_valores[["observaciones"]])
+names(lista_revision[["anio"]]) # Numérico *
+names(lista_revision[["mes"]]) # Numérico *
+names(lista_revision[["dia"]]) # Numérico *
+names(lista_revision[["hora"]]) # Natural. Esme debe revisar el formato 24h #####
+names(lista_revision[["minutos"]]) # Entero #####
+names(lista_revision[["pais"]])
+names(lista_revision[["region_healthy_reefs"]]) # Catálogo
+names(lista_revision[["localidad"]])
+names(lista_revision[["tipo_arrecife"]]) # Ya se revisó al comparar con catálogos #####
+names(lista_revision[["subtipo_arrecife"]]) # Catálogo
+names(lista_revision[["zona_arrecife"]]) # Catálogo
+names(lista_revision[["anp"]]) # Catálogo.
+names(lista_revision[["area_no_pesca"]]) # Booleano
+names(lista_revision[["latitud"]]) # Numérico
+names(lista_revision[["longitud"]]) # Numérico
+names(lista_revision[["metodo_seleccion_sitios"]]) # Catálogo
+names(lista_revision[["protocolo"]]) # Catálogo. Metodología
+names(lista_revision[["temperatura_c"]]) # Numérico
+names(lista_revision[["profundidad_media_m_sitio"]]) # Numérico
+names(lista_revision[["notas"]])
+names(lista_revision[["observaciones"]])
 # Notas son observaciones, sólo que en algunos Exceles se usó un nombre y en otros otro.
 # Se agregarán por facilidad a los comentarios de "Muestra_sitio".
 
 ### Muestra_transecto ###
-names(revision_valores[["transecto"]]) # Nombre del transecto
-names(revision_valores[["transecto_fijo"]]) # Booleano
-names(revision_valores[["profundidad_inicial_m"]]) # Numérico
-names(revision_valores[["profundidad_final_m"]]) # Numérico
-names(revision_valores[["longitud_cuadrante_m"]]) # Numérico
-names(revision_valores[["ancho_cuadrante_m"]]) # Numérico
+names(lista_revision[["transecto"]]) # Nombre del transecto *
+names(lista_revision[["transecto_fijo"]]) # Booleano
+names(lista_revision[["profundidad_inicial_m"]]) # Numérico
+names(lista_revision[["profundidad_final_m"]]) # Numérico
+names(lista_revision[["longitud_cuadrante_m"]]) # Numérico
+names(lista_revision[["ancho_cuadrante_m"]]) # Numérico
 
 ################################################################################
 
 ### Muestra_sitio_bentos_info ###
-names(revision_valores[["metodo"]]) # Catálogo
-names(revision_valores[["nivel_agregacion_datos"]]) # Catálogo
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["puntos_o_cm_reales_transecto"]]) # Numérico
-names(revision_valores[["muestreo_completo"]]) # Booleano
+names(lista_revision[["metodo"]]) # Catálogo
+names(lista_revision[["nivel_agregacion_datos"]]) # Catálogo
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["puntos_o_cm_reales_transecto"]]) # Numérico
+names(lista_revision[["muestreo_completo"]]) # Booleano
 
 ### Muestra_sitio_bentos_porcentaje ###
-names(revision_valores[["codigo"]]) # Catálogo. Eliminar "NA"
-names(revision_valores[["cobertura"]]) # No debe haber negativos ni letras. Suman 100.
+names(lista_revision[["codigo"]]) # Catálogo.
+names(lista_revision[["cobertura"]]) # No debe haber negativos ni letras. Suman 100.
 
 ### Muestra_transecto_bentos_info ###
-names(revision_valores[["metodo"]]) # Catálogo
-names(revision_valores[["nivel_agregacion_datos"]]) # Catálogo
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["longitud_transecto_m"]]) # Numérico
-names(revision_valores[["puntos_o_cm_reales_transecto"]]) # Numérico
-names(revision_valores[["muestreo_completo"]]) # Booleano
+names(lista_revision[["metodo"]]) # Catálogo
+names(lista_revision[["nivel_agregacion_datos"]]) # Catálogo
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["longitud_transecto_m"]]) # Numérico
+names(lista_revision[["puntos_o_cm_reales_transecto"]]) # Numérico
+names(lista_revision[["muestreo_completo"]]) # Booleano
 
 ### Muestra_transecto_bentos_punto ###
-names(revision_valores[["codigo"]]) # Catálogo
-names(revision_valores[["altura_algas_cm"]]) # Numérico
+names(lista_revision[["codigo"]]) # Catálogo
+names(lista_revision[["altura_algas_cm"]]) # Numérico
 
 ### Muestra_transecto_bentos_linea ### (No hay datos)
 
 ### Muestra_transecto_bentos_porcentaje ###
-names(revision_valores[["codigo"]]) # Catálogo
-names(revision_valores[["cobertura"]]) # No debe haber negativos ni letras. Suman 100.
+names(lista_revision[["codigo"]]) # Catálogo
+names(lista_revision[["cobertura"]]) # No debe haber negativos ni letras. Suman 100.
 
 ################################################################################
 
 ### Muestra_transecto_corales_info ###
-names(revision_valores[["metodo"]]) # Catálogo
-names(revision_valores[["nivel_agregacion_datos"]]) # Catálogo
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["longitud_transecto_m"]]) # Numérico
-names(revision_valores[["ancho_transecto_m"]]) # Numérico
+names(lista_revision[["metodo"]]) # Catálogo
+names(lista_revision[["nivel_agregacion_datos"]]) # Catálogo
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["longitud_transecto_m"]]) # Numérico
+names(lista_revision[["ancho_transecto_m"]]) # Numérico
 # Tamaño mínimo de la colonia: siempre 4cm.
-names(revision_valores[["muestreo_completo"]]) # Booleano
+names(lista_revision[["muestreo_completo"]]) # Booleano
 
 ### Muestra_transecto_corales_observacion ###
-names(revision_valores[["codigo"]]) # Catálogo. Eliminar "NA"
-names(revision_valores[["clump"]]) # Natural o "C", "F", NA. Suponer que siempre se mide
-names(revision_valores[["d1_max_diam_cm"]]) # Numérico
-names(revision_valores[["d2_min_diam_cm"]]) # Numérico
-names(revision_valores[["altura_maxima_cm"]]) # Numérico
-names(revision_valores[["blanqueamiento"]]) # Catálogo. Suponer que siempre se mide
-names(revision_valores[["porcentaje"]]) # Numérico. Suponer que siempre se mide
-names(revision_valores[["mortalidad_antigua"]]) # Numérico
-names(revision_valores[["mortalidad_reciente"]]) # Numérico
-names(revision_valores[["mortalidad_total"]]) # Numérico
-names(revision_valores[["mortalidad_transicion"]]) # Numérico
+names(lista_revision[["codigo"]]) # Catálogo.
+names(lista_revision[["clump"]]) # Natural o "C", "F", NA. Suponer que siempre se mide
+names(lista_revision[["d1_max_diam_cm"]]) # Numérico
+names(lista_revision[["d2_min_diam_cm"]]) # Numérico
+names(lista_revision[["altura_maxima_cm"]]) # Numérico
+names(lista_revision[["blanqueamiento"]]) # Catálogo. Suponer que siempre se mide
+names(lista_revision[["porcentaje"]]) # Numérico. Suponer que siempre se mide
+names(lista_revision[["mortalidad_antigua"]]) # Numérico
+names(lista_revision[["mortalidad_reciente"]]) # Numérico
+names(lista_revision[["mortalidad_total"]]) # Numérico
+names(lista_revision[["mortalidad_transicion"]]) # Numérico
 # Las mortalidades deben sumár máximo 100. Suponer que siempre se miden
-names(revision_valores[["enfermedades"]]) # Catálogo. Suponer que siempre se mide
-names(revision_valores[["sobrecrecimiento"]]) # Catálogo
-names(revision_valores[["sobrecrecimiento__1"]]) # Catálogo
-names(revision_valores[["depredacion"]]) # Catálogo. Suponer que siempre se mide
-names(revision_valores[["lesiones"]]) # Catálogo. Suponer que siempre se mide
+names(lista_revision[["enfermedades"]]) # Catálogo. Suponer que siempre se mide
+names(lista_revision[["sobrecrecimiento"]]) # Catálogo
+names(lista_revision[["sobrecrecimiento__1"]]) # Catálogo
+names(lista_revision[["depredacion"]]) # Catálogo. Suponer que siempre se mide
+names(lista_revision[["lesiones"]]) # Catálogo. Suponer que siempre se mide
 
 ################################################################################
 
 ### Muestra_transecto_peces_info ###
-names(revision_valores[["metodo"]]) # Catálogo
-names(revision_valores[["nivel_agregacion_datos"]]) # Catálogo
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["longitud_transecto_m"]]) # Numérico
-names(revision_valores[["ancho_transecto_m"]]) # Numérico
-names(revision_valores[["peces_muestreados"]]) # Catálogo
-names(revision_valores[["muestreo_completo"]]) # Booleano
+names(lista_revision[["metodo"]]) # Catálogo
+names(lista_revision[["nivel_agregacion_datos"]]) # Catálogo
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["longitud_transecto_m"]]) # Numérico
+names(lista_revision[["ancho_transecto_m"]]) # Numérico
+names(lista_revision[["peces_muestreados"]]) # Catálogo
+names(lista_revision[["muestreo_completo"]]) # Booleano
 
 ### Muestra_transecto_peces_cuenta ###
-names(revision_valores[["nombre_cientifico_abreviado"]]) # Catálogo
+names(lista_revision[["nombre_cientifico_abreviado"]]) # Catálogo
 # Catálogo. Eliminar de catálogos duplicados menos frecuentes.
 # Peces: cantidad de peces por especie (fila) y columna (tamaño).
-names(revision_valores[["tamanio_0cm_5cm"]]) # Numérico
-names(revision_valores[["tamanio_101cm_110cm"]]) # Numérico
-names(revision_valores[["tamanio_101cm_9999cm"]]) # Numérico
-names(revision_valores[["tamanio_111cm_120cm"]]) # Numérico
-names(revision_valores[["tamanio_11cm_20cm"]]) # Numérico
-names(revision_valores[["tamanio_191cm_200cm"]]) # Numérico
-names(revision_valores[["tamanio_21cm_30cm"]]) # Numérico
-names(revision_valores[["tamanio_31cm_40cm"]]) # Numérico
-names(revision_valores[["tamanio_41cm_50cm"]]) # Numérico
-names(revision_valores[["tamanio_51cm_60cm"]]) # Numérico
-names(revision_valores[["tamanio_61cm_70cm"]]) # Numérico
-names(revision_valores[["tamanio_6cm_10cm"]]) # Numérico
-names(revision_valores[["tamanio_71cm_80cm"]]) # Numérico
-names(revision_valores[["tamanio_81cm_90cm"]]) # Numérico
-names(revision_valores[["tamanio_91cm_100cm"]]) # Numérico
+names(lista_revision[["tamanio_0cm_5cm"]]) # Numérico
+names(lista_revision[["tamanio_101cm_110cm"]]) # Numérico
+names(lista_revision[["tamanio_101cm_9999cm"]]) # Numérico
+names(lista_revision[["tamanio_111cm_120cm"]]) # Numérico
+names(lista_revision[["tamanio_11cm_20cm"]]) # Numérico
+names(lista_revision[["tamanio_191cm_200cm"]]) # Numérico
+names(lista_revision[["tamanio_21cm_30cm"]]) # Numérico
+names(lista_revision[["tamanio_31cm_40cm"]]) # Numérico
+names(lista_revision[["tamanio_41cm_50cm"]]) # Numérico
+names(lista_revision[["tamanio_51cm_60cm"]]) # Numérico
+names(lista_revision[["tamanio_61cm_70cm"]]) # Numérico
+names(lista_revision[["tamanio_6cm_10cm"]]) # Numérico
+names(lista_revision[["tamanio_71cm_80cm"]]) # Numérico
+names(lista_revision[["tamanio_81cm_90cm"]]) # Numérico
+names(lista_revision[["tamanio_91cm_100cm"]]) # Numérico
 
 ################################################################################
 
 ### Muestra_transecto_invertebrados_info ###
-names(revision_valores[["metodo"]]) # Catálogo
-names(revision_valores[["nivel_agregacion_datos"]]) # Catálogo
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["longitud_transecto_m"]]) # Numérico
-names(revision_valores[["ancho_transecto_m"]]) # Numérico
-names(revision_valores[["muestreo_completo"]]) # Booleano
+names(lista_revision[["metodo"]]) # Catálogo
+names(lista_revision[["nivel_agregacion_datos"]]) # Catálogo
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["longitud_transecto_m"]]) # Numérico
+names(lista_revision[["ancho_transecto_m"]]) # Numérico
+names(lista_revision[["muestreo_completo"]]) # Booleano
 
 ### Muestra_transecto_invertebrados_cuenta ###
-names(revision_valores[["tipo"]]) # Catálogo
-names(revision_valores[["conteo"]]) # Numérico. También las tablas de bentos agregados lo contienen
+names(lista_revision[["tipo"]]) # Catálogo
+names(lista_revision[["conteo"]]) # Numérico. También las tablas de bentos agregados lo contienen
 
 ################################################################################
 
 ### Muestra_subcuadrante_de_transecto_reclutas_info ###
-names(revision_valores[["cuadrante"]])
-names(revision_valores[["nivel_agregacion_datos"]]) # Catálogo
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["sustrato"]]) # Catálogo
+names(lista_revision[["cuadrante"]])
+names(lista_revision[["nivel_agregacion_datos"]]) # Catálogo
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["sustrato"]]) # Catálogo
 
 ### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
-names(revision_valores[["codigo"]]) # Catálogo. Eliminar "NA"
-names(revision_valores[["tamanio_cm"]]) # Numérico
+names(lista_revision[["codigo"]]) # Catálogo. Eliminar "NA"
+names(lista_revision[["tamanio_cm"]]) # Numérico
 # ¿Por qué hay valores de esta columna para la tabla
 # "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla"?
 
 ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
-names(revision_valores[["codigo"]]) # Catálogo. Eliminar "NA"
-names(revision_valores[["categoria_tamanio"]]) # Sólo debe haber "No considerada", "R", "SC" y NA #####
-names(revision_valores[["n"]]) # Natural. Número de reclutas agregados por código y categoría de tamaño (si es el caso).
+names(lista_revision[["codigo"]]) # Catálogo. Eliminar "NA"
+names(lista_revision[["categoria_tamanio"]]) # Sólo debe haber "No considerada", "R", "SC" y NA #####
+names(lista_revision[["n"]]) # Natural. Número de reclutas agregados por código y categoría de tamaño (si es el caso).
 
 ################################################################################
 
 ### Muestra_transecto_complejidad_info ###
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["longitud_transecto_m"]]) # Numérico
-names(revision_valores[["tamanio_cadena_m"]]) # Numérico
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["longitud_transecto_m"]]) # Numérico
+names(lista_revision[["tamanio_cadena_m"]]) # Numérico
 
 ### Muestra_subcuadrante_de_transecto_complejidad_info ###
-names(revision_valores[["observador"]]) # Homologarlos
-names(revision_valores[["cuadrante"]])
-names(revision_valores[["relieve"]]) # Numérico (complejidad por máximo relieve)
+names(lista_revision[["observador"]]) # Homologarlos
+names(lista_revision[["cuadrante"]])
+names(lista_revision[["relieve"]]) # Numérico (complejidad por máximo relieve)
 
 ################################################################################
 
 ### Eliminar ###
 
-# names(revision_valores[["abundancia"]])
-# names(revision_valores[["anio_muestreo"]])
-# names(revision_valores[["anio_publicacion"]])
-# names(revision_valores[["anp_redundante"]])
-# names(revision_valores[["curp_proyecto"]])
-# names(revision_valores[["longitud_teorica_m_bentos"]])
-# names(revision_valores[["longitud_teorica_m_corales"]])
-# names(revision_valores[["longitud_teorica_m_invertebrados_agrra_v5"]])
-# names(revision_valores[["longitud_teorica_m_invertebrados_otros"]])
-# names(revision_valores[["longitud_teorica_m_peces"]])
-# names(revision_valores[["necrosis"]])
-# names(revision_valores[["neoplasia"]])
-# names(revision_valores[["nombre_no_remuestreo"]]
-# names(revision_valores[["nombre_original"]]
-# names(revision_valores[["nombre_remuestreo"]]
-# names(revision_valores[["numero_sitios_agregados"]])
-# names(revision_valores[["profundidad_media_m"]])
-# names(revision_valores[["profundidad_media_m_sitio_redundante"]])
-# names(revision_valores[["proyecto_aux"]])
-# names(revision_valores[["region_ask"]])
-# names(revision_valores[["region_healthy_reefs_redundante"]])
-# names(revision_valores[["region_jordan"]])
-# names(revision_valores[["s"]])
-# names(revision_valores[["sitio_autor"]])
-# names(revision_valores[["subtipo_arrecife_redundante"]])
-# names(revision_valores[["superficie_cm2"]])
-# names(revision_valores[["unidades_profundidad"]])
-# names(revision_valores[["X__1"]])
-# names(revision_valores[["X__2"]])
-# names(revision_valores[["zona_arrecife_redundante"]])
-# names(revision_valores[["tejido_vivo"]])
-# names(revision_valores[["tipo_arrecife_redundante"]])+
-# names(revision_valores[["subzona_habitat"]])
+# names(lista_revision[["abundancia"]])
+# names(lista_revision[["anio_muestreo"]])
+# names(lista_revision[["anio_publicacion"]])
+# names(lista_revision[["anp_redundante"]])
+# names(lista_revision[["curp_proyecto"]])
+# names(lista_revision[["longitud_teorica_m_bentos"]])
+# names(lista_revision[["longitud_teorica_m_corales"]])
+# names(lista_revision[["longitud_teorica_m_invertebrados_agrra_v5"]])
+# names(lista_revision[["longitud_teorica_m_invertebrados_otros"]])
+# names(lista_revision[["longitud_teorica_m_peces"]])
+# names(lista_revision[["necrosis"]])
+# names(lista_revision[["neoplasia"]])
+# names(lista_revision[["nombre_no_remuestreo"]]
+# names(lista_revision[["nombre_original"]]
+# names(lista_revision[["nombre_remuestreo"]]
+# names(lista_revision[["numero_sitios_agregados"]])
+# names(lista_revision[["profundidad_media_m"]])
+# names(lista_revision[["profundidad_media_m_sitio_redundante"]])
+# names(lista_revision[["proyecto_aux"]])
+# names(lista_revision[["region_ask"]])
+# names(lista_revision[["region_healthy_reefs_redundante"]])
+# names(lista_revision[["region_jordan"]])
+# names(lista_revision[["s"]])
+# names(lista_revision[["sitio_autor"]])
+# names(lista_revision[["subtipo_arrecife_redundante"]])
+# names(lista_revision[["superficie_cm2"]])
+# names(lista_revision[["unidades_profundidad"]])
+# names(lista_revision[["X__1"]])
+# names(lista_revision[["X__2"]])
+# names(lista_revision[["zona_arrecife_redundante"]])
+# names(lista_revision[["tejido_vivo"]])
+# names(lista_revision[["tipo_arrecife_redundante"]])+
+# names(lista_revision[["subzona_habitat"]])
 
 ### Otros ###
-# names(revision_valores[["id"]])
-# names(revision_valores[["archivo_origen"]])
-# names(revision_valores[["serie"]]) 
+# names(lista_revision[["id"]])
+# names(lista_revision[["archivo_origen"]])
+# names(lista_revision[["serie"]])
 
 ################################################################################
 
-relacion_columnas_valores <- c(
-  
-  ###  Muestreo ###
-  # ".nombre_proyecto" = NA, # Nombre del muestreo. Se agregará hasta que Esme lo incluya en todos los archivos
-  ".proposito" = NA, # Descripción del muestreo
-  ".tema" = NA, # Propósito del muestreo
-  ".localidad_proyecto" = NA, # Área de estudio
-  ".institucion" = NA, # Organización
-  ".autor_administrador_proyecto" = NA, # Encargado
-  ".contacto" = NA, # Contacto
-  ".cita" = NA,  # Referencia
-  ".titulo" = NA, # Nombre del proyecto
-  ".anio_inicio_proyecto" = NA,
-  
-  ### Muestra_sitio ###
-  ".nombre_sitio" = NA,
-  # ".nombre_original" = NA, # este lo obtendré de nombre_sitio cuando aplique.
-  ".anio" = NA,
-  ".mes" = NA,
-  ".dia" = NA,
-  ".pais" = NA,
-  ".region_healthy_reefs" = NA,
-  ".localidad" = NA,
-  ".metodo_seleccion_sitios" = NA,
-  ".protocolo" = NA,
-  
-  ### Muestra_transecto ###
-  "conacyt_greenpeace_2016_bentos_desagregados.transecto" = NA,
-  "conacyt_greenpeace_2016_complejidad.transecto" = NA,
-  "conacyt_greenpeace_2016_corales_desagregados.transecto" = NA,
-  "conacyt_greenpeace_2016_invertebrados_desagregados.transecto" = NA,
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.transecto" = NA,
-  "conacyt_greenpeace_2016_reclutas_desagregados.transecto" = NA,
-  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.transecto" = NA,
-  "historicos_y_2017_cuadrante_reclutas_desagregados.transecto" = NA,
-  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.transecto" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.transecto" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.transecto" = NA,
-  "historicos_y_2017_transecto_complejidad_desagregada_cadena.transecto" = NA,
-  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.transecto" = NA,
-  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.transecto" = NA,
-  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.transecto" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.transecto" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.transecto" = NA,
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.transecto" = NA,
+# Encontrando archivos de Excel que contienen los valores incorrectos:
 
-  ### Muestra_sitio_bentos_info ###
-  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.metodo" = NA,
-  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" = NA,
-  # "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.longitud_muestreada_media_m" = NA # Sugerencia para Esme
-  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.puntos_o_cm_reales_transecto" = NA, # Númnero de puntos muestreados
-  
-  ### Muestra_sitio_bentos_porcentaje ###
-  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.codigo" = NA,
-  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.cobertura" = NA,
-  
-  ### Muestra_transecto_bentos_info ###
-  "conacyt_greenpeace_2016_bentos_desagregados.metodo" = NA,
-  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.metodo" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.metodo" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.metodo" = NA,
-  
-  "conacyt_greenpeace_2016_bentos_desagregados.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.nivel_agregacion_datos" = NA,
-  
-  "conacyt_greenpeace_2016_bentos_desagregados.longitud_transecto_m" = NA, # longitud muestreada (m)
-  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.longitud_transecto_m" = NA,
-  
-  ### Muestra_transecto_bentos_punto ###
-  "conacyt_greenpeace_2016_bentos_desagregados.codigo" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.codigo" = NA,
-  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.codigo" = NA,
-  
-  ### Muestra_transecto_bentos_porcentaje ###
-  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.codigo" = NA,
-  
-  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.cobertura" = NA,
-  
-  ### Muestra_transecto_corales_info ###
-  "conacyt_greenpeace_2016_corales_desagregados.metodo" = NA,
-  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.metodo" = NA,
-  
-  "conacyt_greenpeace_2016_corales_desagregados.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.nivel_agregacion_datos" = NA,
-  
-  "conacyt_greenpeace_2016_corales_desagregados.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.longitud_transecto_m" = NA,
-  
-  "conacyt_greenpeace_2016_corales_desagregados.ancho_transecto_m" = NA,
-  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.ancho_transecto_m" = NA,
-  
-  ### Muestra_transecto_corales_observacion ###
-  "conacyt_greenpeace_2016_corales_desagregados.codigo" = NA,
-  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.codigo" = NA,
-  
-  "conacyt_greenpeace_2016_corales_desagregados.clump" = NA,
-  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.clump" = NA,
-  
-  ### Muestra_transecto_peces_info ###
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.metodo" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.metodo" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.metodo" = NA,
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.metodo" = NA,
-  
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.nivel_agregacion_datos" = NA,
-  
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.longitud_transecto_m" = NA,
-  
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.ancho_transecto_m" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.ancho_transecto_m" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.ancho_transecto_m" = NA,
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.ancho_transecto_m" = NA,
-  
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_muestreados" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_muestreados" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_muestreados" = NA,
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_muestreados" = NA,
-  
-  ### Muestra_transecto_peces_cuenta ###
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.nombre_cientifico_abreviado" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nombre_cientifico_abreviado" = NA,
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nombre_cientifico_abreviado" = NA,
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.nombre_cientifico_abreviado" = NA,
-  
-  ### Muestra_transecto_invertebrados_info ###
-  "conacyt_greenpeace_2016_invertebrados_desagregados.metodo" = NA,
-  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.metodo" = NA,
-  
-  "conacyt_greenpeace_2016_invertebrados_desagregados.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.nivel_agregacion_datos" = NA,
-  
-  "conacyt_greenpeace_2016_invertebrados_desagregados.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.longitud_transecto_m" = NA,
-  
-  "conacyt_greenpeace_2016_invertebrados_desagregados.ancho_transecto_m" = NA,
-  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.ancho_transecto_m" = NA,
-  
-  ### Muestra_transecto_invertebrados_cuenta ###
-  "conacyt_greenpeace_2016_invertebrados_desagregados.tipo" = NA,
-  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.tipo" = NA,
-  
-  "conacyt_greenpeace_2016_invertebrados_desagregados.conteo" = NA,
-  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.conteo" = NA,
-  
-  ### Muestra_subcuadrante_de_transecto_reclutas_info ###
-  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = NA,
-  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = NA,
-  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = NA,
-  
-  "conacyt_greenpeace_2016_reclutas_desagregados.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" = NA,
-  "historicos_y_2017_cuadrante_reclutas_desagregados.nivel_agregacion_datos" = NA,
-  
-  ### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
-  "historicos_y_2017_cuadrante_reclutas_desagregados.codigo" = NA,
-  
-  "historicos_y_2017_cuadrante_reclutas_desagregados.tamanio_cm" = NA,
-  
-  ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
-  "conacyt_greenpeace_2016_reclutas_desagregados.codigo" = NA,
-  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.codigo" = NA,
-  
-  "conacyt_greenpeace_2016_reclutas_desagregados.categoria_tamanio" = NA,
-  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.categoria_tamanio" = NA,
-  
-  "conacyt_greenpeace_2016_reclutas_desagregados.n" = NA,
-  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.n" = NA,
-  
-  ### Muestra_transecto_complejidad_info ###
-  "conacyt_greenpeace_2016_complejidad.longitud_transecto_m" = NA,
-  "historicos_y_2017_transecto_complejidad_desagregada_cadena.longitud_transecto_m" = NA,
-  
-  "conacyt_greenpeace_2016_complejidad.tamanio_cadena_m" = NA,
-  "historicos_y_2017_transecto_complejidad_desagregada_cadena.tamanio_cadena_m" = NA,
-  
-  ### Muestra_subcuadrante_de_transecto_complejidad_info ###
-  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = NA,
-  
-  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.relieve" = NA,
-  
-  ### Adicionales ###
+relacion_columnas_valores_incorrectos <- c(
   ".proposito" = "aluación de arrecifes fuera y dentro de ANPs.",
   ".muestreo_completo" = "0.83333333333333337"
 )
 
-revisa_columnas_valores(lista_tablas_columnas_homologadas, relacion_columnas_valores) %>%
+valores_a_revisar <- revisa_columnas_valores(lista_tablas_columnas_homologadas,
+  relacion_columnas_valores_incorrectos) %>%
   group_by(tabla, campo, valor) %>%
-  tally() %>%
-  View()
+  tally()
+
+saveRDS(valores_a_revisar,
+  paste0(ruta_salidas_3_crear_df_homologado, "/valores_a_revisar.RDS"))
+write_csv(valores_a_revisar,
+  paste0(ruta_salidas_3_crear_df_homologado, "/valores_a_revisar.csv"))
 
 ### Notas acerca de las columnas revisadas ###
 
-# archivo_origen                                    metodo
+#                                 archivo_origen                                    metodo
 # 1                          conacyt_greenpeace_2016_bentos_desagregados_v3         PIT
 # 2     historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura         CPF
 # 3            historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados     PIT
@@ -533,11 +335,9 @@ datos_globales_crudos %>%
   unique() %>%
   View()
   
-################################################################################
-
-###############################################################
-# Creando la tabla con información selecta para la integración
-###############################################################
+###################################################################
+# 3. Creando la tabla con información selecta para la integración
+###################################################################
 
 datos_globales_columnas_selectas <- datos_globales_crudos %>%
   

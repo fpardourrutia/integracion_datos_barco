@@ -2,9 +2,11 @@
 # de los archivos de Excel. Básicamente:
 # 1. Se leen las listas de tablas y catálogos que tienen los nombres de columnas
 # homologados.
-# 2. Se revisan los campos ligados a catálogo contra su correspondiente catálogo.
-# 3. Se revisan columnas numéricas.
-# 4. Se revistan registros duplicados con respecto a una llave natural
+# 2. Se hacen revisiones de qué tablas contienen qué columnas
+# 3. Se revisan los campos ligados a catálogo contra su correspondiente catálogo.
+# 4. Se revisan columnas numéricas.
+# 5. Se revisan campos que no deben estar vacíos debido a que el esquema de datos
+# así lo pide.
 
 # Cargando archivo de configuración y funciones auxiliares
 library("readr")
@@ -12,26 +14,24 @@ source("config.R")
 source("funciones_auxiliares.R")
 
 ###############################################################
-# Leyendo cada una de las listas individuales:
+# 1. Leyendo cada una de las listas individuales:
 ###############################################################
 
 # Leyendo listas de exceles
-lista_catalogos <- readRDS(
-  paste0(ruta_salidas_0_leer_exceles, "/lista_catalogos.RData"))
 lista_tablas_columnas_homologadas <- readRDS(
   paste0(ruta_salidas_1_homologar_columnas, "/lista_tablas_columnas_homologadas.RData"))
+lista_catalogos <- readRDS(
+  paste0(ruta_salidas_0_leer_exceles, "/lista_catalogos.RData"))
 
 ###############################################################
-# Revisiones varias
+# 2. Revisando las relaciones exceles/columnas que contienen
 ###############################################################
 
 # Generando una tabla preliminar para ayudar a la revisión de los valores en cada
 # campo
 tabla_revision <- Reduce(rbind.fill, lista_tablas_columnas_homologadas)
-lista_revision <- revisa_valores(tabla_revision)
 #encuentra_columnas(tabla_revision, "altura")
 
-# Creando varios resúmenes de qué columnas contiene cada data frame
 names(lista_tablas_columnas_homologadas)
 
 lista_tablas_columnas_homologadas %>%
@@ -55,7 +55,26 @@ tabla_revision %>%
     df %>%
       elimina_columnas_vacias() %>%
       glimpse()
-    })
+  })
+
+#################################################################################
+
+# Definiendo una función para revisar qué archivos contienen determinada columna
+# Inputs:
+# datos: data frame que contiene "columna" y otra columna llamada "archivo_origen"
+# nombre_columna: nombre de la columna a revisar
+# Outputs:
+# vector con los nombres de los archivos que la contienen
+
+obtiene_archivos_columna <- function(datos, nombre_columna){
+  resultado <- datos %>%
+    filter_(paste0("!is.na(", nombre_columna, ")")) %>%
+    pull(archivo_origen) %>%
+    unique()
+  return(resultado)
+}
+
+################################################################################
 
 # Revisando cuántos catálogos tienen cada columna, para ver si hay que renombrar
 # o no.
@@ -71,7 +90,7 @@ crear_resumen_columnas_df(lista_catalogos) %>%
 # Parece que todo bien
 
 ###############################################################
-# Revision de valores en catálogos:
+# 3. Revision de valores en catálogos:
 ###############################################################
 
 # En esta sección se revisará que los campos asociados a un catálogo de cada
@@ -257,7 +276,7 @@ write_csv(valores_no_presentes_en_catalogo,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_no_presentes_en_catalogo.csv"))
 
 ###############################################################
-# Revision de valores numéricos:
+# 4. Revision de valores numéricos:
 ###############################################################
 
 # En esta sección se revisará que las columnas que deben ser numéricas en los
@@ -486,3 +505,215 @@ saveRDS(valores_esperados_numericos,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.RDS"))
 write_csv(valores_esperados_numericos,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.csv"))
+
+################################################################
+# 5. Revision de valores no vacíos por diseño del esquema de datos:
+################################################################
+
+# En esta sección se revisarán que campos en los exceles que corresponden a
+# campos que se definieron como no nulos en el esquema de datos, en realidad
+# cumplan dicha restricción.
+
+# Nota. 
+
+relacion_columnas_obligatorias <- c(
+  
+  ###  Muestreo ###
+  ".nombre_proyecto" = NA, # Nombre del muestreo
+  ".proposito" = NA, # Descripción del muestreo
+  ".tema" = NA, # Propósito del muestreo
+  ".localidad_proyecto" = NA, # Área de estudio
+  ".institucion" = NA, # Organización
+  ".autor_administrador_proyecto" = NA, # Encargado
+  ".contacto" = NA, # Contacto
+  ".cita" = NA,  # Referencia
+  ".titulo" = NA, # Nombre del proyecto
+  ".anio_inicio_proyecto" = NA,
+  
+  ### Muestra_sitio ###
+  ".nombre_sitio" = NA,
+  # ".nombre_original" = NA, # este lo obtendré de nombre_sitio cuando aplique.
+  ".anio" = NA,
+  ".mes" = NA,
+  ".dia" = NA,
+  ".pais" = NA,
+  ".region_healthy_reefs" = NA,
+  ".localidad" = NA,
+  ".metodo_seleccion_sitios" = NA,
+  ".protocolo" = NA,
+  
+  ### Muestra_transecto ###
+  "conacyt_greenpeace_2016_bentos_desagregados.transecto" = NA,
+  "conacyt_greenpeace_2016_complejidad.transecto" = NA,
+  "conacyt_greenpeace_2016_corales_desagregados.transecto" = NA,
+  "conacyt_greenpeace_2016_invertebrados_desagregados.transecto" = NA,
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.transecto" = NA,
+  "conacyt_greenpeace_2016_reclutas_desagregados.transecto" = NA,
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.transecto" = NA,
+  "historicos_y_2017_cuadrante_reclutas_desagregados.transecto" = NA,
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.transecto" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.transecto" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.transecto" = NA,
+  "historicos_y_2017_transecto_complejidad_desagregada_cadena.transecto" = NA,
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.transecto" = NA,
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.transecto" = NA,
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.transecto" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.transecto" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.transecto" = NA,
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.transecto" = NA,
+  
+  ### Muestra_sitio_bentos_info ###
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.metodo" = NA,
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" = NA,
+  # "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.longitud_muestreada_media_m" = NA # Sugerencia para Esme
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.puntos_o_cm_reales_transecto" = NA, # Númnero de puntos muestreados
+  
+  ### Muestra_sitio_bentos_porcentaje ###
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.codigo" = NA,
+  "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.cobertura" = NA,
+  
+  ### Muestra_transecto_bentos_info ###
+  "conacyt_greenpeace_2016_bentos_desagregados.metodo" = NA,
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.metodo" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.metodo" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.metodo" = NA,
+  
+  "conacyt_greenpeace_2016_bentos_desagregados.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.nivel_agregacion_datos" = NA,
+  
+  "conacyt_greenpeace_2016_bentos_desagregados.longitud_transecto_m" = NA, # longitud muestreada (m)
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.longitud_transecto_m" = NA,
+  
+  ### Muestra_transecto_bentos_punto ### Muestra_transecto_bentos_linea ### 
+  "conacyt_greenpeace_2016_bentos_desagregados.codigo" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.codigo" = NA,
+  "historicos_y_2017_transecto_bentos_desagregados_pit_lit.codigo" = NA,
+  
+  ### Muestra_transecto_bentos_porcentaje ###
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.codigo" = NA,
+  
+  "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.cobertura" = NA,
+  
+  ### Muestra_transecto_corales_info ###
+  "conacyt_greenpeace_2016_corales_desagregados.metodo" = NA,
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.metodo" = NA,
+  
+  "conacyt_greenpeace_2016_corales_desagregados.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.nivel_agregacion_datos" = NA,
+  
+  "conacyt_greenpeace_2016_corales_desagregados.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.longitud_transecto_m" = NA,
+  
+  "conacyt_greenpeace_2016_corales_desagregados.ancho_transecto_m" = NA,
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.ancho_transecto_m" = NA,
+  
+  ### Muestra_transecto_corales_observacion ###
+  "conacyt_greenpeace_2016_corales_desagregados.codigo" = NA,
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.codigo" = NA,
+  
+  "conacyt_greenpeace_2016_corales_desagregados.clump" = NA,
+  "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.clump" = NA,
+  
+  ### Muestra_transecto_peces_info ###
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.metodo" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.metodo" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.metodo" = NA,
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.metodo" = NA,
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.nivel_agregacion_datos" = NA,
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.longitud_transecto_m" = NA,
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.ancho_transecto_m" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.ancho_transecto_m" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.ancho_transecto_m" = NA,
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.ancho_transecto_m" = NA,
+  
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_muestreados" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_muestreados" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_muestreados" = NA,
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_muestreados" = NA,
+  
+  ### Muestra_transecto_peces_cuenta ###
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.nombre_cientifico_abreviado" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nombre_cientifico_abreviado" = NA,
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nombre_cientifico_abreviado" = NA,
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.nombre_cientifico_abreviado" = NA,
+  
+  ### Muestra_transecto_invertebrados_info ###
+  "conacyt_greenpeace_2016_invertebrados_desagregados.metodo" = NA,
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.metodo" = NA,
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.nivel_agregacion_datos" = NA,
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.longitud_transecto_m" = NA,
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados.ancho_transecto_m" = NA,
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.ancho_transecto_m" = NA,
+  
+  ### Muestra_transecto_invertebrados_cuenta ###
+  "conacyt_greenpeace_2016_invertebrados_desagregados.tipo" = NA,
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.tipo" = NA,
+  
+  "conacyt_greenpeace_2016_invertebrados_desagregados.conteo" = NA,
+  "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.conteo" = NA,
+  
+  ### Muestra_subcuadrante_de_transecto_reclutas_info ###
+  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = NA,
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = NA,
+  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = NA,
+  
+  "conacyt_greenpeace_2016_reclutas_desagregados.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" = NA,
+  "historicos_y_2017_cuadrante_reclutas_desagregados.nivel_agregacion_datos" = NA,
+  
+  ### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
+  "historicos_y_2017_cuadrante_reclutas_desagregados.codigo" = NA,
+  
+  "historicos_y_2017_cuadrante_reclutas_desagregados.tamanio_cm" = NA,
+  
+  ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
+  "conacyt_greenpeace_2016_reclutas_desagregados.codigo" = NA,
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.codigo" = NA,
+  
+  "conacyt_greenpeace_2016_reclutas_desagregados.categoria_tamanio" = NA,
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.categoria_tamanio" = NA,
+  
+  "conacyt_greenpeace_2016_reclutas_desagregados.n" = NA,
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.n" = NA,
+  
+  ### Muestra_transecto_complejidad_info ###
+  "conacyt_greenpeace_2016_complejidad.longitud_transecto_m" = NA,
+  "historicos_y_2017_transecto_complejidad_desagregada_cadena.longitud_transecto_m" = NA,
+  
+  "conacyt_greenpeace_2016_complejidad.tamanio_cadena_m" = NA,
+  "historicos_y_2017_transecto_complejidad_desagregada_cadena.tamanio_cadena_m" = NA,
+  
+  ### Muestra_subcuadrante_de_transecto_complejidad_info ###
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = NA,
+  
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.relieve" = NA
+)
+
+columnas_obligatorias_a_revisar <- revisa_columnas_valores(lista_tablas_columnas_homologadas,
+  relacion_columnas_obligatorias) %>%
+  group_by(tabla, campo, valor) %>%
+  tally()
+
+saveRDS(columnas_obligatorias_a_revisar,
+  paste0(ruta_salidas_2_revisar_listas_exceles, "/columnas_obligatorias_a_revisar.RDS"))
+write_csv(columnas_obligatorias_a_revisar,
+  paste0(ruta_salidas_2_revisar_listas_exceles, "/columnas_obligatorias_a_revisar.csv"))
+

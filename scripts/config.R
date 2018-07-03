@@ -23,8 +23,10 @@ ruta_salida <- "../productos/v3"
 ruta_salidas_0_leer_exceles <- paste0(ruta_salida, "/0_tablas_crudas_exceles")
 ruta_salidas_1_homologar_columnas <- paste0(ruta_salida, "/1_tablas_columnas_homologadas")
 ruta_salidas_2_revisar_listas_exceles <- paste0(ruta_salida, "/2_revisiones_exceles")
+ruta_salidas_3_crear_df_homologado <- paste0(ruta_salida, "/3_revisiones_adicionales_y_df_homologado")
 
 # Creando carpetas de salida
 dir.create(ruta_salidas_0_leer_exceles)
 dir.create(ruta_salidas_1_homologar_columnas)
 dir.create(ruta_salidas_2_revisar_listas_exceles)
+dir.create(ruta_salidas_3_crear_df_homologado)
