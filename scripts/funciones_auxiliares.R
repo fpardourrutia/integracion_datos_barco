@@ -581,7 +581,7 @@ revisa_columnas_valores <- function(lista_df, relacion_columnas_valores){
       
       # Generando la expresión para el filter_.
       expresion_filter <- ifelse(is.na(valor), paste0("is.na(", nombre_columna_df, ")"),
-        paste0(nombre_columna_df, "==", valor))
+        paste0(nombre_columna_df, "== \"", valor, "\""))
       
       # Generando la expresión para el select_.
       # Se generarán las columnas "tabla" y "campo"
@@ -601,7 +601,7 @@ revisa_columnas_valores <- function(lista_df, relacion_columnas_valores){
       
       # Generando la expresión para el filter_.
       expresion_filter <- ifelse(is.na(valor), paste0("is.na(", nombre_columna_df, ")"),
-        paste0(nombre_columna_df, "==", valor))
+        paste0(nombre_columna_df, "== \"", valor, "\""))
       
       # Generando la expresión para el select_.
       # Se generarán las columnas "tabla" y "campo"

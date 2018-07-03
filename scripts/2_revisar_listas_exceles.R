@@ -82,7 +82,7 @@ crear_resumen_columnas_df(lista_catalogos) %>%
 # Generando la relación de columnas en catálogo:
 relacion_columnas_catalogo <- c(
   
-  # Proyecto y sitio
+  # Muestreo y sitio
   ".tema" = "catalogos_proyecto__proposito.categoria", # propósito
   
   ".pais" = "catalogos_muestra_sitio__pais.categoria",
