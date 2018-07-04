@@ -13,9 +13,9 @@ library("readr")
 source("config.R")
 source("funciones_auxiliares.R")
 
-###############################################################
+################################################################################
 # 1. Leyendo cada una de las listas individuales:
-###############################################################
+################################################################################
 
 # Leyendo listas de exceles
 lista_tablas_columnas_homologadas <- readRDS(
@@ -23,9 +23,9 @@ lista_tablas_columnas_homologadas <- readRDS(
 lista_catalogos <- readRDS(
   paste0(ruta_salidas_0_leer_exceles, "/lista_catalogos.RData"))
 
-###############################################################
+################################################################################
 # 2. Revisando las relaciones exceles/columnas que contienen
-###############################################################
+################################################################################
 
 # Generando una tabla preliminar para ayudar a la revisión de los valores en cada
 # campo
@@ -89,9 +89,9 @@ crear_resumen_columnas_df(lista_catalogos) %>%
   View()
 # Parece que todo bien
 
-###############################################################
+################################################################################
 # 3. Revision de valores en catálogos:
-###############################################################
+################################################################################
 
 # En esta sección se revisará que los campos asociados a un catálogo de cada
 # data frame en "lista_datos_columnas_homologadas" efectivamente tengan todos sus
@@ -275,9 +275,9 @@ saveRDS(valores_no_presentes_en_catalogo,
 write_csv(valores_no_presentes_en_catalogo,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_no_presentes_en_catalogo.csv"))
 
-###############################################################
+################################################################################
 # 4. Revision de valores numéricos:
-###############################################################
+################################################################################
 
 # En esta sección se revisará que las columnas que deben ser numéricas en los
 # data frames de "lista_datos_columnas_homologadas" efectivamente lo sean.
@@ -506,9 +506,9 @@ saveRDS(valores_esperados_numericos,
 write_csv(valores_esperados_numericos,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.csv"))
 
-################################################################
+################################################################################
 # 5. Revision de valores no vacíos por diseño del esquema de datos:
-################################################################
+################################################################################
 
 # En esta sección se revisarán que campos en los exceles que corresponden a
 # campos que se definieron como no nulos en el esquema de datos, en realidad

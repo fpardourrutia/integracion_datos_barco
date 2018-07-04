@@ -22,9 +22,9 @@ library("readr")
 source("config.R")
 source("funciones_auxiliares.R")
 
-###############################################################
+################################################################################
 # 1. Creando data frame con la información integrada:
-###############################################################
+################################################################################
 
 # Leyendo lista de tablas con columnas homologadas
 lista_tablas_columnas_homologadas <- readRDS(
@@ -36,9 +36,9 @@ datos_globales_crudos <- Reduce(rbind.fill, lista_tablas_columnas_homologadas) %
     id = 1:nrow(.)
   )
 
-###############################################################
+################################################################################
 # 2. Revisando la tabla con la información integrada:
-###############################################################
+################################################################################
 
 names(lista_tablas_columnas_homologadas)
 crear_resumen_columnas_df(lista_tablas_columnas_homologadas) %>%
@@ -55,8 +55,8 @@ names(lista_revision[["nombre_proyecto"]]) # Nombre del muestreo. *
 names(lista_revision[["proposito"]]) # Descripción del muestreo
 names(lista_revision[["tema"]]) # Propósito del muestreo. Catálogo
 names(lista_revision[["localidad_proyecto"]]) # Área de estudio
-names(lista_revision[["institucion"]]) # Organización
-names(lista_revision[["suborganizacion"]])
+names(lista_revision[["institucion"]]) # Organización. Sería bueno tener nombres completos.
+names(lista_revision[["suborganizacion"]]) # Sería bueno tener nombres completos.
 names(lista_revision[["autor_administrador_proyecto"]]) # Encargado
 names(lista_revision[["contacto"]])
 names(lista_revision[["cita"]]) # Referencia
@@ -237,7 +237,7 @@ names(lista_revision[["tamanio_cadena_m"]]) # Numérico
 
 ### Muestra_subcuadrante_de_transecto_complejidad_info ###
 names(lista_revision[["observador"]]) # Homologarlos
-names(lista_revision[["cuadrante"]])
+names(lista_revision[["cuadrante"]]) # Numérico
 names(lista_revision[["relieve"]]) # Numérico (complejidad por máximo relieve)
 
 ################################################################################
@@ -289,7 +289,37 @@ names(lista_revision[["relieve"]]) # Numérico (complejidad por máximo relieve)
 
 relacion_columnas_valores_incorrectos <- c(
   ".proposito" = "aluación de arrecifes fuera y dentro de ANPs.",
-  ".muestreo_completo" = "0.83333333333333337"
+  ".muestreo_completo" = "0.83333333333333337",
+  ".autor_administrador_proyecto" = "Parquer Nacional Arrecifes de Cozumel",
+  ".hora" = 1,
+  ".hora" = 2,
+  ".proposito" = "Monitore de áreas naturales protegidas del norte de Quintana Roo.",
+  
+  # Que la variable de "cuadrante" tenga puros valores numéricos
+  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = "R1",
+  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = "R2",
+  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = "R3",
+  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = "R4",
+  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = "R5",
+  "conacyt_greenpeace_2016_reclutas_desagregados.cuadrante" = "R6",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = "R1",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = "R2",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = "R3",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = "R4",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = "R5",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.cuadrante" = "R6",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = "R1",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = "R2",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = "R3",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = "R4",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = "R5",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.cuadrante" = "R6",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = "R1",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = "R2",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = "R3",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = "R4",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = "R5",
+  "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve.cuadrante" = "R6"
 )
 
 valores_a_revisar <- revisa_columnas_valores(lista_tablas_columnas_homologadas,
@@ -302,7 +332,9 @@ saveRDS(valores_a_revisar,
 write_csv(valores_a_revisar,
   paste0(ruta_salidas_3_crear_df_homologado, "/valores_a_revisar.csv"))
 
-### Notas acerca de las columnas revisadas ###
+################################################################################
+
+# Notas acerca de las columnas revisadas:
 
 #                                 archivo_origen                                    metodo
 # 1                          conacyt_greenpeace_2016_bentos_desagregados_v3         PIT
@@ -335,9 +367,13 @@ datos_globales_crudos %>%
   unique() %>%
   View()
   
-###################################################################
+################################################################################
 # 3. Creando la tabla con información selecta para la integración
-###################################################################
+################################################################################
+
+# Creando una tabla con las columnas de importancia la base de datos. Cabe
+# destacar que se limpiaron, reestructuraron y cambió el tipo de datos de algunas
+# de estas columnas.
 
 datos_globales_columnas_selectas <- datos_globales_crudos %>%
   
@@ -360,17 +396,17 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     "temperatura_c",
     "profundidad_media_m_sitio",
     
-    ### Muestra_sitio_bentos_info ###
-    "puntos_o_cm_reales_transecto",
-    
-    ### Muestra_sitio_bentos_porcentaje ###
-    "cobertura",
-    
     ### Muestra_transecto ###
     "profundidad_inicial_m",
     "profundidad_final_m",
     "longitud_cuadrante_m",
     "ancho_cuadrante_m",
+    
+    ### Muestra_sitio_bentos_info ###
+    "puntos_o_cm_reales_transecto",
+    
+    ### Muestra_sitio_bentos_porcentaje ###
+    "cobertura",
     
     ### Muestra_transecto_bentos_info ###
     "longitud_transecto_m",
@@ -424,21 +460,22 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     ### Muestra_transecto_invertebrados_cuenta ###
     "conteo",
     
+    ### Muestra_subcuadrante_de_transecto_reclutas_info ###
+    # "cuadrante",
+    
+    ### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
+    "tamanio_cm",
+    
+    ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
+    "n",
+    
     ### Muestra_transecto_complejidad_info ###
     # "longitud_transecto_m",
     "tamanio_cadena_m",
     
     ### Muestra_subcuadrante_de_transecto_complejidad_info ###
+    # "cuadrante",
     "relieve",
-    
-    ### Muestra_subcuadrante_de_transecto_reclutas_info ###
-
-    ### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
-    "tamanio_cm",
-
-    ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
-    "n",
-    
     warnings = FALSE
   ) %>%
   
@@ -529,12 +566,15 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     -unidades_profundidad,
     -X__1,
     -X__2,
+    -x__1,
     -zona_arrecife_redundante
   )
 
-###############################################################
-# Creando la tabla con la información lista para ser integrada
-###############################################################
+################################################################################
+
+###################### Me quedé revisando "Muestra_sitio" ######################
+
+# Creando la tabla con la información lista para ser integrada:
 
 datos_globales <- datos_globales_columnas_selectas %>%
 
@@ -558,7 +598,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
     
     # Variable que es A o B si el sitio fue remuestreado en el mismo muestreo,
     # y NA e.o.c
-    remuestreo_en_mismo_muestreo = ifelse(!is.na(Muestreo.nombre_si_A), "A",
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo = ifelse(!is.na(Muestreo.nombre_si_A), "A",
       ifelse(!is.na(Muestreo.nombre_si_B), "B",
         ifelse(!is.na(Muestreo.nombre_si_C), "C", NA
     )))
@@ -677,7 +717,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   
   # Calculando "Muestra_transecto.subcuadrantes_planeados":
   # Para cada muestra de transecto:
-  group_by(Muestreo.nombre, Muestra_sitio.nombre, remuestreo_en_mismo_muestreo, Muestra_transecto.nombre) %>%
+  group_by(Muestreo.nombre, Muestra_sitio.nombre, Muestra_sitio.aux_remuestreo_en_mismo_muestreo, Muestra_transecto.nombre) %>%
   mutate(
     # Con que un registro de dicha muestra de transecto tenga información de cuadrante,
     # quiere decir que el transecto tiene subcuadrantes planeados
@@ -695,7 +735,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # transecto. Si tiene subcuadrantes planeados, se pone el primer valor de la
   # columna "longitud_cuadrante_m", al ordenarla por ella misma (los NA's) quedan
   # al final, en otro caso se pone NA
-  group_by(Muestreo.nombre, Muestra_sitio.nombre, remuestreo_en_mismo_muestreo, Muestra_transecto.nombre) %>%
+  group_by(Muestreo.nombre, Muestra_sitio.nombre, Muestra_sitio.aux_remuestreo_en_mismo_muestreo, Muestra_transecto.nombre) %>%
   mutate(
     Muestra_transecto.longitud_subcuadrante_m = ifelse(Muestra_transecto.subcuadrantes_planeados,
       first(longitud_cuadrante_m, order_by = longitud_cuadrante_m), NA),
@@ -913,7 +953,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # aparecen observaciones de la misma naturaleza (por lo que tiene sentido
   # enlistarlas)
   ddply(
-    .(Muestreo.nombre, Muestra_sitio.nombre, remuestreo_en_mismo_muestreo, Muestra_transecto.nombre, archivo_origen),
+    .(Muestreo.nombre, Muestra_sitio.nombre, Muestra_sitio.aux_remuestreo_en_mismo_muestreo, Muestra_transecto.nombre, archivo_origen),
     function(df){
       resultado <- df %>%
         mutate(
@@ -946,7 +986,6 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # y "conacyt_greenpeace_2016_reclutas_desagregados_v3" pertenecen a este tipo
   # porque no tienen información sobre reclutas individuales.
   
-  
   ###############################################################
   # Transformaciones finales por "archivo_origen"
   ###############################################################
@@ -972,7 +1011,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   #   registros duplicados al hacer el join con el catálogo, pues "especie" no es
   #   una llave natural de "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico".
   # - Se agregarán registros con los mismos valores en: "Muestreo.nombre", "Muestra_sitio.nombre",
-  #   "remuestreo_en_mismo_muestreo", "Muestra_transecto.nombre", "nombre_cientifico",
+  #   "Muestra_sitio.aux_remuestreo_en_mismo_muestreo", "Muestra_transecto.nombre", "nombre_cientifico",
   #   por consistencia con la tabla de interés.
   # - Se revisará que todos los transectos estén incluídos, independiente si
   #   tienen o no observaciones.
@@ -1000,7 +1039,7 @@ revision_numero_transectos_muestreo_sitio <- datos_globales %>%
     archivo_origen,
     Muestreo.nombre,
     Muestra_sitio.nombre,
-    remuestreo_en_mismo_muestreo,
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
     Muestra_transecto.nombre
   ) %>%
   distinct() %>%
@@ -1008,7 +1047,7 @@ revision_numero_transectos_muestreo_sitio <- datos_globales %>%
     archivo_origen,
     Muestreo.nombre,
     Muestra_sitio.nombre,
-    remuestreo_en_mismo_muestreo) %>%
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo) %>%
   tally()
 
 revision_numero_cuadrantes_muestreo_transecto <- datos_globales %>%
@@ -1030,7 +1069,7 @@ revision_numero_cuadrantes_muestreo_transecto <- datos_globales %>%
     archivo_origen,
     Muestreo.nombre,
     Muestra_sitio.nombre,
-    remuestreo_en_mismo_muestreo,
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
     Muestra_transecto.nombre
   ) %>%
   distinct() %>%
@@ -1038,7 +1077,7 @@ revision_numero_cuadrantes_muestreo_transecto <- datos_globales %>%
     archivo_origen,
     Muestreo.nombre,
     Muestra_sitio.nombre,
-    remuestreo_en_mismo_muestreo) %>%
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo) %>%
   tally()
 
 
@@ -1599,71 +1638,3 @@ mutate_numeric(
 #   mortalidad_total)
 
 # )
-
-################################################################################
-# Revisando valores de las columnas de datos_globales:
-################################################################################
-
-revision_valores <- revisa_valores(datos_globales)
-names(revision_valores)
-
-l_ply(1:length(revision_valores), function(i){
-  nombre_columna <- names(revision_valores)[i]
-  valores_columna <- names(revision_valores[[i]])
-  
-  write(nombre_columna, "~/Desktop/prueba.txt", append = TRUE)
-  write(valores_columna, "~/Desktop/prueba.txt", append = TRUE)
-})
-
-# Función para consultar el objeto anterior:
-# nombre_columna: nombre de la columna a consultar.
-# La función regresa la tabla correspondiente a esa columna
-# El nombre de esta función es muy rápido para hacer la operación fácilmente
-crv <- function(nombre_columna){
-  return(revision_valores[[nombre_columna]])
-}
-
-# encuentra_columnas(datos_globales, "prof") %>%
-#   set_names(.) %>%
-#   llply(function(x) crv(x))
-
-# saveRDS(datos_globales, "../productos/v3/datos_globales.RData")
-
-# Comentarios Esme y Nuria CONACyT / GreenPeace 2016:
-# 1. Falta localidad del proyecto. RESUELTO
-# 2. Esme va a revisar los datos con "blanqueamiento" NA, pero con porcentaje y viceversa. RESUELTO
-# datos_globales %>% group_by(blanqueamiento, porcentaje) %>% tally() %>% View()
-# 3. ¿Por qué los transectos de corales tienen longitudes tan variables?
-# Porque a veces no te da tiempo terminar...
-# 4. ¿Qué diferencia hay entre "Anio" y "Anio_de_muestreo". Ninguna, usar Anio.
-# 5. En "anio_inicio_proyecto" y "anio_termino_proyecto" aún hay datos con formato
-# de fecha de Excel (todos los archivos). RESUELTO (ver código arriba)
-# 6. Hay algunos sitios sin información de "area_no_pesca". Será que falta actualizar
-# la tabla de "datos_anexos?" No, si no está no tenemos info.
-# 7. ¿Qué es fisión y S? S: sana. Dejarla porque en algunos proyectos es importante.
-# fisión: colonia rota en fragmentos.
-# 8. Igual y convendría poner un campo de texto para explicar el "método de selección
-# de sitios".
-# 9. Falta "criterio de selección de colonias"
-# 10. ¿Los datos de "ancho_transecto_m" son el ancho, el semi ancho o combinados?
-# 11. FALTA: en cuanto Esme revise los datos de peces para que todas las especies
-# coincidan con las del catálogo, hago el join para que la tabla de peces tenga
-# el nombre científico (no la especie sólamente).
-# 12. FALTA: renombrar "temperatura_en_celsius" a "temperatura_en_celsius_transecto"
-# porque se requerirá una nueva columna si hay temperaturas a nivel de sitio.
-# 13. FALTA: los códigos en el catálogo de bentos no son únicos...
-# La "temperatura_c" copiarla al sitio porque no cambia entre transecto y sitio.
-
-# Revisión para datos históricos:
-# 1. Revisar campos de catálogo.
-# 2. Revisar campos de tablas adicionales.
-# 3. Esme me va a difereciar transectos con el mismo nombre en el mismo muestreo 
-#   de sitio, pero que en realidad son distintos, por ejemplo, el transecto 1 de peces
-#   y el de bentos.
-# 4. Checar qué significa el sustrato "0". Cuadrantes que no se hicieron
-# 5. Checar SC (Small Coral) con codigo NA. RESUELTO
-# 6. NECESITO que todos los registros de un mismo muestreo de sitio tengan la misma
-#    hora, sino, al homologar nombres de sitio (ante remuestreos), va a ser muy difícil
-#    distinguir entre remuestreos.
-# 7. Lorenzo me confirmó que los peces muestreados en CONACyT / GreenPeace no
-#    fueron sólo AGRRA, sino todos.

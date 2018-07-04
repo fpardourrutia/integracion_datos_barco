@@ -7,9 +7,9 @@ library("stringi")
 library("forcats") # Para trabajar con factores, en "genera_llave"
 library("purrr") # Para "genera_tabla_2"
 
-###################################################
+################################################################################
 # Funciones auxiliares sobre listas de data frames
-###################################################
+################################################################################
 
 # Función auxiliar para leer una hoja determinada de cada uno de los archivos de
 # Excel en una carpeta específica y guardar los data frames resultantes en una
@@ -77,6 +77,8 @@ leer_exceles <- function(ruta_carpeta_origen, hoja){
   return(lista_df_exceles)
 }
 
+################################################################################
+
 # Función auxiliar para que, dada una lista de data frames, se haga un data frame
 # donde Aij = 1 si la j-ésima se encuentra en el i-ésimo data frame y 0 e.o.c.
 # lista_df: lista nombrada de data frames
@@ -106,6 +108,8 @@ crear_resumen_columnas_df <- function(lista_df){
   return(resultado)
 }
 
+################################################################################
+
 # Función auxiliar para renombrar una columna en todos los data frames de una lista.
 # Para usarla, un supuesto es que la columna "nombre_nuevo" no existe si existe
 # "nombre_anterior":
@@ -127,6 +131,8 @@ renombra_columna <- function(lista_df, nombre_anterior, nombre_nuevo){
   }, nombre_anterior, nombre_nuevo)
 }
 
+################################################################################
+
 # Funcion auxiliar para pasar a minúsculas todos los nombres de las columnas de
 # los df en una lista:
 # lista_df: lista de data frames
@@ -138,6 +144,8 @@ renombra_columnas_minusculas <- function(lista_df){
     return(df)
   })
 }
+
+################################################################################
 
 # Función auxiliar para hacer un inner join de cada uno de los data frames en una
 # lista, con otro data frame:
@@ -168,6 +176,8 @@ inner_join_lista <- function(lista_df, df, llaves_union){
   
   return(lista_joins)
 }
+
+################################################################################
 
 # Función que recibe una lista de data frames y una de catálogos (que también son
 # data frames) y, por medio de un vector que especifica qué columnas de qué
@@ -316,6 +326,8 @@ revisa_columnas_catalogos <- function(lista_df, lista_catalogos, relacion_column
   
   return(resultado)
 }
+
+################################################################################
 
 # Función que recibe una lista nombrada de data frames y, por medio de un vector
 # que especifica ciertas columnas de cada data frame, permite revisar si tiene
@@ -506,6 +518,8 @@ revisa_columnas_numericas <- function(lista_df, relacion_columnas_consideradas,
   return(resultado)
 }
 
+################################################################################
+
 # Función que recibe una lista de data frames y, por medio de un vector que
 # especifica un filtro de registros de interés en dichos data frames, regresa una
 # tabla con los series de los registros que cumplen alguna de las condiciones
@@ -625,6 +639,8 @@ revisa_columnas_valores <- function(lista_df, relacion_columnas_valores){
   
   return(resultado)
 }
+
+################################################################################
       
 # Función que recibe una lista nombrada de data frames y una lista llaves naturales
 # para cada data frame. La función identifica los renglones duplicados de cada
@@ -705,9 +721,9 @@ encuentra_duplicados <- function(lista_df, lista_llaves_naturales,
   }
 }
 
-#########################################
+################################################################################
 # Funciones auxiliares sobre data frames
-#########################################
+################################################################################
 
 # Función auxiliar a la hora de programar, que regresa los nombres de las columnas
 # de un df que contienen cierto string.
@@ -721,6 +737,8 @@ encuentra_columnas <- function(df, x){
   indice <- stri_detect_fixed(nombres_columnas, x, case_insensitive = TRUE)
   return(nombres_columnas[indice])
 }
+
+################################################################################
 
 # Función auxiliar a la hora de revisar los datos, para crear una tabla para cada
 # columna de un data frame, y así visualizar valores a corregir
@@ -743,6 +761,8 @@ revisa_valores <- function(df){
   
   return(resultado)
 }
+
+################################################################################
 
 # Función auxiliar para intercambiar un valor por otro de determinada columna
 # en un data frame (mientras exista la columna).
@@ -771,6 +791,8 @@ cambia_valor_columna <- function(df, nombre_columna, valor_anterior, valor_nuevo
   }
   return(df)
 }
+
+################################################################################
 
 # Función auxiliar para sustituir el valor de un campo para todos los registros
 # de un data frame que cumplan una condición especificada.
@@ -813,6 +835,8 @@ cambia_valor_columna_condicion <- function(df, condicion, nombre_columna, valor_
   return(resultado)
 }
 
+################################################################################
+
 # Función para eliminar columnas vacías (de puros NA's) de un data frame
 # df: dataframe a eliminar columnas vacías
 # La función regresa el data frame sin columnas vacías
@@ -850,6 +874,8 @@ elimina_columnas_vacias <- function(df){
   return(resultado)
 }
 
+################################################################################
+
 # Función para transformar un conjunto de variables a tipo numérico:
 # df: data_frame cuyas variables se quieren transformar
 # ...: nombres de las variables a transformar
@@ -875,6 +901,8 @@ mutate_numeric <- function(df, ..., warnings = TRUE){
   return(resultado)
 }
 
+################################################################################
+
 # Función para transformar un conjunto de variables a tipo lógico:
 # df: data frame cuyas variables se quieren transformar
 # ...: nombres de las variables a transformar
@@ -897,6 +925,8 @@ mutate_logical <- function(df, ...){
   return(resultado)
 }
 
+################################################################################
+
 # Función auxiliar para transformar NA's en "" para columnas de tipo caracter.
 # df: data frame de interés
 # El resultado es un data frame con los NA's sustituídos por "" en columnas de
@@ -911,6 +941,8 @@ cambia_na_strings_vacios <- function(df){
     )
   return(resultado)
 }
+
+################################################################################
 
 # Función auxiliar para generar una llave numérica a partir de una llave natural:
 # df: data frame al que se le agregará una columna con una llave numérica
@@ -972,6 +1004,8 @@ genera_llave <- function(df, nombre_columna_llave, ...){
   return(resultado)
 }
 
+################################################################################
+
 # Función auxiliar para generar una tabla a partir de una columna de llave 
 # y una lista nombrada de columnas adicionales, para calcular el valor de cada
 # columna adicional correspondiente a un valor de "nombre_columna_llave" se
@@ -1032,6 +1066,8 @@ genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
   return(resultado)
 }
 
+################################################################################
+
 # Función auxiliar para generar una tabla a partir de una columna de llave 
 # y una lista nombrada de columnas adicionales, para calcular el valor de cada
 # columna adicional correspondiente a un valor de "nombre_columna_llave" se
@@ -1086,14 +1122,14 @@ genera_tabla_2 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
 }
 
 # Nota: La diferencia entre "genera_tabla" y "genera_tabla_2" es que "genera_tabla"
-# utiliza el primer valor encontrado para asignar el valor de cada campo para cada
-# nivel de "nombre_columna_llave", y "genera_tabla_2" utiliza el valor más
+# utiliza el primer valor encontrado para asignar el valor de cada campo para
+# cada nivel de "nombre_columna_llave", y "genera_tabla_2" utiliza el valor más
 # frecuente. Cabe destacar que "genera_tabla_2" es un poco más lenta que
 # "genera_tabla".
 
-######################################
+################################################################################
 # Funciones auxiliares sobre vectores
-######################################
+################################################################################
 
 # Función para que, dado un vector de strings (frases), capitalice la primera
 # letra de cada palabra de cada una de sus entradas, y las otras letras las minimiza.
@@ -1134,6 +1170,8 @@ simple_cap <- function(vec){
   resultado[posicion_NAs] <- NA
   return(resultado)
 }
+
+################################################################################
 
 # Función auxiliar para estandarizar lo más posible strings escritos de manera
 # distinta: dado un vector de strings, a cada una de sus entradas la función le

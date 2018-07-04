@@ -8,9 +8,9 @@
 source("config.R")
 source("funciones_auxiliares.R")
 
-##########################################################
+################################################################################
 # CONACyT / GreenPeace 2016
-##########################################################
+################################################################################
 
 lista_tablas_crudas_exceles_conacyt_greenpeace_2016 <- readRDS(
   paste0(ruta_salidas_0_leer_exceles, "/lista_tablas_crudas_exceles_conacyt_greenpeace_2016.RData"))
@@ -84,9 +84,9 @@ lista_tablas_columnas_homologadas_conacyt_greenpeace_2016 %>%
   crear_resumen_columnas_df() %>%
   glimpse()
 
-##########################################################
+################################################################################
 # Datos históricos / datos 2017
-##########################################################
+################################################################################
 
 lista_tablas_crudas_exceles_historicos_y_2017 <- readRDS(
   paste0(ruta_salidas_0_leer_exceles, "/lista_tablas_crudas_exceles_historicos_y_2017.RData"))
@@ -218,9 +218,9 @@ lista_tablas_columnas_homologadas_historicos_y_2017 %>%
   crear_resumen_columnas_df() %>%
   glimpse()
 
-####################################################################
+################################################################################
 # Pegando las listas anteriores y revisando nombres de las columnas
-####################################################################
+################################################################################
 
 lista_tablas_columnas_homologadas <- append(
   lista_tablas_columnas_homologadas_conacyt_greenpeace_2016,
