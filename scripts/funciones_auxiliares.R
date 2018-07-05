@@ -738,6 +738,22 @@ encuentra_columnas <- function(df, x){
   return(nombres_columnas[indice])
 }
 
+#################################################################################
+
+# Función auxiliar para revisar qué archivos contienen determinada columna
+# df: data frame que contiene "columna" y otra columna llamada "archivo_origen"
+# nombre_columna: nombre de la columna a revisar
+# La función regresa un vector con los nombres de los archivos que contienen la
+# columna de interés
+
+obtiene_archivos_columna <- function(df, nombre_columna){
+  resultado <- df %>%
+    filter_(paste0("!is.na(", nombre_columna, ")")) %>%
+    pull(archivo_origen) %>%
+    unique()
+  return(resultado)
+}
+
 ################################################################################
 
 # Función auxiliar a la hora de revisar los datos, para crear una tabla para cada

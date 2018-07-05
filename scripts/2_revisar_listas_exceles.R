@@ -57,23 +57,6 @@ tabla_revision %>%
       glimpse()
   })
 
-#################################################################################
-
-# Definiendo una función para revisar qué archivos contienen determinada columna
-# Inputs:
-# datos: data frame que contiene "columna" y otra columna llamada "archivo_origen"
-# nombre_columna: nombre de la columna a revisar
-# Outputs:
-# vector con los nombres de los archivos que la contienen
-
-obtiene_archivos_columna <- function(datos, nombre_columna){
-  resultado <- datos %>%
-    filter_(paste0("!is.na(", nombre_columna, ")")) %>%
-    pull(archivo_origen) %>%
-    unique()
-  return(resultado)
-}
-
 ################################################################################
 
 # Revisando cuántos catálogos tienen cada columna, para ver si hay que renombrar
@@ -716,4 +699,3 @@ saveRDS(columnas_obligatorias_a_revisar,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/columnas_obligatorias_a_revisar.RDS"))
 write_csv(columnas_obligatorias_a_revisar,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/columnas_obligatorias_a_revisar.csv"))
-

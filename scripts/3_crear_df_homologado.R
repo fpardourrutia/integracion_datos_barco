@@ -257,7 +257,6 @@ names(lista_revision[["relieve"]]) # Numérico (complejidad por máximo relieve)
 # names(lista_revision[["necrosis"]])
 # names(lista_revision[["neoplasia"]])
 # names(lista_revision[["nombre_no_remuestreo"]]
-# names(lista_revision[["nombre_original"]]
 # names(lista_revision[["nombre_remuestreo"]]
 # names(lista_revision[["numero_sitios_agregados"]])
 # names(lista_revision[["profundidad_media_m"]])
@@ -548,7 +547,6 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     -longitud_teorica_m_invertebrados_otros,
     -longitud_teorica_m_peces,
     -nombre_no_remuestreo,
-    -nombre_original,
     -nombre_remuestreo,
     -numero_sitios_agregados,
     -profundidad_media_m,
@@ -572,8 +570,6 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
 
 ################################################################################
 
-###################### Me quedé revisando "Muestra_sitio" ######################
-
 # Creando la tabla con la información lista para ser integrada:
 
 datos_globales <- datos_globales_columnas_selectas %>%
@@ -584,7 +580,8 @@ datos_globales <- datos_globales_columnas_selectas %>%
     
     # En la columna "nombre_proyecto", se codificó al final una letra A/B/C para
     # distinguir entre remuestreos del mismo sitio, dentro del mismo proyecto. Esta
-    # información la extraeré en una columna nueva.
+    # información la extraeré en una columna nueva. Esto no se hizo para los datos
+    # de CONACyT / GreenPeace (en los que se tiene la columna "identificador_muestreo_sitio")
     # Supuesto: ningún proyecto termina con "A", "B" o "C", a menos que sea indicativo 
     # de un remuestreo de sitio dentro del mismo proyecto.
     Muestreo.nombre_si_A = stri_match_first(nombre_proyecto, regex = "(.*)A$")[,2],
@@ -602,6 +599,9 @@ datos_globales <- datos_globales_columnas_selectas %>%
       ifelse(!is.na(Muestreo.nombre_si_B), "B",
         ifelse(!is.na(Muestreo.nombre_si_C), "C", NA
     )))
+  ) %>%
+  rename(
+    Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace = identificador_muestreo_sitio
   ) %>%
   
   select(
@@ -643,7 +643,12 @@ datos_globales <- datos_globales_columnas_selectas %>%
     Muestra_sitio.nombre = nombre_sitio
   ) %>%
   mutate(
-    Muestra_sitio.nombre_original = NA_character_
+    nombre_original = estandariza_strings(nombre_original),
+    Muestra_sitio.nombre_original = ifelse(!is.na(nombre_original),
+      nombre_original, Muestra_sitio.nombre)
+  ) %>%
+  select(
+    -nombre_original
   ) %>%
   mutate(
     # Agregando un 0 antes de meses y días cuando se requiera:
@@ -693,15 +698,15 @@ datos_globales <- datos_globales_columnas_selectas %>%
   rename(
     Muestra_sitio.metodo_seleccion = metodo_seleccion_sitios,
     Muestra_sitio.metodologia = protocolo,
-    # Muestra_sitio.temperatura_c = temperatura_c,
+    Muestra_sitio.temperatura_c = temperatura_c,
     Muestra_sitio.profundidad_m = profundidad_media_m_sitio,
     Muestra_sitio.comentarios = comentarios
   ) %>%
   mutate(
     Muestra_sitio.excluir = FALSE,
     Muestra_sitio.datos_abiertos = ifelse(stri_detect_fixed(archivo_origen, "privados"), FALSE, TRUE),
-    #Muestra_sitio.etapa_revision
-    #Muestra_sitio.compatibilidad_cliente
+    # Muestra_sitio.etapa_revision
+    # Muestra_sitio.compatibilidad_cliente
     Muestra_sitio.fuente = ifelse(stri_detect_fixed(Muestreo.nombre, "Base de datos HRI"), "Base de datos", "Otro")
   ) %>%
   
@@ -710,14 +715,18 @@ datos_globales <- datos_globales_columnas_selectas %>%
   rename(
     Muestra_transecto.nombre = transecto,
     Muestra_transecto.transecto_fijo = transecto_fijo,
-    Muestra_transecto.temperatura_c = temperatura_c,
     Muestra_transecto.profundidad_inicial_m = profundidad_inicial_m,
     Muestra_transecto.profundidad_final_m = profundidad_final_m
   ) %>%
   
   # Calculando "Muestra_transecto.subcuadrantes_planeados":
   # Para cada muestra de transecto:
-  group_by(Muestreo.nombre, Muestra_sitio.nombre, Muestra_sitio.aux_remuestreo_en_mismo_muestreo, Muestra_transecto.nombre) %>%
+  group_by(
+    Muestreo.nombre,
+    Muestra_sitio.nombre,
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+    Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+    Muestra_transecto.nombre) %>%
   mutate(
     # Con que un registro de dicha muestra de transecto tenga información de cuadrante,
     # quiere decir que el transecto tiene subcuadrantes planeados
@@ -735,7 +744,12 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # transecto. Si tiene subcuadrantes planeados, se pone el primer valor de la
   # columna "longitud_cuadrante_m", al ordenarla por ella misma (los NA's) quedan
   # al final, en otro caso se pone NA
-  group_by(Muestreo.nombre, Muestra_sitio.nombre, Muestra_sitio.aux_remuestreo_en_mismo_muestreo, Muestra_transecto.nombre) %>%
+  group_by(
+    Muestreo.nombre,
+    Muestra_sitio.nombre,
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+    Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+    Muestra_transecto.nombre) %>%
   mutate(
     Muestra_transecto.longitud_subcuadrante_m = ifelse(Muestra_transecto.subcuadrantes_planeados,
       first(longitud_cuadrante_m, order_by = longitud_cuadrante_m), NA),
@@ -762,28 +776,41 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # - Muestra_*_info.muestreo_completado = muestreo_completo
   
   rename(
-    .Muestra_info.metodo_muestreo = metodo,
-    .Muestra_info.nivel_agregacion_datos = nivel_agregacion_datos,
-    .Muestra_info.observador = observador,
-    .Muestra_info.longitud_muestreada_m = longitud_transecto_m,
-    .Muestra_info.ancho_muestreado_m = ancho_transecto_m,
-    .Muestra_info.muestreo_completado = muestreo_completo
+    Muestra_._info.metodo_muestreo = metodo,
+    Muestra_._info.nivel_agregacion_datos = nivel_agregacion_datos,
+    Muestra_._info.observador = observador,
+    Muestra_._info.longitud_muestreada_m = longitud_transecto_m,
+    Muestra_._info.ancho_muestreado_m = ancho_transecto_m,
+    Muestra_._info.muestreo_completado = muestreo_completo
   ) %>%
   
-  ### Muestra_transecto_bentos_info ###
+  ### Muestra_sitio/transecto_bentos_info ###
   
   mutate(
-    Muestra_transecto_bentos_info.numero_puntos_muestreados = case_when(
-      .Muestra_info.metodo_muestreo == "PIT" ~ puntos_o_cm_reales_transecto,
-      .Muestra_info.metodo_muestreo == "CPF" ~ puntos_o_cm_reales_transecto,
+    # Muestra_sitio_bentos_info.longitud_muestreada_media_m,
+    Muestra_._bentos_info.numero_puntos_muestreados = case_when(
+      stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "PIT" ~
+        as.integer(puntos_o_cm_reales_transecto),
+      stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "CPF" ~
+        as.integer(puntos_o_cm_reales_transecto),
+      stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "CPV" ~
+        as.integer(puntos_o_cm_reales_transecto),
+      stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "Otro" ~ 
+        as.integer(puntos_o_cm_reales_transecto),
+      TRUE ~ NA_integer_
+    ),
+    Muestra_transecto_bentos_info.longitud_contorno_transecto_si_lit_m = case_when(
+      stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "LIT" ~
+        round(puntos_o_cm_reales_transecto / 100, 2),
       TRUE ~ NA_real_
     )
   ) %>%
   select(
     -puntos_o_cm_reales_transecto
   ) %>%
+  
   mutate(
-    Muestra_transecto_bentos_info.comentarios = NA_character_
+    Muestra_._bentos_info.comentarios = NA_character_
   ) %>%
   
   ### Muestra_transecto_corales_info ###
@@ -903,7 +930,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
     Muestra_transecto_complejidad_info.rugosidad_longitud_contorno_m = tamanio_cadena_m
   ) %>%
   mutate(
-    Muestra_transecto_complejidad_info.rugosidad_longitud_lineal_m = .Muestra_info.longitud_muestreada_m,
+    Muestra_transecto_complejidad_info.rugosidad_longitud_lineal_m = Muestra_._info.longitud_muestreada_m,
     # Muestra_transecto_complejidad_info.rugosidad_longitud_lineal_fija,
     Muestra_transecto_complejidad_info.comentarios = NA_character_
   ) %>%
@@ -943,34 +970,115 @@ datos_globales <- datos_globales_columnas_selectas %>%
     
   # Para todas las tablas de observaciones:
   # - Tabla_observaciones.codigo = codigo
-  # - La columna "Tabla_observaciones.numero_observacion" corresponde a la cuenta
-  #   de observaciones para cada muestreo de determinado aspecto en determinado
-  #   muestreo de transecto.
+  # - La columna "Tabla_observaciones.numero_observacion" corresponde a la
+  #   enumeración de observaciones para cada muestreo de determinado aspecto en
+  #   determinado muestreo de transecto.
   
   # Calculando la cuenta de observaciones para cada muestreo de determinado aspecto
   # en determinado muestreo de transecto.
-  # Supuesto: para cada muestreo de transecto, en cada "archivo_origen" sólo
-  # aparecen observaciones de la misma naturaleza (por lo que tiene sentido
-  # enlistarlas)
+  # Supuestos:
+  # - Para cada muestreo de transecto, el orden de aparición de las observaciones
+  #   en el archivo corresponde al orden de observación.
+  # - Para cada muestreo de transecto, en cada "archivo_origen" sólo
+  #   aparecen observaciones de la misma naturaleza (por lo que tiene sentido
+  #   enlistarlas).
+  # Notar que este número no tiene significado para muchos archivos de Excel (los
+  # que contienen datos de complejidad, de toma de datos en cuadrantes, o datos
+  # agregados). Sin embargo, por facilidad se calculará para todos y a la hora de
+  # integrar las tablas se incluirá la columna si es de interés.
+  
   ddply(
-    .(Muestreo.nombre, Muestra_sitio.nombre, Muestra_sitio.aux_remuestreo_en_mismo_muestreo, Muestra_transecto.nombre, archivo_origen),
+    .(Muestreo.nombre,
+      Muestra_sitio.nombre,
+      Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+      Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+      Muestra_transecto.nombre,
+      archivo_origen),
     function(df){
       resultado <- df %>%
         mutate(
-          .Tabla_observaciones.numero_observacion = 1:nrow(df)
+          Tabla_observaciones.numero_observacion = 1:nrow(df)
         )
       return(resultado)
   }) %>%
   
+  rename(
+    Tabla_observaciones.codigo = codigo
+    # Para los archivos de peces se tiene la columna "nombre_cientifico_abreviado"
+    # que es más útil, y para invertebrados se tiene únicamente "tipo". Por ello,
+    # "Tabla_observaciones.codigo" sólamente es útil para bentos, corales y reclutas
+  ) %>%
+  
+  ### Muestra_sitio/transecto_bentos_porcentaje
+  
+  rename(
+    Muestra_._bentos_porcentaje.porcentaje_cobertura = cobertura
+    # Esta columna hay que revisarla, pues contiene números negativos y otros que
+    # no suman el 100% (ver archivo auxiliar). Por lo pronto se copiará tal cual.
+  ) %>%
+  
   ### Muestra_transecto_bentos_punto (PIT desagregado)
-  # Las columnas se corresponden intuitivamente
+  rename(
+    Muestra_transecto_bentos_punto.altura_si_alga_cm = altura_algas_cm
+  ) %>%
 
   ### Muestra_transecto_bentos_linea ###
   # Aún no se calcula porque no se han encontrado datos de LIT desagregados.
   
   ### Muestra_transecto_corales_observacion ###
-  # Las columnas se corresponden intuitivamente.
-    
+  rename(
+    Muestra_transecto_corales_observacion.tipo_observacion = clump,
+    Muestra_transecto_corales_observacion.d1_max_diam_cm = d1_max_diam_cm,
+    Muestra_transecto_corales_observacion.d2_min_diam_cm = d2_min_diam_cm,
+    Muestra_transecto_corales_observacion.altura_maxima_cm = altura_maxima_cm
+  ) %>%
+  
+  # Para todas las siguientes variables, se supone que siempre se midieron, y que
+  # un NA significa que no se observó el efecto buscado.
+  mutate(
+    Muestra_transecto_corales_observacion.tipo_blanqueamiento = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(blanqueamiento),
+      "NO",
+      blanqueamiento
+    ),
+    Muestra_transecto_corales_observacion.porcentaje_blanqueamiento = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & Muestra_transecto_corales_observacion.tipo_blanqueamiento == "NO",
+      0,
+      porcentaje
+    ),
+    Muestra_transecto_corales_observacion.porcentaje_mortalidad_total = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(mortalidad_total),
+      0,
+      mortalidad_total
+    ),
+    Muestra_transecto_corales_observacion.porcentaje_mortalidad_reciente = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(mortalidad_reciente),
+      0,
+      mortalidad_reciente
+    ),
+    Muestra_transecto_corales_observacion.porcentaje_mortalidad_transicion = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(mortalidad_transicion),
+      0,
+      mortalidad_transicion
+    ),
+    Muestra_transecto_corales_observacion.porcentaje_mortalidad_antigua = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(mortalidad_antigua),
+      0,
+      mortalidad_antigua
+    )
+  ) %>%
+  select(
+    -blanqueamiento,
+    -porcentaje,
+    -mortalidad_total,
+    -mortalidad_reciente,
+    -mortalidad_transicion,
+    -mortalidad_antigua
+  ) %>%
+  
+  # Me quedé en "enfermedades".
+  
+
   ### Muestra_transecto_peces_cuenta ###
 
   # Por facilidad se hará el "gather" de peces a la hora de integrar los datos.
@@ -1638,3 +1746,9 @@ mutate_numeric(
 #   mortalidad_total)
 
 # )
+
+
+
+
+
+
