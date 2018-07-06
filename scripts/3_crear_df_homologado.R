@@ -1351,7 +1351,9 @@ saveRDS(datos_globales,
 
 ### Me quedé a punto de probar el código de la tabla "datos globales". Después
 ### de esto revisaré el código con calma, generaré las tablas, crearé varios
-### resúmenes para revisarlas y las integraré en la base.
+### resúmenes para revisarlas y las integraré en la base. Falta también revisar
+### niveles de agregación de los datos, en particular, en las tablas que sufrieron
+### agregaciones de datos.
 
   ###############################################################
   # Transformaciones finales por "archivo_origen"

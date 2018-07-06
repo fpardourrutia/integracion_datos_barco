@@ -85,7 +85,7 @@ crear_resumen_columnas_df(lista_catalogos) %>%
 relacion_columnas_catalogo <- c(
   
   # Muestreo y sitio
-  ".tema" = "catalogos_proyecto__proposito.categoria", # propósito
+  ".tema" = "catalogos_muestreo__proposito.categoria", # propósito
   
   ".pais" = "catalogos_muestra_sitio__pais.categoria",
   ".region_healthy_reefs" = "catalogos_muestra_sitio__region_healthy_reefs.categoria",
@@ -99,159 +99,159 @@ relacion_columnas_catalogo <- c(
   
   # Bentos:
   "conacyt_greenpeace_2016_bentos_desagregados.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+    "catalogos_registro_bentos__codigo.codigo",
   "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+    "catalogos_registro_bentos__codigo.codigo",
   "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+    "catalogos_registro_bentos__codigo.codigo",
   "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+    "catalogos_registro_bentos__codigo.codigo",
   "historicos_y_2017_transecto_bentos_desagregados_pit_lit.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo",
+    "catalogos_registro_bentos__codigo.codigo",
   
   "conacyt_greenpeace_2016_bentos_desagregados.metodo" =
-    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+    "catalogos_muestra_bentos_info__metodo_muestreo.categoria",
   "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.metodo" =
-    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+    "catalogos_muestra_bentos_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.metodo" =
-    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+    "catalogos_muestra_bentos_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.metodo" =
-    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+    "catalogos_muestra_bentos_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_bentos_desagregados_pit_lit.metodo" =
-    "catalogos_muestra_transecto_bentos_info__metodo_muestreo.categoria",
+    "catalogos_muestra_bentos_info__metodo_muestreo.categoria",
   
   "conacyt_greenpeace_2016_bentos_desagregados.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_bentos_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_bentos_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_bentos_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_bentos_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_bentos_desagregados_pit_lit.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_bentos_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_bentos_info__nivel_agregacion_datos.categoria",
   
   # Corales
   "conacyt_greenpeace_2016_corales_desagregados.metodo" =
-    "catalogos_muestra_transecto_corales_info__metodo_muestreo.categoria",
+    "catalogos_muestra_corales_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.metodo" =
-    "catalogos_muestra_transecto_corales_info__metodo_muestreo.categoria",
+    "catalogos_muestra_corales_info__metodo_muestreo.categoria",
   
   "conacyt_greenpeace_2016_corales_desagregados.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_corales_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_corales_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_corales_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_corales_info__nivel_agregacion_datos.categoria",
   
   "conacyt_greenpeace_2016_corales_desagregados.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+    "catalogos_registro_bentos__codigo.codigo",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+    "catalogos_registro_bentos__codigo.codigo",
   
   "conacyt_greenpeace_2016_corales_desagregados.depredacion" =
-    "catalogos_muestra_transecto_corales_observacion__depredacion.categoria",
+    "catalogos_registro_corales__depredacion.categoria",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.depredacion" =
-    "catalogos_muestra_transecto_corales_observacion__depredacion.categoria",
+    "catalogos_registro_corales__depredacion.categoria",
   
   "conacyt_greenpeace_2016_corales_desagregados.lesiones" =
-    "catalogos_muestra_transecto_corales_observacion__lesion.categoria",
+    "catalogos_registro_corales__lesion.categoria",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.lesiones" =
-    "catalogos_muestra_transecto_corales_observacion__lesion.categoria",
+    "catalogos_registro_corales__lesion.categoria",
   
   "conacyt_greenpeace_2016_corales_desagregados.enfermedades" =
-    "catalogos_muestra_transecto_corales_observacion__enfermedad.codigo",
+    "catalogos_registro_corales__enfermedad.codigo",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.enfermedades" =
-    "catalogos_muestra_transecto_corales_observacion__enfermedad.codigo",
+    "catalogos_registro_corales__enfermedad.codigo",
   
   "conacyt_greenpeace_2016_corales_desagregados.sobrecrecimiento" =
-    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+    "catalogos_registro_corales__sobrecrecimiento.codigo",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.sobrecrecimiento" =
-    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+    "catalogos_registro_corales__sobrecrecimiento.codigo",
   
   "conacyt_greenpeace_2016_corales_desagregados.sobrecrecimiento__1" =
-    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+    "catalogos_registro_corales__sobrecrecimiento.codigo",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.sobrecrecimiento__1" =
-    "catalogos_muestra_transecto_corales_observacion__sobrecrecimiento.codigo",
+    "catalogos_registro_corales__sobrecrecimiento.codigo",
   
   "conacyt_greenpeace_2016_corales_desagregados.blanqueamiento" =
-    "catalogos_muestra_transecto_corales_observacion__tipo_blanqueamiento.categoria",
+    "catalogos_registro_corales__tipo_blanqueamiento.categoria",
   "historicos_y_2017_transecto_corales_desagregados_colonias_individuales.blanqueamiento" =
-    "catalogos_muestra_transecto_corales_observacion__tipo_blanqueamiento.categoria",
+    "catalogos_registro_corales__tipo_blanqueamiento.categoria",
   # Falta campo "criterio_seleccion_colonias".
   
   # Invertebrados
   "conacyt_greenpeace_2016_invertebrados_desagregados.metodo" =
-    "catalogos_muestra_transecto_invertebrados_info__metodo_muestreo.categoria",
+    "catalogos_muestra_invertebrados_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.metodo" =
-    "catalogos_muestra_transecto_invertebrados_info__metodo_muestreo.categoria",
+    "catalogos_muestra_invertebrados_info__metodo_muestreo.categoria",
   
   "conacyt_greenpeace_2016_invertebrados_desagregados.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_invertebrados_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_invertebrados_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_invertebrados_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_invertebrados_info__nivel_agregacion_datos.categoria",
   
   "conacyt_greenpeace_2016_invertebrados_desagregados.tipo" =
-    "catalogos_muestra_transecto_invertebrados__tipo.tipo",
+    "catalogos_registro_invertebrados__tipo.tipo",
   "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.tipo" =
-    "catalogos_muestra_transecto_invertebrados__tipo.tipo",
+    "catalogos_registro_invertebrados__tipo.tipo",
   
   # Peces
   "conacyt_greenpeace_2016_peces_agregados_especie_talla.metodo" =
-    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+    "catalogos_muestra_peces_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.metodo" = 
-    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+    "catalogos_muestra_peces_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.metodo" =
-    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+    "catalogos_muestra_peces_info__metodo_muestreo.categoria",
   "historicos_y_2017_transecto_peces_desagregados_especie_talla.metodo" = 
-    "catalogos_muestra_transecto_peces_info__metodo_muestreo.categoria",
+    "catalogos_muestra_peces_info__metodo_muestreo.categoria",
   
   "conacyt_greenpeace_2016_peces_agregados_especie_talla.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_peces_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nivel_agregacion_datos" = 
-    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_peces_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" =
-    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_peces_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_transecto_peces_desagregados_especie_talla.nivel_agregacion_datos" = 
-    "catalogos_muestra_transecto_peces_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_peces_info__nivel_agregacion_datos.categoria",
   
   "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_muestreados" =
-    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+    "catalogos_muestra_peces_info__peces_muestreados.categoria",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_muestreados" = 
-    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+    "catalogos_muestra_peces_info__peces_muestreados.categoria",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_muestreados" =
-    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+    "catalogos_muestra_peces_info__peces_muestreados.categoria",
   "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_muestreados" = 
-    "catalogos_muestra_transecto_peces_info__peces_muestreados.categoria",
+    "catalogos_muestra_peces_info__peces_muestreados.categoria",
   
   "conacyt_greenpeace_2016_peces_agregados_especie_talla.nombre_cientifico_abreviado" =
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
+    "catalogos_registro_peces__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nombre_cientifico_abreviado" = 
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
+    "catalogos_registro_peces__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nombre_cientifico_abreviado" =
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
+    "catalogos_registro_peces__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
   "historicos_y_2017_transecto_peces_desagregados_especie_talla.nombre_cientifico_abreviado" = 
-    "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
+    "catalogos_registro_peces__nombre_cientifico_abreviado.nombre_cientifico_abreviado",
   
   # Reclutas
   "conacyt_greenpeace_2016_reclutas_desagregados.nivel_agregacion_datos" =
-    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_reclutas_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" =
-    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_reclutas_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_cuadrante_reclutas_desagregados.nivel_agregacion_datos" =
-    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
+    "catalogos_muestra_reclutas_info__nivel_agregacion_datos.categoria",
   
   "conacyt_greenpeace_2016_reclutas_desagregados.sustrato" =
-    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
+    "catalogos_muestra_reclutas_info__sustrato.codigo",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.sustrato" =
-    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
+    "catalogos_muestra_reclutas_info__sustrato.codigo",
   "historicos_y_2017_cuadrante_reclutas_desagregados.sustrato" =
-    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
+    "catalogos_muestra_reclutas_info__sustrato.codigo",
   
   "conacyt_greenpeace_2016_reclutas_desagregados.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+    "catalogos_registro_bentos__codigo.codigo",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+    "catalogos_registro_bentos__codigo.codigo",
   "historicos_y_2017_cuadrante_reclutas_desagregados.codigo" =
-    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo" # Falta crear el catálogo de corales
+    "catalogos_registro_bentos__codigo.codigo"
 )
 
 valores_no_presentes_en_catalogo <- revisa_columnas_catalogos(
