@@ -19,8 +19,12 @@
 
 # Cargando archivo de configuración y funciones auxiliares
 library("readr")
+library("doMC") # procesamiento en paralelo
 source("config.R")
 source("funciones_auxiliares.R")
+
+#Revisar número de nucleos en la terminal (Mac): sysctl hw.ncpu
+registerDoMC(4)
 
 ################################################################################
 # 1. Creando data frame con la información integrada:
@@ -179,21 +183,22 @@ names(lista_revision[["muestreo_completo"]]) # Booleano
 names(lista_revision[["nombre_cientifico_abreviado"]]) # Catálogo
 # Catálogo. Eliminar de catálogos duplicados menos frecuentes.
 # Peces: cantidad de peces por especie (fila) y columna (tamaño).
-names(lista_revision[["tamanio_0cm_5cm"]]) # Numérico
-names(lista_revision[["tamanio_101cm_110cm"]]) # Numérico
-names(lista_revision[["tamanio_101cm_9999cm"]]) # Numérico
-names(lista_revision[["tamanio_111cm_120cm"]]) # Numérico
-names(lista_revision[["tamanio_11cm_20cm"]]) # Numérico
-names(lista_revision[["tamanio_191cm_200cm"]]) # Numérico
-names(lista_revision[["tamanio_21cm_30cm"]]) # Numérico
-names(lista_revision[["tamanio_31cm_40cm"]]) # Numérico
-names(lista_revision[["tamanio_41cm_50cm"]]) # Numérico
-names(lista_revision[["tamanio_51cm_60cm"]]) # Numérico
-names(lista_revision[["tamanio_61cm_70cm"]]) # Numérico
-names(lista_revision[["tamanio_6cm_10cm"]]) # Numérico
-names(lista_revision[["tamanio_71cm_80cm"]]) # Numérico
-names(lista_revision[["tamanio_81cm_90cm"]]) # Numérico
-names(lista_revision[["tamanio_91cm_100cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_0cm_5cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_101cm_110cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_101cm_9999cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_111cm_120cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_11cm_20cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_191cm_200cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_21cm_30cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_31cm_40cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_41cm_50cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_51cm_60cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_61cm_70cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_6cm_10cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_71cm_80cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_81cm_90cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_91cm_100cm"]]) # Numérico
+names(lista_revision[["peces_tamanio_101cm_9999cm"]]) # Numérico
 
 ################################################################################
 
@@ -217,15 +222,11 @@ names(lista_revision[["nivel_agregacion_datos"]]) # Catálogo
 names(lista_revision[["observador"]]) # Homologarlos
 names(lista_revision[["sustrato"]]) # Catálogo
 
-### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
-names(lista_revision[["codigo"]]) # Catálogo. Eliminar "NA"
-names(lista_revision[["tamanio_cm"]]) # Numérico
-# ¿Por qué hay valores de esta columna para la tabla
-# "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla"?
-
 ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
 names(lista_revision[["codigo"]]) # Catálogo. Eliminar "NA"
 names(lista_revision[["categoria_tamanio"]]) # Sólo debe haber "No considerada", "R", "SC" y NA #####
+names(lista_revision[["tamanio_minimo_cm"]]) # Numérico
+names(lista_revision[["tamanio_maximo_cm"]]) # Numérico
 names(lista_revision[["n"]]) # Natural. Número de reclutas agregados por código y categoría de tamaño (si es el caso).
 
 ################################################################################
@@ -249,6 +250,7 @@ names(lista_revision[["relieve"]]) # Numérico (complejidad por máximo relieve)
 # names(lista_revision[["anio_publicacion"]])
 # names(lista_revision[["anp_redundante"]])
 # names(lista_revision[["curp_proyecto"]])
+# names(lista_revision[["fision"]])
 # names(lista_revision[["longitud_teorica_m_bentos"]])
 # names(lista_revision[["longitud_teorica_m_corales"]])
 # names(lista_revision[["longitud_teorica_m_invertebrados_agrra_v5"]])
@@ -268,6 +270,7 @@ names(lista_revision[["relieve"]]) # Numérico (complejidad por máximo relieve)
 # names(lista_revision[["s"]])
 # names(lista_revision[["sitio_autor"]])
 # names(lista_revision[["subtipo_arrecife_redundante"]])
+# names(lista_revision[["subzona_habitat"]])
 # names(lista_revision[["superficie_cm2"]])
 # names(lista_revision[["unidades_profundidad"]])
 # names(lista_revision[["X__1"]])
@@ -436,21 +439,21 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     # "ancho_transecto_m",
     
     ### Muestra_transecto_peces_cuenta ###
-    "tamanio_0cm_5cm",
-    "tamanio_101cm_110cm",
-    "tamanio_101cm_9999cm",
-    "tamanio_111cm_120cm",
-    "tamanio_11cm_20cm",
-    "tamanio_191cm_200cm",
-    "tamanio_21cm_30cm",
-    "tamanio_31cm_40cm",
-    "tamanio_41cm_50cm",
-    "tamanio_51cm_60cm",
-    "tamanio_61cm_70cm",
-    "tamanio_6cm_10cm",
-    "tamanio_71cm_80cm",
-    "tamanio_81cm_90cm",
-    "tamanio_91cm_100cm",
+    "peces_tamanio_0cm_5cm",
+    "peces_tamanio_101cm_110cm",
+    "peces_tamanio_101cm_9999cm",
+    "peces_tamanio_111cm_120cm",
+    "peces_tamanio_11cm_20cm",
+    "peces_tamanio_191cm_200cm",
+    "peces_tamanio_21cm_30cm",
+    "peces_tamanio_31cm_40cm",
+    "peces_tamanio_41cm_50cm",
+    "peces_tamanio_51cm_60cm",
+    "peces_tamanio_61cm_70cm",
+    "peces_tamanio_6cm_10cm",
+    "peces_tamanio_71cm_80cm",
+    "peces_tamanio_81cm_90cm",
+    "peces_tamanio_91cm_100cm",
     
     ### Muestra_transecto_invertebrados_info ###
     # "longitud_transecto_m",
@@ -462,10 +465,9 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     ### Muestra_subcuadrante_de_transecto_reclutas_info ###
     # "cuadrante",
     
-    ### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
-    "tamanio_cm",
-    
     ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
+    "tamanio_minimo_cm",
+    "tamanio_maximo_cm",
     "n",
     
     ### Muestra_transecto_complejidad_info ###
@@ -540,12 +542,15 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     -anp_redundante,
     -curp_proyecto,
     -documento,
+    -fision,
     -fuente,
     -longitud_teorica_m_bentos,
     -longitud_teorica_m_corales,
     -longitud_teorica_m_invertebrados_agrra_v5,
     -longitud_teorica_m_invertebrados_otros,
     -longitud_teorica_m_peces,
+    -necrosis,
+    -neoplasia,
     -nombre_no_remuestreo,
     -nombre_remuestreo,
     -numero_sitios_agregados,
@@ -558,6 +563,7 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     -s,
     -sitio_autor,
     -subtipo_arrecife_redundante,
+    -subzona_habitat,
     -superficie_cm2,
     -tejido_vivo,
     -tipo_arrecife_redundante,
@@ -967,6 +973,11 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # Las tablas de observaciones corresponden a las tablas que contienen los datos
   # correspondientes a un muestreo particular de determinado aspecto. Por ejemplo,
   # "Muestra_transecto_bentos_punto" o "Muestra_transecto_corales_observacion".
+  
+  # Cabe destacar que al operar sobre estas tablas, se debe tener cuidado de no
+  # perder los registros de muestreos realizados pero donde no se obtuvieron
+  # observaciones. Esto en particular afecta a las tablas de peces, reclutas e
+  # invertebrados.
     
   # Para todas las tablas de observaciones:
   # - Tabla_observaciones.codigo = codigo
@@ -982,10 +993,12 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # - Para cada muestreo de transecto, en cada "archivo_origen" sólo
   #   aparecen observaciones de la misma naturaleza (por lo que tiene sentido
   #   enlistarlas).
+
   # Notar que este número no tiene significado para muchos archivos de Excel (los
   # que contienen datos de complejidad, de toma de datos en cuadrantes, o datos
-  # agregados). Sin embargo, por facilidad se calculará para todos y a la hora de
-  # integrar las tablas se incluirá la columna si es de interés.
+  # agregados). Sin embargo, para no agregar complejidad al código, se decidió
+  # calcularla para todos los archivos de Excel. Simplemente hacer caso omiso de
+  # esta columna para las tablas en que no tiene sentido.
   
   ddply(
     .(Muestreo.nombre,
@@ -995,12 +1008,13 @@ datos_globales <- datos_globales_columnas_selectas %>%
       Muestra_transecto.nombre,
       archivo_origen),
     function(df){
+      
       resultado <- df %>%
         mutate(
-          Tabla_observaciones.numero_observacion = 1:nrow(df)
-        )
+            Tabla_observaciones.numero_observacion = 1:nrow(df)
+          )
       return(resultado)
-  }) %>%
+  }, .parallel = TRUE) %>%
   
   rename(
     Tabla_observaciones.codigo = codigo
@@ -1065,7 +1079,35 @@ datos_globales <- datos_globales_columnas_selectas %>%
       stri_detect_fixed(archivo_origen, "corales") & is.na(mortalidad_antigua),
       0,
       mortalidad_antigua
-    )
+    ),
+    Muestra_transecto_corales_observacion.enfermedad = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(enfermedades),
+      "NO",
+      enfermedades
+    ),
+    Muestra_transecto_corales_observacion.sobrecrecimiento = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(sobrecrecimiento),
+      "NO",
+      sobrecrecimiento
+    ),
+    # No podemos suponer que siempre se anotaron sobrecrecimientos adicionales
+    # (aún bajo el supuesto de que en todas las colonias se revisaron sobrecrecimientos)
+    # Por ello, un NA en sobrecrecimiento adicional puede ser que existe y no
+    # se anotó o que simplemente no existe. Es decir, hay que dejar los NA
+    # como "no se".
+    Muestra_transecto_corales_observacion.sobrecrecimiento_adicional = sobrecrecimiento_1,
+    
+    Muestra_transecto_corales_observacion.depredacion = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(depredacion),
+      "NO",
+      depredacion
+    ),
+    Muestra_transecto_corales_observacion.lesion = ifelse(
+      stri_detect_fixed(archivo_origen, "corales") & is.na(lesiones),
+      "NO",
+      lesiones
+    ),
+    Muestra_transecto_corales_observacion.comentarios = NA_character_
   ) %>%
   select(
     -blanqueamiento,
@@ -1073,27 +1115,244 @@ datos_globales <- datos_globales_columnas_selectas %>%
     -mortalidad_total,
     -mortalidad_reciente,
     -mortalidad_transicion,
-    -mortalidad_antigua
+    -mortalidad_antigua,
+    -enfermedades,
+    -sobrecrecimiento,
+    -sobrecrecimiento_1,
+    -depredacion,
+    -lesiones
   ) %>%
-  
-  # Me quedé en "enfermedades".
-  
 
   ### Muestra_transecto_peces_cuenta ###
-
-  # Por facilidad se hará el "gather" de peces a la hora de integrar los datos.
-  # Además, se agregarán los peces en "historicos_y_2017_transecto_peces_desagregados_especie_talla"
-  # (que vienen desglosados en observaciones) en el mismo script.
+  # Se tiene cuidado de no perder los muestreos realizados y que no tuvieron
+  # observaciones
   
+  # Haciendo el "gather" de las columnas de "peces_tamanio_._.", para los archivos de
+  # peces. Se tratarán por separado peces desagregados de cuentas agregadas por
+  # especie (y transecto), porque se quiere revisar al final que no se hayan
+  # duplicado por error, en los archivos de Excel, registros de cuentas agregadas.
+  ddply(.(archivo_origen), function(df){
+    archivo_origen <- unique(df$archivo_origen)
+
+    if(stri_detect_fixed(archivo_origen, "peces")){
+      # Generando columnas de "minimo_tamanio_cm", "maximo_tamanio_cm" y "cuenta"
+      resultado_sin_agregar_especies_duplicadas_mismo_muestreo <- df %>%
+        gather(key = peces_tamanio_min_max, value = cuenta, dplyr::contains("peces_tamanio")) %>%
+        # Filtrando tamaños no encontrados en un mismo conteo de especie en transecto.
+        # Notar que si "nombre_cientifico_abreviado" es NA, se preserva el registro
+        # pues puede corresponder a transectos sin observaciones. Estos se tendrán
+        # que filtrar a la hora de crear la tabla: "Muestra_transecto_peces_cuenta".
+        filter(!is.na(cuenta) | is.na(nombre_cientifico_abreviado)) %>%
+        # Generando campos de "tamanio_minimo_cm" y "tamanio_maximo_cm"
+        separate(col = peces_tamanio_min_max, into = c("etiqueta_1", "etiqueta_2",
+          "peces_tamanio_minimo_cm", "peces_tamanio_maximo_cm")) %>%
+        select(
+          -etiqueta_1,
+          -etiqueta_2
+        ) %>%
+        mutate(
+          # Quitándoles la etiqueta de "cm" a "peces_tamanio_minimo_cm" y "peces_tamanio_maximo_cm"
+          peces_tamanio_minimo_cm = stri_sub(peces_tamanio_minimo_cm, from = 1,
+            to = (stri_length(peces_tamanio_minimo_cm)-2)) %>%
+            as.numeric(),
+          peces_tamanio_maximo_cm = stri_sub(peces_tamanio_maximo_cm, from = 1,
+            to = (stri_length(peces_tamanio_maximo_cm)-2)) %>%
+            as.numeric(),
+          es_juvenil = NA # lógico
+        ) %>%
+        rename(
+          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado = nombre_cientifico_abreviado,
+          Muestra_transecto_peces_cuenta.tamanio_minimo_cm = peces_tamanio_maximo_cm,
+          Muestra_transecto_peces_cuenta.tamanio_maximo_cm = peces_tamanio_maximo_cm,
+          Muestra_transecto_peces_cuenta.cuenta = cuenta,
+          Muestra_transecto_peces_cuenta.es_juvenil = es_juvenil
+        )
+      
+      # Si los datos de peces provienen de un archivo en el que se supone que
+      # están desagregados, agregarlos; si no, no hacerlo porque se podrían ocultar
+      # errores (esta distinción es la principal función de este if-else)
+      if(stri_detect_fixed(archivo_origen, "peces_agregados")){
+        resultado <- resultado_sin_agregar_especies_duplicadas_mismo_muestreo
+      } else{
+        resultado <- resultado_sin_agregar_especies_duplicadas_mismo_muestreo %>%
+          group_by(
+            Muestreo.nombre,
+            Muestra_sitio.nombre,
+            Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+            Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+            Muestra_transecto.nombre,
+            # en el ddply ya se separó por "archivo_origen"
+            Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
+            Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
+            Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
+            Muestra_transecto_peces_cuenta.es_juvenil
+          ) %>%
+          mutate(
+            Muestra_transecto_peces_cuenta.cuenta = sum(!is.na(Muestra_transecto_peces_cuenta.cuenta))
+            # Notar que como los registros son observaciones (desagregadas) por
+            # especie en un muestreo, cada registro suma máximo una cuenta a su
+            # categoría de tamaño correspondiente
+          ) %>%
+          ungroup() %>%
+          # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
+          # hacer el mutate(). No se puede usar summarise() porque se pierden las
+          # otras columnas
+          distinct(
+            Muestreo.nombre,
+            Muestra_sitio.nombre,
+            Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+            Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+            Muestra_transecto.nombre,
+            # en el ddply ya se separó por "achivo_origen"
+            Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
+            Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
+            Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
+            Muestra_transecto_peces_cuenta.es_juvenil,
+            .keep_all = TRUE
+          )
+      }
+    } else{
+      # Si "archivo_origen" no es de peces, se eliminan las columnas de
+      # "peces_tamanio" y se agregan columnas dummy para que se pueda hacer la
+      # fusión al final del ddply().
+      resultado <- df %>%
+        select(
+          -dplyr::contains("peces_tamanio_")
+        ) %>%
+        rename(
+          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado = nombre_cientifico_abreviado
+        ) %>%
+        mutate(
+          Muestra_transecto_peces_cuenta.tamanio_minimo_cm = NA_integer_,
+          Muestra_transecto_peces_cuenta.tamanio_maximo_cm = NA_integer_,
+          Muestra_transecto_peces_cuenta.cuenta = NA_integer_,
+          Muestra_transecto_peces_cuenta.es_juvenil = NA # lógico
+        )
+    }
+    return(resultado)
+  }, .parallel = TRUE) %>%
+
   ### Muestra_transecto_invertebrados_cuenta ###
-  # Por facilidad, se agregarán los datos de "conacyt_greenpeace_2016_invertebrados_desagregados_v3"
-  # a la hora de integrar las tablas.
+  # Se tiene cuidado de no perder los muestreos realizados y que no tuvieron
+  # observaciones
+  
+  rename(
+    Muestra_transecto_invertebrados_cuenta.tipo = tipo,
+    Muestra_transecto_invertebrados_cuenta.cuenta = conteo
+  ) %>%
+  
+  # Si los datos provienen de un archivo donde se supone que están desagregados,
+  # se agregan; en otro caso, no se hace porque se podrían ocultar errores por
+  # repetición de registros.
+  ddply(.(archivo_origen), function(df){
+    archivo_origen <- unique(df$archivo_origen)
+    
+    if(stri_detect_fixed(archivo_origen, "invertebrados_desagregados")){
+      resultado <- df %>%
+        group_by(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre,
+          # en el ddply ya se separó por "archivo_origen"
+          Muestra_transecto_invertebrados_cuenta.tipo
+        ) %>%
+        mutate(
+          Muestra_transecto_invertebrados_cuenta.cuenta = sum(!is.na(Muestra_transecto_invertebrados_cuenta.cuenta))
+        ) %>%
+        ungroup() %>%
+        # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
+        # hacer el mutate(). No se puede usar summarise() porque se pierden las
+        # otras columnas
+        distinct(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre,
+          # en el ddply ya se separó por "achivo_origen"
+          Muestra_transecto_invertebrados_cuenta.tipo,
+          .keep_all = TRUE
+        )
+    } else{
+      resultado <- df
+    }
+    return(resultado)
+  }) %>%
   
   ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
-  # Ambas tablas: "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla"
-  # y "conacyt_greenpeace_2016_reclutas_desagregados_v3" pertenecen a este tipo
-  # porque no tienen información sobre reclutas individuales.
   
+  rename(
+    Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio = categoria_tamanio,
+    
+    # Si los siguientes valores son iguales, entonces se tiene un recluta que
+    # fue medido exactamente.
+    Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm = tamanio_minimo_cm,
+    Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm = tamanio_maximo_cm
+  ) %>%
+  
+  # Para calcular "cuenta", depende. En los archivos de "reclutas agregados" es
+  # simplemente "n". En los archivos de reclutas desagregados, éstos se agregan
+  # por variables de muestreo (hasta nivel de cuadrante), código, categoría de
+  # tamaño y tamaños mínimo y máximo:
+  
+  ddply(.(archivo_origen), function(df){
+    archivo_origen <- unique(df$archivo_origen)
+    
+    if(stri_detect_fixed(archivo_origen, "reclutas_desagregados")){
+      resultado <- df %>%
+        group_by(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre,
+          # en el ddply ya se separó por "achivo_origen"
+          Muestra_subcuadrante_de_transecto_reclutas_info.numero_cuadrante,
+          Tabla_observaciones.codigo,
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio,
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm,
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm
+        ) %>%
+        mutate(
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.cuenta = sum(n, na.rm = TRUE)
+        ) %>%
+        ungroup() %>%
+        # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
+        # hacer el mutate(). No se puede usar summarise() porque se pierden las
+        # otras columnas.
+        distint(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre,
+          # en el ddply ya se separó por "achivo_origen"
+          Muestra_subcuadrante_de_transecto_reclutas_info.numero_cuadrante,
+          Tabla_observaciones.codigo,
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio,
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm,
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm,
+          .keep_all = TRUE
+        ) %>%
+        select(-n)
+    } else{
+      resultado <- df %>%
+        rename(
+          Muestra_subcuadrante_de_transecto_reclutas_cuenta.cuenta = n
+        )
+    }
+    return(resultado)
+  }, .parallel = TRUE)
+  
+saveRDS(datos_globales,
+  paste0(ruta_salidas_3_crear_df_homologado, "/datos_globales_preliminar.RDS"))
+
+### Me quedé a punto de probar el código de la tabla "datos globales". Después
+### de esto revisaré el código con calma, generaré las tablas, crearé varios
+### resúmenes para revisarlas y las integraré en la base.
+
   ###############################################################
   # Transformaciones finales por "archivo_origen"
   ###############################################################
@@ -1210,496 +1469,14 @@ revision_numero_cuadrantes_muestreo_transecto <- datos_globales %>%
 # Esperando a Esme:
 # 1. Ver si puedo cambiar el nombre de ""historicos_y_2017_transecto_invertebrados_agregados_conteos_especie""
 # a "historicos_y_2017_cuadrante_invertebrados_agregados_conteos_especie"
-  
 
-#!!! = "código posiblemente no generalizable a la hora de integrar más Exceles".
-
-datos_globales <- Reduce(rbind.fill, lista_tablas_columnas_homologadas) %>%
-  mutate(
-    id = 1:nrow(.)
-  ) %>%
-  elimina_columnas_vacias() %>%
-  
-  ## Editando las columnas para formar las tablas en el "esquema_v5" apropiadamente
-  
-  # En la columna "nombre_proyecto", se codificó al final una letra A/B/C para
-  # distinguir entre remuestreos del mismo sitio, dentro del mismo proyecto. Esta
-  # información la extraeré en una columna nueva.
-  # Supuesto: ningún proyecto termina con "A", "B" o "C", a menos que sea indicativo 
-  # de un remuestreo de sitio dentro del mismo proyecto.
-  
-  ##########################
-  # Muestreo, Muestra_sitio
-  ##########################
-
-  # Debido a que hay varios typos en los campos de fecha y hora de muestreo de
-  # sitio, se utilizará "genera_tabla_2" para crear la tabla "Muestra_sitio"
-
-  mutate(
-    
-    nombre_muestreo_si_A = stri_match_first(nombre_proyecto, regex = "(.*)A$")[,2],
-    nombre_muestreo_si_B = stri_match_first(nombre_proyecto, regex = "(.*)B$")[,2],
-    nombre_muestreo_si_C = stri_match_first(nombre_proyecto, regex = "(.*)C$")[,2],
-    
-    nombre_muestreo = ifelse(!is.na(nombre_muestreo_si_A), nombre_muestreo_si_A,
-      ifelse(!is.na(nombre_muestreo_si_B), nombre_muestreo_si_B,
-        ifelse(!is.na(nombre_muestreo_si_C), nombre_muestreo_si_C,
-          nombre_proyecto
-    ))),
-    
-    # Variable que es A o B si el sitio fue remuestreado en el mismo muestreo,
-    # y NA e.o.c
-    remuestreo_mismo_muestreo = ifelse(!is.na(nombre_muestreo_si_A), "A",
-      ifelse(!is.na(nombre_muestreo_si_B), "B",
-        ifelse(!is.na(nombre_muestreo_si_C), "C", NA
-    )))
-  ) %>%
-  select(
-    -nombre_muestreo_si_A,
-    -nombre_muestreo_si_B,
-    -nombre_muestreo_si_C
-  ) %>%
-
-  # Creando los nombres de los sitios: recordar que para los datos CONACyT /
-  # GreenPeace tenemos nombres de muestreo de sitio, que son casi nombres de sitio,
-  # Sólo Chankanaab y ChankanaabGP son el mismo sitio con distintos nombres.
-  # Recordar que podemos seguirlos diferenciando porque ya agregamos la columna
-  # "identificador_muestreo_sitio".
-  mutate(
-    nombre_sitio = estandariza_strings(nombre_sitio),
-    
-    # Agregando un 0 antes de meses y días cuando se requiera:
-    mes = ifelse(as.numeric(mes) %in% c(1:9), paste0("0", mes), mes),
-    dia = ifelse(as.numeric(dia) %in% c(1:9), paste0("0", dia), dia),
-    fecha_muestreo_sitio = paste0(anio, "-", mes, "-", dia),
-    
-    # Agregando un 0 antes de horas y minutos cuando se requiera:
-    hora = ifelse(as.numeric(hora) %in% c(0:9), paste0("0", hora), hora),
-    # A veces "minutos" no es entero
-    minutos = as.integer(minutos),
-    minutos = ifelse(as.numeric(minutos) %in% c(0:9), paste0("0", minutos), minutos),
-    hora_muestreo_sitio = ifelse(
-      is.na(hora) | is.na(minutos), NA,
-      paste0(hora, ":", minutos))
-    
-  ) %>%
-
-  # Haciendo columna "dentro de ANP". Sabemos que si "anp" es NA quiere decir que no.
-  # "No se" será un NA en "dentro_anp
-  mutate(
-    dentro_anp = ifelse(is.na(anp), FALSE, TRUE),
-    dentro_area_no_pesca = case_when(
-      area_no_pesca == "si" ~ TRUE,
-      area_no_pesca == "no" ~ FALSE,
-      is.na(area_no_pesca) ~ NA)
-  ) %>%
-  
-  ####################
-  # Muestra_transecto
-  ####################
-
-  # Para los transectos de CONACyT / GreenPeace 2016, asociarles la medida teórica
-  # (30m los de peces y 10m los de bentos). En esta base es fácil distinguirlos
-  # por el nombre (los de peces tienen una P)
-  mutate(
-    longitud_teorica_transecto_m = case_when(
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & stri_detect_coll(transecto, 'P') ~ 30,
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !stri_detect_coll(transecto, 'P') ~ 10,
-      # Si no, no jala...
-      TRUE ~ NA_real_)
-  ) %>%
-
-  mutate(
-    # Para los muestreos de sitio del proyecto CONACyT / GREENPEACE, todos los
-    # transectos de nombre 01...06 tienen 5 cuadrantes declarados...
-    subcuadrantes_planeados = case_when(
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ TRUE,
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ FALSE,
-      TRUE ~ NA),
-    
-    numero_subcuadrantes_planeados = case_when(
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ 5,
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA_real_,
-      TRUE ~ NA_real_),
-    
-    seleccion_aleatoria_centros_subcuadrantes = case_when(
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ FALSE,
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA,
-      TRUE ~ NA
-    ),
-    
-    longitud_subcuadrante_m = case_when(
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ 0.25,
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA_real_,
-      TRUE ~ NA_real_
-    ),
-    
-    ancho_subcuadrante_m = case_when(
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & transecto %in% paste0("0", 1:6) ~ 0.25,
-      stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') & !(transecto %in% paste0("0", 1:6)) ~ NA_real_,
-      TRUE ~ NA_real_
-    )
-  ) %>%
-  
-  ##################################################
-  # Muestra_transecto_bentos_info
-  ##################################################
-  
-  # En realidad, el siguiente campo sive para varios aspectos
-  muestreo_completo = case_when(
-    muestreo_completo == "no" ~ FALSE,
-    muestreo_completo == "si" ~ TRUE,
-    TRUE ~ NA
-  )
-) %>%
-
-##################################################
-# Muestra_transecto_corales_observacion
-##################################################
-
-# Para los datos de CONACYT / GreenPeace, cuando en las variables:
-# - blanqueamiento
-# - mortalidad_antigua
-# - mortalidad_reciente
-# - mortalidad_transicion
-# - mortalidad_total
-# - enfermedades
-# - sobrecrecimiento
-# - depredacion
-# - lesión (si hubiera)
-# Dice NA, en realidad es que no se encontró.
 
 # Para porcentaje, si blanqueamiento es NO o NA, vale NA. en otro caso, puede
 # valer el porcentaje de blanqueamiento del tipo seleccionado o NA si no se
 # registró el porcentaje.
 
-cambia_valor_columna_condicion(
-  "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(blanqueamiento)",
-  "blanqueamiento",
-  "NO"
-) %>%
-  
-  cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_antigua)",
-    "mortalidad_antigua",
-    "0"
-  ) %>%
-  cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_reciente)",
-    "mortalidad_reciente",
-    "0"
-  ) %>%
-  cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_transicion)",
-    "mortalidad_transicion",
-    "0"
-  ) %>%
-  cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(mortalidad_total)",
-    "mortalidad_total",
-    "0"
-  ) %>%
-  
-  cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(enfermedades)",
-    "enfermedades",
-    "NO"
-  ) %>%
-  
-  cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(sobrecrecimiento)",
-    "sobrecrecimiento",
-    "NO"
-  ) %>%
-  
-  cambia_valor_columna_condicion(
-    "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(depredacion)",
-    "depredacion",
-    "NO"
-  ) %>%
-  
-  # cambia_valor_columna_condicion(
-  #   "archivo_origen == 'conacyt_greenpeace_2016_corales_desagregados_v3' & is.na(lesion)",
-  #   "lesion",
-  #   "NO"
-  # ) %>%
-  
-  ##################################################
-# Muestra_transecto_invertebrados_info
-##################################################
 
-# Generando variables de muestreo de invertebrados:
-mutate(
-  
-  todos_invertebrados_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ TRUE,
-    TRUE ~ NA
-  ),
-  
-  crustaceos_decapodos_carideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  crustaceos_decapodos_estenopodideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  crustaceos_decapodos_aquelados_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  crustaceos_decapodos_astacideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  crustaceos_decapodos_braquiuros_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  crustaceos_decapodos_anomuros_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  crustaceos_decapodos_estomatopodos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  crustaceos_decapodos_palinuridos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  
-  crustaceos_no_decapodos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  
-  moluscos_gastropodos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  moluscos_bivalvos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  moluscos_cefalopodos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  otros_moluscos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  
-  equinodermos_crinoideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  equinodermos_asteroideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  equinodermos_ofiuroideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  equinodermos_equinoideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  equinodermos_holothuroideos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  otros_equinodermos_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  
-  otros_invertebrados_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ NA,
-    TRUE ~ NA
-  ),
-  
-  detalles_invertebrados_muestreados = case_when(
-    stri_detect_coll(archivo_origen, 'conacyt_greenpeace_2016') ~ "",
-    TRUE ~ NA_character_
-  )
-  
-) %>%
-  
-  ##################################################
-# Muestra_transecto_invertebrados_cuenta
-##################################################
 
-cambia_valor_columna("especie", "NA", NA) %>%
-  
-  mutate(
-    es_invertebrado_juvenil = case_when(
-      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
-        stri_detect_coll(especie, 'juvenil', case_insensitive = TRUE) ~ TRUE,
-      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
-        stri_detect_coll(especie, 'adulto', case_insensitive = TRUE) ~ FALSE,
-      # En otro caso
-      TRUE ~ NA
-    ),
-    
-    invertebrados_nombre_cientifico = case_when(
-      # Obteniendo el nombre científico de un invertebrado quitando si es juvenil o
-      # adulto del nombre:
-      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
-        !is.na(es_invertebrado_juvenil) & # Si no lo especifico me marca error
-        es_invertebrado_juvenil == TRUE ~
-        stri_match_first_regex(especie, ".*(?= juvenil)", case_insensitive = TRUE) %>%
-        as.character(),
-      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
-        !is.na(es_invertebrado_juvenil) &
-        es_invertebrado_juvenil == FALSE ~
-        stri_match_first_regex(especie, ".*(?= adulto)", case_insensitive = TRUE) %>%
-        as.character(),
-      archivo_origen == "conacyt_greenpeace_2016_invertebrados_desagregados_v3" &
-        is.na(es_invertebrado_juvenil) ~
-        especie,
-      # En otro caso
-      TRUE ~ NA_character_
-    )
-  ) %>%
-  
-##################################################
-# Muestra_transecto_complejidad_info
-##################################################
-
-mutate(
-  rugosidad_longitud_lineal_m = case_when(
-    archivo_origen == 'conacyt_greenpeace_2016_rugosidad_v3' ~ 10,
-    TRUE ~ NA_real_
-  ),
-  rugosidad_longitud_lineal_fija = case_when(
-    archivo_origen == 'conacyt_greenpeace_2016_rugosidad_v3' ~ TRUE,
-    TRUE ~ NA
-  )
-) %>%
-  
-####################################################
-# Muestra_subcuadrante_de_transecto_reclutas_cuenta
-####################################################
-
-mutate(
-  minimo_tamanio_cm = case_when(
-    archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
-      !is.na(categoria_tamanio) & categoria_tamanio == "R" ~ 0.01,
-    archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
-      !is.na(categoria_tamanio) & categoria_tamanio == "SC" ~ 2.01,
-    TRUE ~ NA_real_
-  ),
-  
-  maximo_tamanio_cm = case_when(
-    archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
-      !is.na(categoria_tamanio) & categoria_tamanio == "R" ~ 2,
-    archivo_origen == "conacyt_greenpeace_2016_reclutas_desagregados_v3" &
-      !is.na(categoria_tamanio) & categoria_tamanio == "SC" ~ 4,
-    TRUE ~ NA_real_
-  )
-) %>%
-  
-  ######################################
-# Arreglando detalles finales
-######################################
-
-mutate_numeric(
-  "serie",
-  "anio_inicio_proyecto",
-  "anio_termino_proyecto",
-  "latitud",
-  "longitud",
-  "anio_muestreo",
-  "longitud_transecto_m",
-  "puntos_o_cm_reales_transecto",
-  "profundidad_inicial_m",
-  "profundidad_final_m",
-  "profundidad_media_m",
-  "temperatura_c",
-  "altura_algas_cm",
-  "conteo",
-  "cobertura",
-  "profundidad_media_m_sitio",
-  "longitud_teorica_m_bentos",
-  "longitud_teorica_m_corales",
-  "longitud_teorica_m_peces",
-  "longitud_teorica_m_invertebrados_agrra_v5",
-  "longitud_teorica_m_invertebrados_otros",
-  "identificador_muestreo_sitio",
-  "ancho_transecto_m",
-  "altura_maxima_cm",
-  "d1_max_diam_cm",
-  "d2_min_diam_cm",
-  "mortalidad_total",
-  "mortalidad_reciente",
-  "mortalidad_transicion",
-  "mortalidad_antigua",
-  "fision",
-  "s",
-  "porcentaje",
-  "numero",
-  "tamanio_0cm_5cm",
-  "tamanio_6cm_10cm",
-  "tamanio_11cm_20cm",
-  "tamanio_21cm_30cm",
-  "tamanio_31cm_40cm",
-  "tamanio_41cm_50cm",
-  "tamanio_51cm_60cm",
-  "tamanio_61cm_70cm",
-  "tamanio_71cm_80cm",
-  "tamanio_81cm_90cm",
-  "tamanio_91cm_100cm",
-  "tamanio_111cm_120cm",
-  "tamanio_191cm_200cm",
-  "abundancia",
-  "cuadrante",
-  "longitud_cuadrante_m",
-  "ancho_cuadrante_m",
-  "tamanio_cadena_m",
-  "id",
-  "anio_en_curso",
-  "longitud_teorica_transecto_m",
-  "numero_subcuadrantes_planeados",
-  "longitud_subcuadrante_m",
-  "ancho_subcuadrante_m",
-  "distancia_entre_puntos_pit_cm"
-) %>%
-  
-  mutate_logical(
-    "muestreo_completo",
-    "area_no_pesca",
-    "transecto_fijo",
-    "dentro_anp",
-    "dentro_area_no_pesca",
-    "subcuadrantes_planeados",
-    "seleccion_aleatoria_centros_subcuadrantes",
-    "todos_invertebrados_muestreados",
-    "crustaceos_decapodos_carideos_muestreados",
-    "crustaceos_decapodos_estenopodideos_muestreados",
-    "crustaceos_decapodos_aquelados_muestreados",
-    "crustaceos_decapodos_astacideos_muestreados",
-    "crustaceos_decapodos_braquiuros_muestreados",
-    "crustaceos_decapodos_anomuros_muestreados",
-    "crustaceos_decapodos_estomatopodos_muestreados",
-    "crustaceos_decapodos_palinuridos_muestreados",
-    "crustaceos_no_decapodos_muestreados",
-    "moluscos_gastropodos_muestreados",
-    "moluscos_bivalvos_muestreados",
-    "moluscos_cefalopodos_muestreados",
-    "otros_moluscos_muestreados",
-    "equinodermos_crinoideos_muestreados",
-    "equinodermos_asteroideos_muestreados",
-    "equinodermos_ofiuroideos_muestreados",
-    "equinodermos_equinoideos_muestreados",
-    "equinodermos_holothuroideos_muestreados",
-    "otros_equinodermos_muestreados",
-    "otros_invertebrados_muestreados",
-    "es_invertebrado_juvenil"
-  ) %>%
-  
   mutate(
     # Redondeando apropiadamente columnas numéricas que lo necesitan
     profundidad_inicial_m = round(profundidad_inicial_m, 1),

@@ -20,19 +20,19 @@ tabla_campos_adicionales_conacyt_greenpeace_2016 <- readRDS(
 # Homologando los nombres de las columnas, y agregando las columnas en el archivo
 # "campos_adicionales_sitio.xlsx"
 lista_tablas_columnas_homologadas_conacyt_greenpeace_2016 <- lista_tablas_crudas_exceles_conacyt_greenpeace_2016 %>%
-  renombra_columna("101a110cm", "tamanio_101cm_110cm") %>%
-  renombra_columna("111a120cm", "tamanio_111cm_120cm") %>%
-  renombra_columna("11a20cm     ll", "tamanio_11cm_20cm") %>%
-  renombra_columna("191a200cm", "tamanio_191cm_200cm") %>%
-  renombra_columna("21a30cm", "tamanio_21cm_30cm") %>%
-  renombra_columna("31a40cm", "tamanio_31cm_40cm") %>%
-  renombra_columna("41a50cm", "tamanio_41cm_50cm") %>%
-  renombra_columna("51a60cm", "tamanio_51cm_60cm") %>%
-  renombra_columna("61a70cm", "tamanio_61cm_70cm") %>%
-  renombra_columna("6a10cm", "tamanio_6cm_10cm") %>%
-  renombra_columna("71a80cm", "tamanio_71cm_80cm") %>%
-  renombra_columna("81a90cm", "tamanio_81cm_90cm") %>%
-  renombra_columna("91a100cm", "tamanio_91cm_100cm") %>%
+  renombra_columna("101a110cm", "peces_tamanio_101cm_110cm") %>%
+  renombra_columna("111a120cm", "peces_tamanio_111cm_120cm") %>%
+  renombra_columna("11a20cm     ll", "peces_tamanio_11cm_20cm") %>%
+  renombra_columna("191a200cm", "peces_tamanio_191cm_200cm") %>%
+  renombra_columna("21a30cm", "peces_tamanio_21cm_30cm") %>%
+  renombra_columna("31a40cm", "peces_tamanio_31cm_40cm") %>%
+  renombra_columna("41a50cm", "peces_tamanio_41cm_50cm") %>%
+  renombra_columna("51a60cm", "peces_tamanio_51cm_60cm") %>%
+  renombra_columna("61a70cm", "peces_tamanio_61cm_70cm") %>%
+  renombra_columna("6a10cm", "peces_tamanio_6cm_10cm") %>%
+  renombra_columna("71a80cm", "peces_tamanio_71cm_80cm") %>%
+  renombra_columna("81a90cm", "peces_tamanio_81cm_90cm") %>%
+  renombra_columna("91a100cm", "peces_tamanio_91cm_100cm") %>%
   renombra_columna("Ancho_del_cuadrante_m", "ancho_cuadrante_m") %>%
   renombra_columna("Ancho_del_transecto_metros", "ancho_transecto_m") %>%
   renombra_columna("Anio_de_muestreo", "anio_muestreo") %>%
@@ -46,7 +46,7 @@ lista_tablas_columnas_homologadas_conacyt_greenpeace_2016 <- lista_tablas_crudas
   renombra_columna("Fecha_de_termino", "anio_termino_proyecto") %>%
   renombra_columna("Longitud_del_cuadrante_m", "longitud_cuadrante_m") %>%
   renombra_columna("Longitud_del_transecto_metro", "longitud_transecto_m") %>%
-  renombra_columna("menores_a_5m", "tamanio_0cm_5cm") %>%
+  renombra_columna("menores_a_5m", "peces_tamanio_0cm_5cm") %>%
   renombra_columna("Metodo_de_Seleccion_de_Sitios", "metodo_seleccion_sitios") %>%
   renombra_columna("Mortalidad_Transición", "mortalidad_transicion") %>%
   renombra_columna("Muestreo_completo", "muestreo_completo") %>%
@@ -100,22 +100,22 @@ lista_tablas_columnas_homologadas_historicos_y_2017 <- lista_tablas_crudas_excel
   renombra_columna("Nombre_del_Sitio", "nombre_sitio") %>%
   renombra_columna("Nombre_del_sitio", "nombre_sitio") %>%
   renombra_columna("Nombre_sitio", "nombre_sitio") %>%
-  renombra_columna("menores_a_5m", "tamanio_0cm_5cm") %>%
-  renombra_columna("91-100", "tamanio_91cm_100cm") %>%
-  renombra_columna(">100", "tamanio_101cm_9999cm") %>%
-  renombra_columna("101a110cm", "tamanio_101cm_110cm") %>%
-  renombra_columna("11-20cm", "tamanio_11cm_20cm") %>%
-  renombra_columna("111a120cm", "tamanio_111cm_120cm") %>%
-  renombra_columna("191a200cm", "tamanio_191cm_200cm") %>%
-  renombra_columna("21-30cm", "tamanio_21cm_30cm") %>%
-  renombra_columna("31-40cm", "tamanio_31cm_40cm") %>%
-  renombra_columna("41-50", "tamanio_41cm_50cm") %>%
-  renombra_columna("51-60", "tamanio_51cm_60cm") %>%
-  renombra_columna("6-10cm", "tamanio_6cm_10cm") %>%
-  renombra_columna("61-70", "tamanio_61cm_70cm") %>%
-  renombra_columna("71-80", "tamanio_71cm_80cm") %>%
-  renombra_columna("81-90", "tamanio_81cm_90cm") %>%
-  renombra_columna("91-100", "tamanio_91cm_100cm") %>%
+  renombra_columna("menores_a_5m", "peces_tamanio_0cm_5cm") %>%
+  renombra_columna("91-100", "peces_tamanio_91cm_100cm") %>%
+  renombra_columna(">100", "peces_tamanio_101cm_9999cm") %>%
+  renombra_columna("101a110cm", "peces_tamanio_101cm_110cm") %>%
+  renombra_columna("11-20cm", "peces_tamanio_11cm_20cm") %>%
+  renombra_columna("111a120cm", "peces_tamanio_111cm_120cm") %>%
+  renombra_columna("191a200cm", "peces_tamanio_191cm_200cm") %>%
+  renombra_columna("21-30cm", "peces_tamanio_21cm_30cm") %>%
+  renombra_columna("31-40cm", "peces_tamanio_31cm_40cm") %>%
+  renombra_columna("41-50", "peces_tamanio_41cm_50cm") %>%
+  renombra_columna("51-60", "peces_tamanio_51cm_60cm") %>%
+  renombra_columna("6-10cm", "peces_tamanio_6cm_10cm") %>%
+  renombra_columna("61-70", "peces_tamanio_61cm_70cm") %>%
+  renombra_columna("71-80", "peces_tamanio_71cm_80cm") %>%
+  renombra_columna("81-90", "peces_tamanio_81cm_90cm") %>%
+  renombra_columna("91-100", "peces_tamanio_91cm_100cm") %>%
   renombra_columna("Altura_Algas_", "altura_algas_cm") %>%
   renombra_columna("Altura_Algas_", "altura_algas_cm") %>%
   renombra_columna("Ancho transecto", "ancho_transecto_m") %>%

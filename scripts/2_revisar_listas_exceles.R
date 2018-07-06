@@ -40,13 +40,13 @@ lista_tablas_columnas_homologadas %>%
 
 lista_tablas_columnas_homologadas[lista_tablas_columnas_homologadas %>%
     names() %>%
-    stri_detect_regex("peces")
+    stri_detect_regex("reclutas")
   ] %>%
   crear_resumen_columnas_df() %>%
   glimpse()
 
 tabla_revision %>%
-  filter(stri_detect_regex(archivo_origen, pattern = "invertebrados")) %>%
+  filter(stri_detect_regex(archivo_origen, pattern = "reclutas")) %>%
   d_ply(.(archivo_origen), function(df){
     df %>%
       pull(archivo_origen) %>%
@@ -236,15 +236,21 @@ relacion_columnas_catalogo <- c(
     "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" =
     "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.nivel_agregacion_datos" =
+    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__nivel_agregacion_datos.categoria",
   
   "conacyt_greenpeace_2016_reclutas_desagregados.sustrato" =
     "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.sustrato" =
     "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.sustrato" =
+    "catalogos_muestra_subcuadrante_de_transecto_reclutas_info__sustrato.codigo",
   
   "conacyt_greenpeace_2016_reclutas_desagregados.codigo" =
     "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.codigo" =
+    "catalogos_muestra_transecto_bentos_observacion__codigo.codigo", # Falta crear el catálogo de corales
+  "historicos_y_2017_cuadrante_reclutas_desagregados.codigo" =
     "catalogos_muestra_transecto_bentos_observacion__codigo.codigo" # Falta crear el catálogo de corales
 )
 
@@ -392,81 +398,91 @@ relacion_columnas_numericas <- c(
   # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.longitud_teorica_m_peces",
   # "historicos_y_2017_transecto_peces_desagregados_especie_talla.longitud_teorica_m_peces",
   
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_0cm_5cm",                            
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_0cm_5cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_0cm_5cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_0cm_5cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_101cm_110cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_101cm_110cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_101cm_110cm",
-  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_101cm_110cm",
-  # "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_101cm_9999cm",
-  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_101cm_9999cm",
-  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_101cm_9999cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_101cm_9999cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_111cm_120cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_111cm_120cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_111cm_120cm",
-  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_111cm_120cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_11cm_20cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_11cm_20cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_11cm_20cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_11cm_20cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_191cm_200cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_191cm_200cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_191cm_200cm",
-  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_191cm_200cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_21cm_30cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_21cm_30cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_21cm_30cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_21cm_30cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_31cm_40cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_31cm_40cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_31cm_40cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_31cm_40cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_41cm_50cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_41cm_50cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_41cm_50cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_41cm_50cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_51cm_60cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_51cm_60cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_51cm_60cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_51cm_60cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_61cm_70cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_61cm_70cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_61cm_70cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_61cm_70cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_6cm_10cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_6cm_10cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_6cm_10cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_6cm_10cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_71cm_80cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_71cm_80cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_71cm_80cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_71cm_80cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_81cm_90cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_81cm_90cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_81cm_90cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_81cm_90cm",
-  "conacyt_greenpeace_2016_peces_agregados_especie_talla.tamanio_91cm_100cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.tamanio_91cm_100cm",
-  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.tamanio_91cm_100cm",
-  "historicos_y_2017_transecto_peces_desagregados_especie_talla.tamanio_91cm_100cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_0cm_5cm",                            
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_0cm_5cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_0cm_5cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_0cm_5cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_101cm_110cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_101cm_110cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_101cm_110cm",
+  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_101cm_110cm",
+  # "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_101cm_9999cm",
+  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_101cm_9999cm",
+  # "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_101cm_9999cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_101cm_9999cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_111cm_120cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_111cm_120cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_111cm_120cm",
+  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_111cm_120cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_11cm_20cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_11cm_20cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_11cm_20cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_11cm_20cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_191cm_200cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_191cm_200cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_191cm_200cm",
+  # "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_191cm_200cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_21cm_30cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_21cm_30cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_21cm_30cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_21cm_30cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_31cm_40cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_31cm_40cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_31cm_40cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_31cm_40cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_41cm_50cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_41cm_50cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_41cm_50cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_41cm_50cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_51cm_60cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_51cm_60cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_51cm_60cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_51cm_60cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_61cm_70cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_61cm_70cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_61cm_70cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_61cm_70cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_6cm_10cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_6cm_10cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_6cm_10cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_6cm_10cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_71cm_80cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_71cm_80cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_71cm_80cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_71cm_80cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_81cm_90cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_81cm_90cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_81cm_90cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_81cm_90cm",
+  "conacyt_greenpeace_2016_peces_agregados_especie_talla.peces_tamanio_91cm_100cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.peces_tamanio_91cm_100cm",
+  "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.peces_tamanio_91cm_100cm",
+  "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_tamanio_91cm_100cm",
   
   # Reclutas
   "conacyt_greenpeace_2016_reclutas_desagregados.longitud_cuadrante_m",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.longitud_cuadrante_m",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.longitud_cuadrante_m",
+  
   "conacyt_greenpeace_2016_reclutas_desagregados.ancho_cuadrante_m",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.ancho_cuadrante_m",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.ancho_cuadrante_m",
   
   "conacyt_greenpeace_2016_reclutas_desagregados.identificador_muestreo_sitio",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.identificador_sitio",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.identificador_sitio",
   
   "conacyt_greenpeace_2016_reclutas_desagregados.n",
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.n",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.n",
+
+  "conacyt_greenpeace_2016_reclutas_desagregados.tamanio_minimo_cm",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.tamanio_minimo_cm",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.tamanio_minimo_cm",
   
-  "conacyt_greenpeace_2016_reclutas_desagregados.tamanio_cm",
-  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.tamanio_cm",
+  "conacyt_greenpeace_2016_reclutas_desagregados.tamanio_maximo_cm",
+  "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.tamanio_maximo_cm",
+  "historicos_y_2017_cuadrante_reclutas_desagregados.tamanio_maximo_cm",
   
   # Complejidad
   "conacyt_greenpeace_2016_complejidad.identificador_muestreo_sitio",
@@ -662,20 +678,18 @@ relacion_columnas_obligatorias <- c(
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.nivel_agregacion_datos" = NA,
   "historicos_y_2017_cuadrante_reclutas_desagregados.nivel_agregacion_datos" = NA,
   
-  ### Muestra_subcuadrante_de_transecto_reclutas_observacion ###
-  "historicos_y_2017_cuadrante_reclutas_desagregados.codigo" = NA,
-  
-  "historicos_y_2017_cuadrante_reclutas_desagregados.tamanio_cm" = NA,
-  
   ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
   "conacyt_greenpeace_2016_reclutas_desagregados.codigo" = NA,
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.codigo" = NA,
+  "historicos_y_2017_cuadrante_reclutas_desagregados.codigo" = NA,
   
   "conacyt_greenpeace_2016_reclutas_desagregados.categoria_tamanio" = NA,
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.categoria_tamanio" = NA,
+  "historicos_y_2017_cuadrante_reclutas_desagregados.categoria_tamanio" = NA,
   
   "conacyt_greenpeace_2016_reclutas_desagregados.n" = NA,
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.n" = NA,
+  "historicos_y_2017_cuadrante_reclutas_desagregados.n" = NA,
   
   ### Muestra_transecto_complejidad_info ###
   "conacyt_greenpeace_2016_complejidad.longitud_transecto_m" = NA,
