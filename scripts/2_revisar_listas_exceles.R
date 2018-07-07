@@ -259,8 +259,6 @@ valores_no_presentes_en_catalogo <- revisa_columnas_catalogos(
   group_by(tabla, campo, catalogo, valor) %>%
   tally()
 
-saveRDS(valores_no_presentes_en_catalogo,
-  paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_no_presentes_en_catalogo.RDS"))
 write_csv(valores_no_presentes_en_catalogo,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_no_presentes_en_catalogo.csv"))
 
@@ -500,8 +498,7 @@ relacion_columnas_numericas <- c(
 
 valores_esperados_numericos <- revisa_columnas_numericas(lista_tablas_columnas_homologadas, relacion_columnas_numericas,
   ceros_aceptables = FALSE)
-saveRDS(valores_esperados_numericos,
-  paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.RDS"))
+
 write_csv(valores_esperados_numericos,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.csv"))
 
@@ -512,8 +509,6 @@ write_csv(valores_esperados_numericos,
 # En esta sección se revisarán que campos en los exceles que corresponden a
 # campos que se definieron como no nulos en el esquema de datos, en realidad
 # cumplan dicha restricción.
-
-# Nota. 
 
 relacion_columnas_obligatorias <- c(
   
@@ -644,6 +639,8 @@ relacion_columnas_obligatorias <- c(
   "historicos_y_2017_transecto_peces_desagregados_especie_talla.peces_muestreados" = NA,
   
   ### Muestra_transecto_peces_cuenta ###
+  
+  # Cuidado con los siguientes porque puede haber muestras de transectos de peces sin observaciones: 
   "conacyt_greenpeace_2016_peces_agregados_especie_talla.nombre_cientifico_abreviado" = NA,
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados.nombre_cientifico_abreviado" = NA,
   "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla.nombre_cientifico_abreviado" = NA,
@@ -663,6 +660,7 @@ relacion_columnas_obligatorias <- c(
   "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.ancho_transecto_m" = NA,
   
   ### Muestra_transecto_invertebrados_cuenta ###
+  # Cuidado con los siguientes porque puede haber muestras de transectos de invertebrados sin observaciones:
   "conacyt_greenpeace_2016_invertebrados_desagregados.tipo" = NA,
   "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie.tipo" = NA,
   
@@ -679,14 +677,17 @@ relacion_columnas_obligatorias <- c(
   "historicos_y_2017_cuadrante_reclutas_desagregados.nivel_agregacion_datos" = NA,
   
   ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
+  # Cuidado con los siguientes porque puede haber muestras de transectos de invertebrados sin observaciones:
   "conacyt_greenpeace_2016_reclutas_desagregados.codigo" = NA,
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.codigo" = NA,
   "historicos_y_2017_cuadrante_reclutas_desagregados.codigo" = NA,
   
+  # Cuidado con los siguientes porque puede haber muestras de transectos de invertebrados sin observaciones:
   "conacyt_greenpeace_2016_reclutas_desagregados.categoria_tamanio" = NA,
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.categoria_tamanio" = NA,
   "historicos_y_2017_cuadrante_reclutas_desagregados.categoria_tamanio" = NA,
   
+  # Cuidado con los siguientes porque puede haber muestras de transectos de invertebrados sin observaciones:
   "conacyt_greenpeace_2016_reclutas_desagregados.n" = NA,
   "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla.n" = NA,
   "historicos_y_2017_cuadrante_reclutas_desagregados.n" = NA,
@@ -709,7 +710,5 @@ columnas_obligatorias_a_revisar <- revisa_columnas_valores(lista_tablas_columnas
   group_by(tabla, campo, valor) %>%
   tally()
 
-saveRDS(columnas_obligatorias_a_revisar,
-  paste0(ruta_salidas_2_revisar_listas_exceles, "/columnas_obligatorias_a_revisar.RDS"))
 write_csv(columnas_obligatorias_a_revisar,
   paste0(ruta_salidas_2_revisar_listas_exceles, "/columnas_obligatorias_a_revisar.csv"))

@@ -51,6 +51,8 @@ crear_resumen_columnas_df(lista_tablas_columnas_homologadas) %>%
 lista_revision <- revisa_valores(datos_globales_crudos)
 names(lista_revision)
 
+obtiene_archivos_columna(datos_globales_crudos, "conteo")
+
 ################################################################################
 # *: llave natural necesaria para crear tablas
 
@@ -329,8 +331,6 @@ valores_a_revisar <- revisa_columnas_valores(lista_tablas_columnas_homologadas,
   group_by(tabla, campo, valor) %>%
   tally()
 
-saveRDS(valores_a_revisar,
-  paste0(ruta_salidas_3_crear_df_homologado, "/valores_a_revisar.RDS"))
 write_csv(valores_a_revisar,
   paste0(ruta_salidas_3_crear_df_homologado, "/valores_a_revisar.csv"))
 
@@ -363,11 +363,14 @@ write_csv(valores_a_revisar,
 
 # Revisando "NA"'s en las columnas
 
-datos_globales_crudos %>%
+campos_con_palabra_na <- datos_globales_crudos %>%
   gather(variable, valor, -archivo_origen) %>%
   filter(valor == "NA") %>%
-  unique() %>%
-  View()
+  unique()
+
+write_csv(campos_con_palabra_na,
+  paste0(ruta_salidas_3_crear_df_homologado, "/campos_con_palabra_na.csv"))
+
   
 ################################################################################
 # 3. Creando la tabla con información selecta para la integración
@@ -573,6 +576,130 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     -x__1,
     -zona_arrecife_redundante
   )
+
+################################################################################
+
+# Revisando varias tablas del esquema de datos. Se revisarán principalmente las
+# siguientes cuestiones:
+
+# 1. Que cuando se traten de datos agregados por unidad de muestreo, no haya
+# varios registros que se refieran al mismo nivel por la variable que se supone
+# que se agregó.
+# Por ejemplo: cuando se habla de porcentajes de cobertura de bentos por sitio /
+# transecto, que no haya dos registros que se refieran al mismo código de bentos
+# sobre la misma unidad de muestreo (deberían estar agregados).
+# 2. Que los muestreos realizados pero que no tuvieron observaciones estén
+# razonablemente declarados, por ejemplo, si los transectos de peces para un
+# determinado muestreo de sitio son sólo 3, y los que corresponden a otros muestreos
+# de sitio en el mismo proyecto son 9, algo puede andar mal.
+
+names(lista_tablas_columnas_homologadas)
+glimpse(datos_globales_columnas_selectas)
+
+### Muestra_sitio_bentos_porcentaje ###
+
+# 1. Revisar que para cada muestra de sitio con información de porcentaje de
+# cobertura de bentos por código, no haya registros repetidos con el mismo código.
+# Archivos involucrados:
+# - "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
+
+bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura") %>%
+  group_by(
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    codigo
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  ungroup() %>%
+  filter(n > 1)
+
+View(bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio)
+
+write_csv(bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio.csv"))
+
+# 2. Revisar que para cada muestra de sitio con información de porcentaje de
+# cobertura por tipo de código, los porcentajes de cobertura sumen 100%.
+# Archivos involucrados:
+# - "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
+
+bentos_agregados_por_sitio_suma_porcentajes_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura") %>%
+  group_by(
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    total_cobertura = sum(cobertura, na.rm = TRUE) # La presencia de NA's se revisó en "2_revisar_listas_exceles.R"
+  )
+
+View(bentos_agregados_por_sitio_suma_porcentajes_sitio)
+
+write_csv(bentos_agregados_por_sitio_suma_porcentajes_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/bentos_agregados_por_sitio_suma_porcentajes_sitio.csv"))
+
+### Muestra_transecto_bentos_porcentaje ###
+
+# 1. Revisar que para cada muestra de transecto con información de porcentaje de
+# cobertura de bentos por código, no haya registros repetidos con el mismo código.
+# Archivos involucrados:
+# - "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
+
+bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen == "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura") %>%
+  group_by(
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    codigo
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  ungroup() %>%
+  filter(n > 1)
+
+View(bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto)
+
+write_csv(bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto.csv"))
+
+# 2. Revisar que para cada muestra de transecto con información de porcentaje de
+# cobertura por tipo de código, los porcentajes de cobertura sumen 100%.
+# Archivos involucrados:
+# - "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
+
+bentos_agregados_por_transecto_suma_porcentajes_transecto <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen == "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura") %>%
+  group_by(
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    total_cobertura = sum(cobertura, na.rm = TRUE) # La presencia de NA's se revisó en "2_revisar_listas_exceles.R"
+  )
+
+View(bentos_agregados_por_transecto_suma_porcentajes_transecto)
+
+write_csv(bentos_agregados_por_transecto_suma_porcentajes_transecto,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/bentos_agregados_por_transecto_suma_porcentajes_transecto.csv"))
+
+### Muestra_transecto_peces_cuenta ###
+
+# 1. 
+
 
 ################################################################################
 
@@ -968,9 +1095,9 @@ datos_globales <- datos_globales_columnas_selectas %>%
     Muestra_subcuadrante_de_transecto_complejidad_info.comentarios = NA_character_
   ) %>%
   
-  ### Tabla_observaciones ###
+  ### Tablas de datos ###
   
-  # Las tablas de observaciones corresponden a las tablas que contienen los datos
+  # Las tablas de datos corresponden a las tablas que contienen los datos
   # correspondientes a un muestreo particular de determinado aspecto. Por ejemplo,
   # "Muestra_transecto_bentos_punto" o "Muestra_transecto_corales_observacion".
   
@@ -979,9 +1106,9 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # observaciones. Esto en particular afecta a las tablas de peces, reclutas e
   # invertebrados.
     
-  # Para todas las tablas de observaciones:
-  # - Tabla_observaciones.codigo = codigo
-  # - La columna "Tabla_observaciones.numero_observacion" corresponde a la
+  # Para todas las tablas de datos:
+  # - Datos.codigo = codigo
+  # - La columna "Datos.numero_observacion" corresponde a la
   #   enumeración de observaciones para cada muestreo de determinado aspecto en
   #   determinado muestreo de transecto.
   
@@ -1011,16 +1138,16 @@ datos_globales <- datos_globales_columnas_selectas %>%
       
       resultado <- df %>%
         mutate(
-            Tabla_observaciones.numero_observacion = 1:nrow(df)
+            Datos.numero_observacion = 1:nrow(df)
           )
       return(resultado)
   }, .parallel = TRUE) %>%
   
   rename(
-    Tabla_observaciones.codigo = codigo
+    Datos.codigo = codigo
     # Para los archivos de peces se tiene la columna "nombre_cientifico_abreviado"
     # que es más útil, y para invertebrados se tiene únicamente "tipo". Por ello,
-    # "Tabla_observaciones.codigo" sólamente es útil para bentos, corales y reclutas
+    # "Datos.codigo" sólamente es útil para bentos, corales y reclutas
   ) %>%
   
   ### Muestra_sitio/transecto_bentos_porcentaje
