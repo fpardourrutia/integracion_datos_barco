@@ -606,6 +606,7 @@ glimpse(datos_globales_columnas_selectas)
 bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio <- datos_globales_columnas_selectas %>%
   filter(archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura") %>%
   group_by(
+    archivo_origen,
     nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
     nombre_sitio,
     identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
@@ -631,6 +632,7 @@ write_csv(bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio,
 bentos_agregados_por_sitio_suma_porcentajes_sitio <- datos_globales_columnas_selectas %>%
   filter(archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura") %>%
   group_by(
+    archivo_origen,
     nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
     nombre_sitio,
     identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
@@ -655,6 +657,7 @@ write_csv(bentos_agregados_por_sitio_suma_porcentajes_sitio,
 bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto <- datos_globales_columnas_selectas %>%
   filter(archivo_origen == "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura") %>%
   group_by(
+    archivo_origen,
     nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
     nombre_sitio,
     identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
@@ -681,6 +684,7 @@ write_csv(bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto,
 bentos_agregados_por_transecto_suma_porcentajes_transecto <- datos_globales_columnas_selectas %>%
   filter(archivo_origen == "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura") %>%
   group_by(
+    archivo_origen,
     nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
     nombre_sitio,
     identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
