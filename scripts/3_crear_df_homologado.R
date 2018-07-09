@@ -598,7 +598,7 @@ glimpse(datos_globales_columnas_selectas)
 
 ### Muestra_sitio_bentos_porcentaje ###
 
-# 1. Revisar que para cada muestra de sitio con información de porcentaje de
+# 1. Revisando que para cada muestra de sitio con información de porcentaje de
 # cobertura de bentos por código, no haya registros repetidos con el mismo código.
 # Archivos involucrados:
 # - "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
@@ -624,7 +624,7 @@ write_csv(bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio,
   paste0(ruta_salidas_3_crear_df_homologado,
     "/bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio.csv"))
 
-# 2. Revisar que para cada muestra de sitio con información de porcentaje de
+# 2. Revisando que para cada muestra de sitio con información de porcentaje de
 # cobertura por tipo de código, los porcentajes de cobertura sumen 100%.
 # Archivos involucrados:
 # - "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
@@ -649,7 +649,7 @@ write_csv(bentos_agregados_por_sitio_suma_porcentajes_sitio,
 
 ### Muestra_transecto_bentos_porcentaje ###
 
-# 1. Revisar que para cada muestra de transecto con información de porcentaje de
+# 1. Revisando que para cada muestra de transecto con información de porcentaje de
 # cobertura de bentos por código, no haya registros repetidos con el mismo código.
 # Archivos involucrados:
 # - "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
@@ -676,8 +676,8 @@ write_csv(bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto,
   paste0(ruta_salidas_3_crear_df_homologado,
     "/bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto.csv"))
 
-# 2. Revisar que para cada muestra de transecto con información de porcentaje de
-# cobertura por tipo de código, los porcentajes de cobertura sumen 100%.
+# 2. Revisando que para cada muestra de transecto con información de porcentaje
+# de cobertura por tipo de código, los porcentajes de cobertura sumen 100%.
 # Archivos involucrados:
 # - "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
 
@@ -700,10 +700,18 @@ write_csv(bentos_agregados_por_transecto_suma_porcentajes_transecto,
   paste0(ruta_salidas_3_crear_df_homologado,
     "/bentos_agregados_por_transecto_suma_porcentajes_transecto.csv"))
 
+### Muestra_transecto_corales_observacion ###
+
+# 1. Revisando si hay muestras de transecto de corales que no tuvieron observaciones.
+
+
+datos_globales_columnas_selectas %>%
+  filter()
+
 ### Muestra_transecto_peces_cuenta ###
 
-# 1. 
-
+# 1. Revisando que para cada muestra de transecto con información de cuentas de
+# peces, no haya registros repetidos con el mismo código
 
 ################################################################################
 
