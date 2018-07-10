@@ -2086,6 +2086,47 @@ datos_globales <- datos_globales_columnas_selectas %>%
     # no suman el 100% (ver archivo auxiliar). Por lo pronto se copiará tal cual.
   ) %>%
   
+  # Agregando los datos por muestra de sitio/transecto y código de especie.
+  ddply(.(archivo_origen), function(df){
+    archivo_origen <- unique(df$archivo_origen)
+    
+    if(stri_detect_fixed(archivo_origen, "bentos_agregados")){
+      resultado <- df %>%
+        group_by(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          # Si son bentos agregados a nivel de sitio, Muestra_transecto.nombre == NA
+          # y se agregará por sitio.
+          Muestra_transecto.nombre, 
+          # en el ddply ya se separó por "archivo_origen"
+          Datos.codigo
+        ) %>%
+        mutate(
+          Muestra_._bentos_porcentaje.porcentaje_cobertura = sum(
+            Muestra_._bentos_porcentaje.porcentaje_cobertura, na.rm = TRUE)
+        ) %>%
+        ungroup() %>%
+        # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
+        # hacer el mutate(). No se puede usar summarise() porque se pierden las
+        # otras columnas
+        distinct(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre,
+          # en el ddply ya se separó por "achivo_origen"
+          Datos.codigo,
+          .keep_all = TRUE
+        )
+    } else{
+      resultado <- df
+    }
+    return(resultado)
+  }) %>%
+  
   ### Muestra_transecto_bentos_punto (PIT desagregado)
   rename(
     Muestra_transecto_bentos_punto.altura_si_alga_cm = altura_algas_cm
@@ -2182,16 +2223,16 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # Se tiene cuidado de no perder los muestreos realizados y que no tuvieron
   # observaciones
   
-  # Haciendo el "gather" de las columnas de "peces_tamanio_._.", para los archivos de
-  # peces. Se tratarán por separado peces desagregados de cuentas agregadas por
-  # especie (y transecto), porque se quiere revisar al final que no se hayan
-  # duplicado por error, en los archivos de Excel, registros de cuentas agregadas.
+  # Haciendo el "gather" de las columnas de "peces_tamanio_._.", para los
+  # archivos de peces. Se agregarán los datos por muestra de transecto, nombre
+  # científico abreviado, edad y categoría de talla.
+  
   ddply(.(archivo_origen), function(df){
     archivo_origen <- unique(df$archivo_origen)
 
     if(stri_detect_fixed(archivo_origen, "peces")){
       # Generando columnas de "minimo_tamanio_cm", "maximo_tamanio_cm" y "cuenta"
-      resultado_sin_agregar_especies_duplicadas_mismo_muestreo <- df %>%
+      resultado  <- df %>%
         gather(key = peces_tamanio_min_max, value = cuenta, dplyr::contains("peces_tamanio")) %>%
         # Filtrando tamaños no encontrados en un mismo conteo de especie en transecto.
         # Notar que si "nombre_cientifico_abreviado" es NA, se preserva el registro
@@ -2221,51 +2262,41 @@ datos_globales <- datos_globales_columnas_selectas %>%
           Muestra_transecto_peces_cuenta.tamanio_maximo_cm = peces_tamanio_maximo_cm,
           Muestra_transecto_peces_cuenta.cuenta = cuenta,
           Muestra_transecto_peces_cuenta.es_juvenil = es_juvenil
+        ) %>%
+        # Agregando los datos por muestra de transecto, nombre científico
+        # abreviado, edad y categoría de talla.
+        group_by(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre,
+          # en el ddply ya se separó por "archivo_origen"
+          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
+          Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
+          Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
+          Muestra_transecto_peces_cuenta.es_juvenil
+        ) %>%
+        mutate(
+          Muestra_transecto_peces_cuenta.cuenta = sum(Muestra_transecto_peces_cuenta.cuenta, na.rm = TRUE)
+        ) %>%
+        ungroup() %>%
+        # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
+        # hacer el mutate(). No se puede usar summarise() porque se pierden las
+        # otras columnas
+        distinct(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre,
+          # en el ddply ya se separó por "achivo_origen"
+          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
+          Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
+          Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
+          Muestra_transecto_peces_cuenta.es_juvenil,
+          .keep_all = TRUE
         )
-      
-      # Si los datos de peces provienen de un archivo en el que se supone que
-      # están desagregados, agregarlos; si no, no hacerlo porque se podrían ocultar
-      # errores (esta distinción es la principal función de este if-else)
-      if(stri_detect_fixed(archivo_origen, "peces_agregados")){
-        resultado <- resultado_sin_agregar_especies_duplicadas_mismo_muestreo
-      } else{
-        resultado <- resultado_sin_agregar_especies_duplicadas_mismo_muestreo %>%
-          group_by(
-            Muestreo.nombre,
-            Muestra_sitio.nombre,
-            Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
-            Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
-            Muestra_transecto.nombre,
-            # en el ddply ya se separó por "archivo_origen"
-            Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
-            Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
-            Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
-            Muestra_transecto_peces_cuenta.es_juvenil
-          ) %>%
-          mutate(
-            Muestra_transecto_peces_cuenta.cuenta = sum(!is.na(Muestra_transecto_peces_cuenta.cuenta))
-            # Notar que como los registros son observaciones (desagregadas) por
-            # especie en un muestreo, cada registro suma máximo una cuenta a su
-            # categoría de tamaño correspondiente
-          ) %>%
-          ungroup() %>%
-          # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
-          # hacer el mutate(). No se puede usar summarise() porque se pierden las
-          # otras columnas
-          distinct(
-            Muestreo.nombre,
-            Muestra_sitio.nombre,
-            Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
-            Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
-            Muestra_transecto.nombre,
-            # en el ddply ya se separó por "achivo_origen"
-            Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
-            Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
-            Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
-            Muestra_transecto_peces_cuenta.es_juvenil,
-            .keep_all = TRUE
-          )
-      }
     } else{
       # Si "archivo_origen" no es de peces, se eliminan las columnas de
       # "peces_tamanio" y se agregan columnas dummy para que se pueda hacer la
@@ -2296,13 +2327,11 @@ datos_globales <- datos_globales_columnas_selectas %>%
     Muestra_transecto_invertebrados_cuenta.cuenta = conteo
   ) %>%
   
-  # Si los datos provienen de un archivo donde se supone que están desagregados,
-  # se agregan; en otro caso, no se hace porque se podrían ocultar errores por
-  # repetición de registros.
+  # Agregando los datos por muestra de transecto y tipo de invertebrado.
   ddply(.(archivo_origen), function(df){
     archivo_origen <- unique(df$archivo_origen)
     
-    if(stri_detect_fixed(archivo_origen, "invertebrados_desagregados")){
+    if(stri_detect_fixed(archivo_origen, "invertebrados")){
       resultado <- df %>%
         group_by(
           Muestreo.nombre,
@@ -2314,7 +2343,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           Muestra_transecto_invertebrados_cuenta.tipo
         ) %>%
         mutate(
-          Muestra_transecto_invertebrados_cuenta.cuenta = sum(!is.na(Muestra_transecto_invertebrados_cuenta.cuenta))
+          Muestra_transecto_invertebrados_cuenta.cuenta = sum(Muestra_transecto_invertebrados_cuenta.cuenta, na.rm = TRUE)
         ) %>%
         ungroup() %>%
         # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
@@ -2336,8 +2365,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
     return(resultado)
   }) %>%
   
-  ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
-  
+   
   rename(
     Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio = categoria_tamanio,
     
@@ -2347,15 +2375,13 @@ datos_globales <- datos_globales_columnas_selectas %>%
     Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm = tamanio_maximo_cm
   ) %>%
   
-  # Para calcular "cuenta", depende. En los archivos de "reclutas agregados" es
-  # simplemente "n". En los archivos de reclutas desagregados, éstos se agregan
-  # por variables de muestreo (hasta nivel de cuadrante), código, categoría de
-  # tamaño y tamaños mínimo y máximo:
+  # Para calcular "cuenta", los registros se agregan por muestra de cuadrante,
+  # código, categoría de tamaño y tamaños mínimo y máximo:
   
   ddply(.(archivo_origen), function(df){
     archivo_origen <- unique(df$archivo_origen)
     
-    if(stri_detect_fixed(archivo_origen, "reclutas_desagregados")){
+    if(stri_detect_fixed(archivo_origen, "reclutas")){
       resultado <- df %>%
         group_by(
           Muestreo.nombre,
