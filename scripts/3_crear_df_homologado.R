@@ -579,35 +579,140 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
 
 ################################################################################
 
-# Revisando varias tablas del esquema de datos. Se revisarán principalmente las
+# Revisando las tablas hoja del esquema de datos. Se revisarán principalmente las
 # siguientes cuestiones:
 
 # 1. Que cuando se traten de datos agregados por unidad de muestreo, no haya
 # varios registros que se refieran al mismo nivel por la variable que se supone
-# que se agregó.
-# Por ejemplo: cuando se habla de porcentajes de cobertura de bentos por sitio /
-# transecto, que no haya dos registros que se refieran al mismo código de bentos
-# sobre la misma unidad de muestreo (deberían estar agregados).
+# que se agregó. Por ejemplo: cuando se habla de porcentajes de cobertura de
+# bentos por sitio / transecto, que no haya dos registros que se refieran al
+# mismo código de bentos sobre la misma unidad de muestreo (deberían estar
+# agregados).
 # 2. Que los muestreos realizados pero que no tuvieron observaciones estén
-# razonablemente declarados, por ejemplo, si los transectos de peces para un
-# determinado muestreo de sitio son sólo 3, y los que corresponden a otros muestreos
-# de sitio en el mismo proyecto son 9, algo puede andar mal.
+# razonablemente declarados. Por ejemplo, si los transectos de peces para un
+# determinado muestreo de sitio son sólo 3, y los que corresponden a otros
+# muestreos de sitio en el mismo proyecto son 9, algo puede andar mal.
+# 3. Para cada tabla hoja del esquema de datos se deberá calcular al menos
+# una tabla de agregados por unidad de muestreo, ya con eso podemos detectar:
+#   - Si existen unidades de muestreo duplicadas o introducidas múltiples veces.
+#     Por ejemplo, al calcular cantidad de puntos declarados por muestreo de
+#     transecto de bentos, esta cantidad saldrá muy elevada si hay muestreos de
+#     transecto declarados múltiples veces.
+#   - Si existen datos que están tomados a un nivel de muestreo más general y se
+#     encuentran declarados en el archivo equivocado. Por ejemplo, si calculamos
+#     cantidad de colonias de coral por muestreo de transecto, podemos revisar
+#     fácilmente si hay datos en los cuáles "transecto == NA".
+#   - Al tener un listado de todas las unidades de muestreo, es fácil detectar
+#     si hay unidades de muestreo que no tuvieron observaciones, y por error no
+#     se declararon.
 
 names(lista_tablas_columnas_homologadas)
 glimpse(datos_globales_columnas_selectas)
 
+
+### Muestra_sitio
+
+# 1. Revisando la cantidad de muestras de sitio por proyecto
+
+muestras_sitio_cantidad_por_muestreo <- datos_globales_columnas_selectas %>%
+  distinct(
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio
+  ) %>%
+  group_by(nombre_proyecto) %>%
+  summarise(
+    numero_sitios = n()
+  ) %>%
+  arrange(nombre_proyecto)
+
+View(muestras_sitio_cantidad_por_muestreo)
+
+write_csv(muestras_sitio_cantidad_por_muestreo,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/muestras_sitio_cantidad_por_muestreo.csv"))
+
+# 2. Revisando los aspectos muestrados por cada muestra de sitio. En realidad,
+# se está revisando en cuántos archivos de Excel correspondientes a cada aspecto
+# está registrado un muestreo de sitio.
+
+muestras_sitio_aspectos_muestrados <- datos_globales_columnas_selectas %>%
+  distinct(
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio,
+    archivo_origen
+  ) %>%
+  mutate(
+    # Cada registro de esta tabla contendrá infdormación si un muestreo de sitio
+    # específico está contenido en un archivo correspondiente a un aspecto específico.
+    # Notar que estos registros se pueden sumar para ver en cuántos archivos
+    # correspondientes al mismo aspecto está registrado una misma muestra de
+    # sitio. Debe revisarse con cuidado si la misma muestra está en dos o más
+    # archivos del mismo aspecto.
+    evidencia_bentos = ifelse(stri_detect_fixed(archivo_origen, "bentos"), T, F),
+    evidencia_corales = ifelse(stri_detect_fixed(archivo_origen, "corales"), T, F),
+    evidencia_peces = ifelse(stri_detect_fixed(archivo_origen, "peces"), T, F),
+    evidencia_invertebrados = ifelse(stri_detect_fixed(archivo_origen, "invertebrados"), T, F),
+    evidencia_reclutas = ifelse(stri_detect_fixed(archivo_origen, "reclutas"), T, F),
+    evidencia_complejidad = ifelse(stri_detect_fixed(archivo_origen, "complejidad"), T, F)
+  ) %>%
+  select(-archivo_origen) %>%
+  group_by(
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio
+  ) %>%
+  summarise(
+    numero_archivos_bentos = sum(evidencia_bentos),
+    numero_archivos_corales = sum(evidencia_corales),
+    numero_archivos_peces = sum(evidencia_peces),
+    numero_archivos_invertebrados = sum(evidencia_invertebrados),
+    numero_archivos_reclutas = sum(evidencia_reclutas),
+    numero_archivos_complejidad = sum(evidencia_complejidad)
+  )
+
+View(muestras_sitio_aspectos_muestrados)
+
+write_csv(muestras_sitio_aspectos_muestrados,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/muestras_sitio_aspectos_muestrados.csv"))
+
+# 3. Revisando si en la tabla anterior hay muestras de sitio registradas en más
+# de un archivo correspondiente a un mismo aspecto (en teoría no debería de pasar).
+
+muestras_sitio_aspectos_redundantes <- muestras_sitio_aspectos_muestrados %>%
+  gather("numero_archivos_aspecto", "numero_archivos", contains("numero_archivos")) %>%
+  separate(numero_archivos_aspecto, into = c("numero", "archivos", "aspecto")) %>%
+  select(
+    -numero,
+    -archivos
+  ) %>%
+  filter(numero_archivos > 1)
+
+View(muestras_sitio_aspectos_redundantes)
+# Por suerte no hay muestras de sitio registradas en 2 o más archivos correspondientes
+# al mismo aspecto
+
+write_csv(muestras_sitio_aspectos_redundantes,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/muestras_sitio_aspectos_redundantes.csv"))
+
 ### Muestra_sitio_bentos_porcentaje ###
 
-# 1. Revisando que para cada muestra de sitio con información de porcentaje de
-# cobertura de bentos por código, no haya registros repetidos con el mismo código.
 # Archivos involucrados:
 # - "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
 
+# 1. Revisando que para cada muestra de sitio con información de porcentaje de
+# cobertura de bentos por código, no haya registros distintos con el mismo código.
+
 bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio <- datos_globales_columnas_selectas %>%
-  filter(archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura") %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
+    )) %>%
   group_by(
     archivo_origen,
-    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio
     nombre_sitio,
     identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
     codigo
@@ -619,18 +724,21 @@ bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio <- datos_globales_colu
   filter(n > 1)
 
 View(bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio)
+# Como sí los hay, agregarlos.
 
 write_csv(bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio,
   paste0(ruta_salidas_3_crear_df_homologado,
     "/bentos_agregados_por_sitio_codigos_duplicados_mismo_sitio.csv"))
 
 # 2. Revisando que para cada muestra de sitio con información de porcentaje de
-# cobertura por tipo de código, los porcentajes de cobertura sumen 100%.
-# Archivos involucrados:
-# - "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
+# cobertura por tipo de código, los porcentajes de cobertura sumen 100%. Este
+# data frame en realidad se puede considerar un resumen del contenido de los
+# archivos asociados.
 
-bentos_agregados_por_sitio_suma_porcentajes_sitio <- datos_globales_columnas_selectas %>%
-  filter(archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura") %>%
+bentos_agregados_por_sitio_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura"
+  )) %>%
   group_by(
     archivo_origen,
     nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
@@ -641,21 +749,59 @@ bentos_agregados_por_sitio_suma_porcentajes_sitio <- datos_globales_columnas_sel
     total_cobertura = sum(cobertura, na.rm = TRUE) # La presencia de NA's se revisó en "2_revisar_listas_exceles.R"
   )
 
-View(bentos_agregados_por_sitio_suma_porcentajes_sitio)
+View(bentos_agregados_por_sitio_resumen_contenido_archivos)
+# Sí suman 100%
 
-write_csv(bentos_agregados_por_sitio_suma_porcentajes_sitio,
+write_csv(bentos_agregados_por_sitio_resumen_contenido_archivos,
   paste0(ruta_salidas_3_crear_df_homologado,
-    "/bentos_agregados_por_sitio_suma_porcentajes_sitio.csv"))
+    "/bentos_agregados_por_sitio_resumen_contenido_archivos.csv"))
+
+### Muestra_transecto_bentos_punto ###
+
+# Archivos involucrados:
+# - "conacyt_greenpeace_2016_bentos_desagregados"
+# - "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados"
+# - "historicos_y_2017_transecto_bentos_desagregados_pit_lit"
+
+# 1. Creando una tabla auxiliar para detectar fácilmente si hubo muestreos de
+# transecto o sitio que se duplicaron por error.
+
+bentos_desagregados_por_transecto_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_bentos_desagregados",
+    "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados",
+    "historicos_y_2017_transecto_bentos_desagregados_pit_lit"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+View(bentos_desagregados_por_transecto_resumen_contenido_archivos)
+
+write_csv(bentos_desagregados_por_transecto_resumen_contenido_archivos,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/bentos_desagregados_por_transecto_resumen_contenido_archivos.csv"))
 
 ### Muestra_transecto_bentos_porcentaje ###
 
-# 1. Revisando que para cada muestra de transecto con información de porcentaje de
-# cobertura de bentos por código, no haya registros repetidos con el mismo código.
 # Archivos involucrados:
 # - "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
 
+# 1. Revisando que para cada muestra de transecto con información de porcentaje de
+# cobertura de bentos por código, no haya registros distintos con el mismo código.
+
 bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto <- datos_globales_columnas_selectas %>%
-  filter(archivo_origen == "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura") %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
+    )) %>%
   group_by(
     archivo_origen,
     nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
@@ -671,18 +817,51 @@ bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto <- datos_globa
   filter(n > 1)
 
 View(bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto)
+# Sí los hay, por ello, se sumarán.
 
 write_csv(bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto,
   paste0(ruta_salidas_3_crear_df_homologado,
     "/bentos_agregados_por_transecto_codigos_duplicados_mismo_transecto.csv"))
 
-# 2. Revisando que para cada muestra de transecto con información de porcentaje
-# de cobertura por tipo de código, los porcentajes de cobertura sumen 100%.
-# Archivos involucrados:
-# - "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
+# 2. Revisando cantidad de transectos por muestreo de sitio
 
-bentos_agregados_por_transecto_suma_porcentajes_transecto <- datos_globales_columnas_selectas %>%
-  filter(archivo_origen == "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura") %>%
+bentos_agregados_por_transecto_cantidad_transectos_por_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    numero_transectos = n()
+  ) %>%
+  arrange(numero_transectos)
+
+View(bentos_agregados_por_transecto_cantidad_transectos_por_sitio)
+  
+write_csv(bentos_agregados_por_transecto_cantidad_transectos_por_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/bentos_agregados_por_transecto_cantidad_transectos_por_sitio.csv"))
+
+# 3. Revisando que para cada muestra de transecto con información de porcentaje
+# de cobertura por tipo de código, los porcentajes de cobertura sumen 100%. Este
+# data frame en realidad se puede considerar un resumen del contenido de los
+# archivos asociados.
+
+bentos_agregados_por_transecto_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
+  )) %>%
   group_by(
     archivo_origen,
     nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
@@ -694,24 +873,761 @@ bentos_agregados_por_transecto_suma_porcentajes_transecto <- datos_globales_colu
     total_cobertura = sum(cobertura, na.rm = TRUE) # La presencia de NA's se revisó en "2_revisar_listas_exceles.R"
   )
 
-View(bentos_agregados_por_transecto_suma_porcentajes_transecto)
+View(bentos_agregados_por_transecto_resumen_contenido_archivos)
+# Revisarlo con Esme, muchos no suman ni cercano a 100%
 
-write_csv(bentos_agregados_por_transecto_suma_porcentajes_transecto,
+write_csv(bentos_agregados_por_transecto_resumen_contenido_archivos,
   paste0(ruta_salidas_3_crear_df_homologado,
-    "/bentos_agregados_por_transecto_suma_porcentajes_transecto.csv"))
+    "/bentos_agregados_por_transecto_resumen_contenido_archivos.csv"))
 
 ### Muestra_transecto_corales_observacion ###
 
+# Archivos involucrados:
+# - "conacyt_greenpeace_2016_corales_desagregados"
+# - "historicos_y_2017_transecto_corales_desagregados_colonias_individuales"
+
 # 1. Revisando si hay muestras de transecto de corales que no tuvieron observaciones.
 
+transectos_corales_sin_observaciones <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_corales_desagregados",
+    "historicos_y_2017_transecto_corales_desagregados_colonias_individuales"
+  )) %>%
+  # Primero, sólo nos quedaremos con un registro por código distinto para cada
+  # muestra de transecto, ya que queremos encontrar los transectos que tienen
+  # puros registros de colonias con "codigo == NA" (no importa cuántos tengan)
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    codigo
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio,
+    transecto
+  ) %>%
+  mutate(
+    numero_registros = n()
+  ) %>%
+  # Quedándonos sólo con los transectos que tienen un único registro y es NA
+  filter(is.na(codigo), numero_registros == 1) %>%
+  select(
+    archivo_origen,
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio,
+    transecto
+  )
 
-datos_globales_columnas_selectas %>%
-  filter()
+View(transectos_corales_sin_observaciones)
+# Todos los transectos de corales tienen observaciones
+
+write_csv(transectos_corales_sin_observaciones,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/transectos_corales_sin_observaciones.csv"))
+
+# 2. Revisando cantidad de transectos por muestreo de sitio.
+
+corales_desagregados_por_transecto_cantidad_transectos_por_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_corales_desagregados",
+    "historicos_y_2017_transecto_corales_desagregados_colonias_individuales"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    numero_transectos = n()
+  ) %>%
+  arrange(numero_transectos)
+
+View(corales_desagregados_por_transecto_cantidad_transectos_por_sitio)
+
+write_csv(bentos_agregados_por_transecto_cantidad_transectos_por_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/bentos_agregados_por_transecto_cantidad_transectos_por_sitio.csv"))
+
+# 3. Creando una tabla auxiliar con la cantidad de observaciones por transecto.
+# Este data frame en realidad se puede considerar un resumen del contenido de
+# los archivos asociados.
+
+corales_desagregados_por_transecto_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_corales_desagregados",
+    "historicos_y_2017_transecto_corales_desagregados_colonias_individuales"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+View(corales_desagregados_por_transecto_resumen_contenido_archivos)
+# Hay datos que están declarados por sitio ("transecto == NA").
+
+write_csv(corales_desagregados_por_transecto_resumen_contenido_archivos,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/corales_desagregados_por_transecto_resumen_contenido_archivos.csv"))
 
 ### Muestra_transecto_peces_cuenta ###
 
-# 1. Revisando que para cada muestra de transecto con información de cuentas de
-# peces, no haya registros repetidos con el mismo código
+# Archivos involucrados:
+# - "conacyt_greenpeace_2016_peces_agregados_especie_talla"
+# - "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados"
+# - "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla"
+# - "historicos_y_2017_transecto_peces_desagregados_especie_talla"
+
+# 1. Revisando si hay muestras de transecto de peces que no tuvieron observaciones
+
+transectos_peces_sin_observaciones <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_peces_agregados_especie_talla",                               
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_transecto_peces_desagregados_especie_talla"
+  )) %>%
+  # Primero, sólo nos quedaremos con un registro por nombre científico distinto
+  # para cada muestra de transecto, ya que queremos encontrar los transectos que
+  # tienen puros registros de peces con "nombre_cientifico_abreviado == NA"
+  # (no importa cuántos tengan)
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    nombre_cientifico_abreviado
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio,
+    transecto
+  ) %>%
+  mutate(
+    numero_registros = n()
+  ) %>%
+  # Quedándonos sólo con los transectos que tienen un único registro y es NA
+  filter(is.na(nombre_cientifico_abreviado) & numero_registros == 1 ) %>%
+  select(
+    archivo_origen,
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio,
+    transecto
+  )
+
+View(transectos_peces_sin_observaciones)
+# Sí hay transectos de peces sin observaciones
+
+write_csv(transectos_peces_sin_observaciones, paste0(ruta_salidas_3_crear_df_homologado,
+  "/transectos_peces_sin_observaciones.csv"))
+
+# 2. Revisando si hay muestras de transecto con información de cuentas de
+# peces que tienen registros distintos con el mismo código en los archivos de Excel 
+
+peces_agregados_por_transecto_codigos_duplicados_mismo_transecto <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_peces_agregados_especie_talla",                               
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla"
+    # "historicos_y_2017_transecto_peces_desagregados_especie_talla" # Quitar los desagregados
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    nombre_cientifico_abreviado
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  ungroup() %>%
+  filter(n > 1)
+
+View(peces_agregados_por_transecto_codigos_duplicados_mismo_transecto)
+# Sí hay, agregarlos
+
+write_csv(peces_agregados_por_transecto_codigos_duplicados_mismo_transecto,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/peces_agregados_por_transecto_codigos_duplicados_mismo_transecto.csv"))
+
+# 3. Revisando cantidad de transectos por muestreo de sitio.
+
+peces_por_transecto_cantidad_transectos_por_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_peces_agregados_especie_talla",                               
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_transecto_peces_desagregados_especie_talla"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    numero_transectos = n()
+  ) %>%
+  arrange(numero_transectos)
+
+View(peces_por_transecto_cantidad_transectos_por_sitio)
+
+write_csv(peces_por_transecto_cantidad_transectos_por_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/peces_por_transecto_cantidad_transectos_por_sitio.csv"))
+
+# 4. Creando una tabla auxiliar con la cantidad de registros por transecto 
+# (registros = renglones de Excel). Este data frame en realidad se puede
+# considerar un resumen del contenido de los archivos asociados.
+
+peces_por_transecto_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_peces_agregados_especie_talla",                               
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_transecto_peces_desagregados_especie_talla"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+View(peces_por_transecto_resumen_contenido_archivos)
+
+write_csv(peces_por_transecto_resumen_contenido_archivos,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/peces_por_transecto_resumen_contenido_archivos.csv"))
+
+### Muestra_transecto_invertebrados_cuenta ###
+
+# Archivos involucrados:
+# - "conacyt_greenpeace_2016_invertebrados_desagregados"
+# - "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie"
+
+# 1. Revisando si hay muestras de transecto de invertebrados que no tuvieron
+# observaciones.
+
+transectos_invertebrados_sin_observaciones <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_invertebrados_desagregados",                               
+    "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie"
+  )) %>%
+  # Primero, sólo nos quedaremos con un registro por código distinto para cada
+  # muestra de transecto, ya que queremos encontrar los transectos que tienen
+  # puros registros de invertebrados con "tipo == NA" (no importa cuántos tengan)
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    tipo
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto,
+    nombre_sitio,
+    identificador_muestreo_sitio,
+    transecto
+  ) %>%
+  mutate(
+    numero_registros = n()
+  ) %>%
+  # Quedándonos sólo con los transectos que tienen un único registro y es NA
+  filter(is.na(tipo), numero_registros == 1) %>%
+  select(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  )
+
+View(transectos_invertebrados_sin_observaciones)
+# Hay muchos transectos de invertebrados sin observaciones
+
+write_csv(transectos_invertebrados_sin_observaciones,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/transectos_invertebrados_sin_observaciones.csv"))
+
+# 2. Revisando que para cada muestra de transecto con información de cuentas de
+# invertebrados, no haya en los archivos de Excel registros distintos con el mismo
+# tipo.
+
+invertebrados_agregados_por_transecto_tipos_duplicados_mismo_transecto <-
+  datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    # conacyt_greenpeace_2016_invertebrados_desagregados,
+    "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    tipo
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  ungroup() %>%
+  filter(n > 1)
+
+View(invertebrados_agregados_por_transecto_tipos_duplicados_mismo_transecto)
+# Hay muchos tipos NA duplicados por muestreo de transecto... tener cuidado con
+# esto a la hora de integrar los datos. Además, Esme debe revisarlos, ya que parece
+# que hay muchos muestreos de sitio introducidos varias veces.
+
+write_csv(invertebrados_agregados_por_transecto_tipos_duplicados_mismo_transecto,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/invertebrados_agregados_por_transecto_tipos_duplicados_mismo_transecto.csv"))
+
+# 3. Revisando cantidad de transectos por muestreo de sitio.
+
+invertebrados_por_transecto_cantidad_transectos_por_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_invertebrados_desagregados",
+    "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    numero_transectos = n()
+  ) %>%
+  arrange(numero_transectos)
+
+View(invertebrados_por_transecto_cantidad_transectos_por_sitio)
+
+write_csv(invertebrados_por_transecto_cantidad_transectos_por_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/invertebrados_por_transecto_cantidad_transectos_por_sitio.csv"))
+
+# 4. Creando una tabla auxiliar con la cantidad de registros por transecto 
+# (registros = renglones de Excel). Este data frame en realidad se puede
+# considerar un resumen del contenido de los archivos asociados.
+
+invertebrados_por_transecto_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_invertebrados_desagregados",                               
+    "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+View(invertebrados_por_transecto_resumen_contenido_archivos)
+# Parece que hay transectos con una cantidad excesiva de observaciones. Hay que
+# tener cuidado con estos.
+
+write_csv(invertebrados_por_transecto_resumen_contenido_archivos,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/invertebrados_por_transecto_resumen_contenido_archivos.csv"))
+
+### Muestra_transecto_complejidad_info ###
+
+# Archivos involucrados:
+# - "conacyt_greenpeace_2016_complejidad"
+# - "historicos_y_2017_transecto_complejidad_desagregada_cadena"
+
+# 1. Creando una tabla auxiliar con la cantidad de registros por transecto 
+# (registros = renglones de Excel). Este data frame en realidad se puede
+# considerar un resumen del contenido de los archivos asociados.
+
+complejidad_por_transecto_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_complejidad",                               
+    "historicos_y_2017_transecto_complejidad_desagregada_cadena"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+View(complejidad_por_transecto_resumen_contenido_archivos)
+# Parece que hay transectos con una cantidad excesiva de observaciones. Hay que
+# tener cuidado con estos.
+
+write_csv(complejidad_por_transecto_resumen_contenido_archivos,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/complejidad_por_transecto_resumen_contenido_archivos.csv"))
+
+# 2. Revisando cantidad de transectos por muestreo de sitio.
+
+complejidad_por_transecto_cantidad_transectos_por_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_complejidad",
+    "historicos_y_2017_transecto_complejidad_desagregada_cadena"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    numero_transectos = n()
+  ) %>%
+  arrange(numero_transectos)
+
+View(complejidad_por_transecto_cantidad_transectos_por_sitio)
+
+write_csv(complejidad_por_transecto_cantidad_transectos_por_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/complejidad_por_transecto_cantidad_transectos_por_sitio.csv"))
+
+### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
+
+# Archivos involucrados:
+# - "conacyt_greenpeace_2016_reclutas_desagregados"
+# - "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla"
+# - "historicos_y_2017_cuadrante_reclutas_desagregados".
+# Nota: con respecto a los archivos:
+# "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla
+# e "historicos_y_2017_cuadrante_reclutas_desagregados" se comprendió erróneamente
+# el concepto de "reclutas desagredasos"... no se entendió que los reclutas
+# desagregados son los que fueron medidos individualmente, en otro caso, debían
+# ser agregados por muestreo, código de especie y categoría de talla. Para evitar
+# problemas, se decidió modificar el esquema de datos para que este error no
+# fuera importante.
+
+
+
+
+
+
+################################################################################
+
+
+
+# 1. Revisando las muestras de cuadrante de reclutas que tuvieron observaciones.
+
+cuadrantes_reclutas_con_observaciones <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_reclutas_desagregados",                               
+    "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_cuadrante_reclutas_desagregados"
+  )) %>%
+  # Filtraremos las observaciones con "codigo == NA", de esta manera, se eliminarán
+  # todos los cuadrantes con puros NA's en "código"
+  filter(!is.na(codigo)) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    cuadrante
+  )
+
+View(cuadrantes_reclutas_con_observaciones)
+
+write_csv(cuadrantes_reclutas_con_observaciones,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/cuadrantes_reclutas_con_observaciones.csv"))
+
+# 2. Revisando que para cada muestra de cuadrante con información de cuentas de
+# reclutas, no haya en los archivos de Excel registros distintos con el mismo
+# código de especie y categoría de talla
+
+reclutas_agregados_por_cuadrante_codigos_tamanios_duplicados_mismo_cuadrante <-
+  datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    cuadrante,
+    codigo,
+    categoria_tamanio
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  ungroup() %>%
+  filter(n > 1) %>%
+  arrange(desc(n))
+
+View(reclutas_agregados_por_cuadrante_codigos_tamanios_duplicados_mismo_cuadrante)
+# Hay muchas combinaciones de código de especie y categoría de talla duplicadas
+# para los mismos cuadrantes. Esme tiene que revisarlo porque yo simplemente
+# agregaré los datos.
+
+write_csv(reclutas_agregados_por_cuadrante_codigos_tamanios_duplicados_mismo_cuadrante,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/reclutas_agregados_por_cuadrante_codigos_tamanios_duplicados_mismo_cuadrante.csv"))
+
+# 3. Revisando cantidad de cuadrantes por muestreo de transecto
+
+reclutas_por_cuadrante_cantidad_cuadrantes_por_transecto <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_reclutas_desagregados",                               
+    "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_cuadrante_reclutas_desagregados"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    cuadrante
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    numero_cuadrantes = n()
+  ) %>%
+  arrange(numero_cuadrantes)
+
+View(reclutas_por_cuadrante_cantidad_cuadrantes_por_transecto)
+
+write_csv(reclutas_por_cuadrante_cantidad_cuadrantes_por_transecto,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/reclutas_por_cuadrante_cantidad_cuadrantes_por_transecto.csv"))
+
+# 4. Revisando cantidad de transectos por muestreo de sitio.
+
+reclutas_por_cuadrante_cantidad_transectos_por_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_reclutas_desagregados",                               
+    "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_cuadrante_reclutas_desagregados"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    numero_transectos = n()
+  ) %>%
+  arrange(numero_transectos)
+
+View(reclutas_por_cuadrante_cantidad_transectos_por_sitio)
+
+write_csv(reclutas_por_cuadrante_cantidad_transectos_por_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/reclutas_por_cuadrante_cantidad_transectos_por_sitio.csv"))
+
+# 5. Creando una tabla auxiliar con la cantidad de registros por cuadrante 
+# (registros = renglones de Excel). Este data frame en realidad se puede
+# considerar un resumen del contenido de los archivos asociados.
+
+reclutas_por_cuadrante_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_reclutas_desagregados",                               
+    "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_cuadrante_reclutas_desagregados"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    cuadrante
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+View(reclutas_por_cuadrante_resumen_contenido_archivos)
+# Parece que hay transectos con una cantidad excesiva de observaciones. Hay que
+# tener cuidado con estos.
+
+write_csv(reclutas_por_cuadrante_resumen_contenido_archivos,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/reclutas_por_cuadrante_resumen_contenido_archivos.csv"))
+
+################################################################################
+
+### Muestra_subcuadrante_de_transecto_complejidad_info ###
+
+# Archivos involucrados:
+# - "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve"
+
+# 1. Creando una tabla auxiliar con la cantidad de registros por cuadrante 
+# (registros = renglones de Excel). Este data frame en realidad se puede
+# considerar un resumen del contenido de los archivos asociados.
+
+complejidad_por_cuadrante_resumen_contenido_archivos <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve"
+  )) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    cuadrante
+  ) %>%
+  summarise(
+    n = n()
+  ) %>%
+  arrange(desc(n))
+
+View(complejidad_por_cuadrante_resumen_contenido_archivos)
+# Parece que hay transectos con una cantidad excesiva de observaciones. Hay que
+# tener cuidado con estos.
+
+write_csv(complejidad_por_cuadrante_resumen_contenido_archivos,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/complejidad_por_cuadrante_resumen_contenido_archivos.csv"))
+
+# 2. Revisando cantidad de cuadrantes por muestreo de transecto
+
+complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto,
+    cuadrante
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  summarise(
+    numero_cuadrantes = n()
+  ) %>%
+  arrange(numero_cuadrantes)
+
+View(complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto)
+
+write_csv(complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto.csv"))
+
+# 3. Revisando cantidad de transectos por muestreo de sitio.
+
+complejidad_por_cuadrante_cantidad_transectos_por_sitio <- datos_globales_columnas_selectas %>%
+  filter(archivo_origen %in% c(
+    "historicos_y_2017_transecto_complejidad_desagregada_maximo_relieve"
+  )) %>%
+  distinct(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio, # identificador de muestreo para proyectos CONACyT / GreenPeace
+    transecto
+  ) %>%
+  group_by(
+    archivo_origen,
+    nombre_proyecto, # nombre_del_muestreo con información de remuestreos de sitio,
+    nombre_sitio,
+    identificador_muestreo_sitio # identificador de muestreo para proyectos CONACyT / GreenPeace
+  ) %>%
+  summarise(
+    numero_transectos = n()
+  ) %>%
+  arrange(numero_transectos)
+
+View(complejidad_por_cuadrante_cantidad_transectos_por_sitio)
+
+write_csv(complejidad_por_cuadrante_cantidad_transectos_por_sitio,
+  paste0(ruta_salidas_3_crear_df_homologado,
+    "/complejidad_por_cuadrante_cantidad_transectos_por_sitio.csv"))
 
 ################################################################################
 
@@ -1494,123 +2410,6 @@ saveRDS(datos_globales,
 ### niveles de agregación de los datos, en particular, en las tablas que sufrieron
 ### agregaciones de datos.
 
-  ###############################################################
-  # Transformaciones finales por "archivo_origen"
-  ###############################################################
-  
-  ### Muestra_transecto_corales_observacion ###
-  
-  # Archivos de Excel relacionados:
-  # - "conacyt_greenpeace_2016_corales_desagregados"
-  # - "historicos_y_2017_transecto_corales_desagregados_colonias_individuales"
-  
-  # - Se revisará que todos los transectos estén declarados, independientemente
-  # de si tuvieron o no observaciones.
-  
-  ### Muestra_transecto_peces_cuenta ###
-  
-  # Archivos de Excel relacionados:
-  # - "conacyt_greenpeace_2016_peces_agregados_especie_talla"
-  # - "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados"
-  # - "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla"
-  # - "historicos_y_2017_transecto_peces_desagregados_especie_talla"
-  
-  # - Se cambiará el campo "especie" por "nombre_cientifico". Revisar que no haya
-  #   registros duplicados al hacer el join con el catálogo, pues "especie" no es
-  #   una llave natural de "catalogos_muestra_transecto_peces_cuenta__nombre_cientifico".
-  # - Se agregarán registros con los mismos valores en: "Muestreo.nombre", "Muestra_sitio.nombre",
-  #   "Muestra_sitio.aux_remuestreo_en_mismo_muestreo", "Muestra_transecto.nombre", "nombre_cientifico",
-  #   por consistencia con la tabla de interés.
-  # - Se revisará que todos los transectos estén incluídos, independiente si
-  #   tienen o no observaciones.
-  # - Se transformarán los datos para darles la estructura apropiada.
-  
-  ### Revisión de Esme con respecto a los puntos anteriores:
-revision_numero_transectos_muestreo_sitio <- datos_globales %>%
-  filter(archivo_origen %in% c(
-    "conacyt_greenpeace_2016_bentos_desagregados",
-    "conacyt_greenpeace_2016_corales_desagregados",
-    "conacyt_greenpeace_2016_invertebrados_desagregados",
-    "conacyt_greenpeace_2016_peces_agregados_especie_talla",
-    "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura",
-    "historicos_y_2017_transecto_bentos_desagregados_pit_lit",
-    "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados",
-    "historicos_y_2017_transecto_corales_desagregados_colonias_individuales",
-    "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie",
-    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla",
-    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
-    "historicos_y_2017_transecto_peces_desagregados_especie_talla"
-    
-    # Los transectos
-  )) %>%
-  select(
-    archivo_origen,
-    Muestreo.nombre,
-    Muestra_sitio.nombre,
-    Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
-    Muestra_transecto.nombre
-  ) %>%
-  distinct() %>%
-  group_by(
-    archivo_origen,
-    Muestreo.nombre,
-    Muestra_sitio.nombre,
-    Muestra_sitio.aux_remuestreo_en_mismo_muestreo) %>%
-  tally()
-
-revision_numero_cuadrantes_muestreo_transecto <- datos_globales %>%
-  filter(archivo_origen %in% c(
-    "conacyt_greenpeace_2016_bentos_desagregados",
-    "conacyt_greenpeace_2016_corales_desagregados",
-    "conacyt_greenpeace_2016_invertebrados_desagregados",
-    "conacyt_greenpeace_2016_peces_agregados_especie_talla",
-    "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura",
-    "historicos_y_2017_transecto_bentos_desagregados_pit_lit",
-    "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados",
-    "historicos_y_2017_transecto_corales_desagregados_colonias_individuales",
-    "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie",
-    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla",
-    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
-    "historicos_y_2017_transecto_peces_desagregados_especie_talla"
-  )) %>%
-  select(
-    archivo_origen,
-    Muestreo.nombre,
-    Muestra_sitio.nombre,
-    Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
-    Muestra_transecto.nombre
-  ) %>%
-  distinct() %>%
-  group_by(
-    archivo_origen,
-    Muestreo.nombre,
-    Muestra_sitio.nombre,
-    Muestra_sitio.aux_remuestreo_en_mismo_muestreo) %>%
-  tally()
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-# Esperando a Esme:
-# 1. Ver si puedo cambiar el nombre de ""historicos_y_2017_transecto_invertebrados_agregados_conteos_especie""
-# a "historicos_y_2017_cuadrante_invertebrados_agregados_conteos_especie"
-
 
 # Para porcentaje, si blanqueamiento es NO o NA, vale NA. en otro caso, puede
 # valer el porcentaje de blanqueamiento del tipo seleccionado o NA si no se
@@ -1664,9 +2463,3 @@ revision_numero_cuadrantes_muestreo_transecto <- datos_globales %>%
 #   mortalidad_total)
 
 # )
-
-
-
-
-
-
