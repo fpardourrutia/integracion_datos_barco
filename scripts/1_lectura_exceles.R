@@ -22,15 +22,15 @@ options(nwarnings=50000)
 
 lista_tablas_crudas_exceles_conacyt_greenpeace_2016 <- leer_exceles(ruta_carpeta_conacyt_greenpeace_2016, 2)
 saveRDS(lista_tablas_crudas_exceles_conacyt_greenpeace_2016,
-  paste0(ruta_salidas_0_leer_exceles, "/lista_tablas_crudas_exceles_conacyt_greenpeace_2016.RData"))
+  paste0(rutas_salida[1], "/lista_tablas_crudas_exceles_conacyt_greenpeace_2016.RData"))
 
 lista_tablas_crudas_exceles_historicos_y_2017 <- leer_exceles(ruta_carpeta_historicos_y_2017, 1)
 saveRDS(lista_tablas_crudas_exceles_historicos_y_2017,
-  paste0(ruta_salidas_0_leer_exceles, "/lista_tablas_crudas_exceles_historicos_y_2017.RData"))
+  paste0(rutas_salida[1], "/lista_tablas_crudas_exceles_historicos_y_2017.RData"))
 
 lista_catalogos <- leer_exceles(ruta_carpeta_catalogos, 1) %>%
   renombra_columnas_minusculas()
-saveRDS(lista_catalogos, paste0(ruta_salidas_0_leer_exceles, "/lista_catalogos.RData"))
+saveRDS(lista_catalogos, paste0(rutas_salida[1], "/lista_catalogos.RData"))
 
 ################################################################################
 # Leyendo archivos con datos adicionales
@@ -43,7 +43,7 @@ tabla_campos_adicionales_conacyt_greenpeace_2016 <- ruta_carpeta_conacyt_greenpe
     nombre_sitio = estandariza_strings(nombre_sitio)
   )
 saveRDS(tabla_campos_adicionales_conacyt_greenpeace_2016,
-  paste0(ruta_salidas_0_leer_exceles, "/tabla_campos_adicionales_conacyt_greenpeace_2016.RData"))
+  paste0(rutas_salida[1], "/tabla_campos_adicionales_conacyt_greenpeace_2016.RData"))
 
 tabla_campos_adicionales_historicos_y_2017 <- ruta_carpeta_historicos_y_2017 %>%
   paste0(subruta_tabla_campos_adicionales_sitio) %>%
@@ -52,5 +52,5 @@ tabla_campos_adicionales_historicos_y_2017 <- ruta_carpeta_historicos_y_2017 %>%
     nombre_sitio = estandariza_strings(nombre_sitio)
   )
 saveRDS(tabla_campos_adicionales_historicos_y_2017,
-  paste0(ruta_salidas_0_leer_exceles, "/tabla_campos_adicionales_historicos_y_2017.RData"))
+  paste0(rutas_salida[1], "/tabla_campos_adicionales_historicos_y_2017.RData"))
 

@@ -1,10 +1,11 @@
 # En este script se revisan las listas de data frames con la información leída
-# de los archivos de Excel. Básicamente:
-# 1. Se leen las listas de tablas y catálogos que tienen los nombres de columnas
+# de los archivos de Excel. Las revisiones contenidas en este script son
+# basadas en el esquema de datos. Se siguen los siguientes pasos:
+# 1. Se leen las listas de tablas y catálogos que tienen nombres de columnas
 # homologados.
 # 2. Se hacen revisiones de qué tablas contienen qué columnas
 # 3. Se revisan los campos ligados a catálogo contra su correspondiente catálogo.
-# 4. Se revisan columnas numéricas.
+# 4. Se revisan columnas que deben ser numéricas de acuerdo al esquema de datos.
 # 5. Se revisan campos que no deben estar vacíos debido a que el esquema de datos
 # así lo pide.
 
@@ -19,9 +20,9 @@ source("funciones_auxiliares.R")
 
 # Leyendo listas de exceles
 lista_tablas_columnas_homologadas <- readRDS(
-  paste0(ruta_salidas_1_homologar_columnas, "/lista_tablas_columnas_homologadas.RData"))
+  paste0(rutas_salida[2], "/lista_tablas_columnas_homologadas.RData"))
 lista_catalogos <- readRDS(
-  paste0(ruta_salidas_0_leer_exceles, "/lista_catalogos.RData"))
+  paste0(rutas_salida[1], "/lista_catalogos.RData"))
 
 ################################################################################
 # 2. Revisando las relaciones exceles/columnas que contienen
@@ -260,7 +261,7 @@ valores_no_presentes_en_catalogo <- revisa_columnas_catalogos(
   tally()
 
 write_csv(valores_no_presentes_en_catalogo,
-  paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_no_presentes_en_catalogo.csv"))
+  paste0(rutas_salida[4], "/valores_no_presentes_en_catalogo.csv"))
 
 ################################################################################
 # 4. Revision de valores numéricos:
@@ -500,7 +501,7 @@ valores_esperados_numericos <- revisa_columnas_numericas(lista_tablas_columnas_h
   ceros_aceptables = FALSE)
 
 write_csv(valores_esperados_numericos,
-  paste0(ruta_salidas_2_revisar_listas_exceles, "/valores_esperados_numericos.csv"))
+  paste0(rutas_salida[4], "/valores_esperados_numericos.csv"))
 
 ################################################################################
 # 5. Revision de valores no vacíos por diseño del esquema de datos:
@@ -711,4 +712,4 @@ columnas_obligatorias_a_revisar <- revisa_columnas_valores(lista_tablas_columnas
   tally()
 
 write_csv(columnas_obligatorias_a_revisar,
-  paste0(ruta_salidas_2_revisar_listas_exceles, "/columnas_obligatorias_a_revisar.csv"))
+  paste0(rutas_salida[4], "/columnas_obligatorias_a_revisar.csv"))

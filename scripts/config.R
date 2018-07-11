@@ -1,3 +1,5 @@
+library("plyr")
+
 # En este script se especifican los diversos parámetros que permean a todo los
 # scripts de integración de datos, por lo que conviene tenerlos concentrados
 # en un sólo lugar
@@ -17,16 +19,18 @@ subruta_tabla_campos_adicionales_sitio <- "/_tablas_individuales/campos_adiciona
 # Ruta de salida:
 ruta_salida <- "../productos/v3"
 
-# Rutas de salida por número de script, notar que los nombres de las carpetas
-# correspondientes a cada script son derivados del nombre de este (no son los mismos,
-# para mejorar el entendimiento de las salidas)
-ruta_salidas_0_leer_exceles <- paste0(ruta_salida, "/0_tablas_crudas_exceles")
-ruta_salidas_1_homologar_columnas <- paste0(ruta_salida, "/1_tablas_columnas_homologadas")
-ruta_salidas_2_revisar_listas_exceles <- paste0(ruta_salida, "/2_revisiones_exceles")
-ruta_salidas_3_crear_df_homologado <- paste0(ruta_salida, "/3_revisiones_adicionales_y_df_homologado")
+# Vector de rutas de salida por número de script. Notar que los nombres de las
+# carpetas correspondientes a cada script son derivados del nombre de este
+# (no son los mismos, para mejorar el entendimiento de las salidas)
+rutas_salida <- c()
+rutas_salida[1] <- paste0(ruta_salida, "/1_tablas_crudas_exceles")
+rutas_salida[2] <- paste0(ruta_salida, "/2_tablas_columnas_homologadas")
+rutas_salida[3] <- paste0(ruta_salida, "/3_revisiones_catalogos")
+rutas_salida[4] <- paste0(ruta_salida, "/4_revisiones_informacion_exceles_contra_esquema")
+rutas_salida[5] <- paste0(ruta_salida, "/5_revisiones_consistencia_informacion_exceles")
+rutas_salida[6] <- paste0(ruta_salida, "/6_datos_globales")
 
 # Creando carpetas de salida
-dir.create(ruta_salidas_0_leer_exceles)
-dir.create(ruta_salidas_1_homologar_columnas)
-dir.create(ruta_salidas_2_revisar_listas_exceles)
-dir.create(ruta_salidas_3_crear_df_homologado)
+l_ply(rutas_salida, function(ruta){
+  suppressWarnings(dir.create(ruta))
+})

@@ -85,7 +85,7 @@ leer_exceles <- function(ruta_carpeta_origen, hoja){
 # La función regresa el data frame descrito anteriormente
 # Nota: Considerar explorar el data frame resultante con las funciones glimpse(),
 # encuentra_columnas()", y colSums().
-crear_resumen_columnas_df <- function(lista_df){
+crea_resumen_columnas_df <- function(lista_df){
   resultado <- ldply(lista_df, function(df){
     
     # Para df, creando un data frame con un columna llamada "nombre_columna" que

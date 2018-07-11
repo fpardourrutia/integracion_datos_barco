@@ -13,9 +13,9 @@ source("funciones_auxiliares.R")
 ################################################################################
 
 lista_tablas_crudas_exceles_conacyt_greenpeace_2016 <- readRDS(
-  paste0(ruta_salidas_0_leer_exceles, "/lista_tablas_crudas_exceles_conacyt_greenpeace_2016.RData"))
+  paste0(rutas_salida[1], "/lista_tablas_crudas_exceles_conacyt_greenpeace_2016.RData"))
 tabla_campos_adicionales_conacyt_greenpeace_2016 <- readRDS(
-  paste0(ruta_salidas_0_leer_exceles, "/tabla_campos_adicionales_conacyt_greenpeace_2016.RData"))
+  paste0(rutas_salida[1], "/tabla_campos_adicionales_conacyt_greenpeace_2016.RData"))
 
 # Homologando los nombres de las columnas, y agregando las columnas en el archivo
 # "campos_adicionales_sitio.xlsx"
@@ -81,7 +81,7 @@ lista_tablas_columnas_homologadas_conacyt_greenpeace_2016 <- lista_tablas_crudas
 
 # Revisando:
 lista_tablas_columnas_homologadas_conacyt_greenpeace_2016 %>%
-  crear_resumen_columnas_df() %>%
+  crea_resumen_columnas_df() %>%
   glimpse()
 
 ################################################################################
@@ -89,9 +89,9 @@ lista_tablas_columnas_homologadas_conacyt_greenpeace_2016 %>%
 ################################################################################
 
 lista_tablas_crudas_exceles_historicos_y_2017 <- readRDS(
-  paste0(ruta_salidas_0_leer_exceles, "/lista_tablas_crudas_exceles_historicos_y_2017.RData"))
+  paste0(rutas_salida[1], "/lista_tablas_crudas_exceles_historicos_y_2017.RData"))
 tabla_campos_adicionales_historicos_y_2017 <- readRDS(
-  paste0(ruta_salidas_0_leer_exceles, "/tabla_campos_adicionales_historicos_y_2017.RData"))
+  paste0(rutas_salida[1], "/tabla_campos_adicionales_historicos_y_2017.RData"))
 
 # Homologando los nombres de las columnas, y agregando las columnas en el archivo
 # "campos_adicionales_sitio.xlsx"
@@ -215,7 +215,7 @@ lista_tablas_columnas_homologadas_historicos_y_2017 <- lista_tablas_crudas_excel
 
 # Revisando:
 lista_tablas_columnas_homologadas_historicos_y_2017 %>%
-  crear_resumen_columnas_df() %>%
+  crea_resumen_columnas_df() %>%
   glimpse()
 
 ################################################################################
@@ -230,7 +230,7 @@ lista_tablas_columnas_homologadas <- append(
 # Revisando nombres de las columnas
 names(lista_tablas_columnas_homologadas)
 lista_tablas_columnas_homologadas %>%
-  crear_resumen_columnas_df() %>%
+  crea_resumen_columnas_df() %>%
   glimpse()
 
 # Revisando que no haya duplicados en los nombres de las columnas dentro de cada
@@ -245,6 +245,6 @@ ldply(lista_tablas_columnas_homologadas, function(df){
 # Perfecto!
 
 saveRDS(lista_tablas_columnas_homologadas,
-  paste0(ruta_salidas_1_homologar_columnas, "/lista_tablas_columnas_homologadas.RData"))
+  paste0(rutas_salida[2], "/lista_tablas_columnas_homologadas.RData"))
 
 
