@@ -29,7 +29,7 @@ library("purrr") # Para "genera_tabla_2"
 # alfanuméricos y guion bajo para que los nombres sean asignados correctamente
 # 3. Todos los exceles deben contener una columna llamada "Serie", que enliste los
 # renglones no vacíos.
-leer_exceles <- function(ruta_carpeta_origen, hoja){
+lee_exceles <- function(ruta_carpeta_origen, hoja){
   
   # Obteniendo el nombre de la carpeta origen para formar el campo "archivo_origen"
   # y el nombre del archivo de warnings:

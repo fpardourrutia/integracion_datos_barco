@@ -20,15 +20,15 @@ options(nwarnings=50000)
 # Leyendo datos de los exceles
 ################################################################################
 
-lista_tablas_crudas_exceles_conacyt_greenpeace_2016 <- leer_exceles(ruta_carpeta_conacyt_greenpeace_2016, 2)
+lista_tablas_crudas_exceles_conacyt_greenpeace_2016 <- lee_exceles(ruta_carpeta_conacyt_greenpeace_2016, 2)
 saveRDS(lista_tablas_crudas_exceles_conacyt_greenpeace_2016,
   paste0(rutas_salida[1], "/lista_tablas_crudas_exceles_conacyt_greenpeace_2016.RData"))
 
-lista_tablas_crudas_exceles_historicos_y_2017 <- leer_exceles(ruta_carpeta_historicos_y_2017, 1)
+lista_tablas_crudas_exceles_historicos_y_2017 <- lee_exceles(ruta_carpeta_historicos_y_2017, 1)
 saveRDS(lista_tablas_crudas_exceles_historicos_y_2017,
   paste0(rutas_salida[1], "/lista_tablas_crudas_exceles_historicos_y_2017.RData"))
 
-lista_catalogos <- leer_exceles(ruta_carpeta_catalogos, 1) %>%
+lista_catalogos <- lee_exceles(ruta_carpeta_catalogos, 1) %>%
   renombra_columnas_minusculas()
 saveRDS(lista_catalogos, paste0(rutas_salida[1], "/lista_catalogos.RData"))
 
