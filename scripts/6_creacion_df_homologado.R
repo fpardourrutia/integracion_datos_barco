@@ -679,7 +679,6 @@ datos_globales <- datos_globales_columnas_selectas %>%
       Muestra_transecto.nombre,
       archivo_origen),
     function(df){
-      
       resultado <- df %>%
         mutate(
             Registro_observacion.numero_observacion = 1:nrow(df)
@@ -874,7 +873,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
         ) %>%
         rename(
           Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado = nombre_cientifico_abreviado,
-          Muestra_transecto_peces_cuenta.tamanio_minimo_cm = peces_tamanio_maximo_cm,
+          Muestra_transecto_peces_cuenta.tamanio_minimo_cm = peces_tamanio_minimo_cm,
           Muestra_transecto_peces_cuenta.tamanio_maximo_cm = peces_tamanio_maximo_cm,
           Muestra_transecto_peces_cuenta.cuenta = cuenta,
           Muestra_transecto_peces_cuenta.es_juvenil = es_juvenil
@@ -1044,12 +1043,10 @@ datos_globales <- datos_globales_columnas_selectas %>%
   }, .parallel = TRUE)
   
 saveRDS(datos_globales,
-  paste0(ruta_salidas_3_crear_df_homologado, "/datos_globales_preliminar.RDS"))
+  paste0(ruta_salidas_3_crear_df_homologado, "/datos_globales.RDS"))
 
-### Me quedé a punto de probar el código de la tabla "datos globales". Después
-### de esto revisaré el código con calma, generaré las tablas, crearé varios
-### resúmenes para revisarlas y las integraré en la base.
-
+### Me quedé generando las tablas, después crearé varios resúmenes para
+### revisarlas y las integraré en la base.
 
 # Para porcentaje, si blanqueamiento es NO o NA, vale NA. en otro caso, puede
 # valer el porcentaje de blanqueamiento del tipo seleccionado o NA si no se
