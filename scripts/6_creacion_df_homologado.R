@@ -1006,7 +1006,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           Muestra_transecto.nombre,
           # en el ddply ya se separó por "achivo_origen"
           Muestra_subcuadrante_de_transecto_reclutas_info.numero_cuadrante,
-          Tabla_observaciones.codigo,
+          Registro_observacion.codigo,
           Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio,
           Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm,
           Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm
@@ -1018,7 +1018,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
         # Eliminando duplicados, porque ya se tomaron en cuenta a la hora de
         # hacer el mutate(). No se puede usar summarise() porque se pierden las
         # otras columnas.
-        distint(
+        distinct(
           Muestreo.nombre,
           Muestra_sitio.nombre,
           Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
@@ -1026,7 +1026,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           Muestra_transecto.nombre,
           # en el ddply ya se separó por "achivo_origen"
           Muestra_subcuadrante_de_transecto_reclutas_info.numero_cuadrante,
-          Tabla_observaciones.codigo,
+          Registro_observacion.codigo,
           Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio,
           Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm,
           Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm,
