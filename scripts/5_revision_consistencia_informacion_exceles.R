@@ -358,7 +358,7 @@ write_csv(valores_a_revisar,
 
 # Se desea tener celdas vacías en lugar de la palabra "NA".
 
-campos_con_palabra_na <- datos_globales_crudos %>%
+campos_con_palabra_na <- tabla_revision %>%
   gather(variable, valor, -archivo_origen) %>%
   filter(valor == "NA") %>%
   unique()
@@ -969,7 +969,7 @@ peces_por_transecto_resumen_contenido_archivos <- tabla_revision %>%
   ) %>%
   arrange(desc(n))
 
-View(peces_por_transecto_resumen_contenido_archivos)
+# View(peces_por_transecto_resumen_contenido_archivos)
 
 write_csv(peces_por_transecto_resumen_contenido_archivos,
   paste0(rutas_salida[5],
@@ -1396,7 +1396,7 @@ complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto <- tabla_revision %>
   ) %>%
   arrange(numero_cuadrantes)
 
-View(complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto)
+# View(complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto)
 
 write_csv(complejidad_por_cuadrante_cantidad_cuadrantes_por_transecto,
   paste0(rutas_salida[5],

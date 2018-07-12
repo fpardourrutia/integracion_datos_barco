@@ -59,21 +59,6 @@ tabla_revision %>%
   })
 
 ################################################################################
-
-# Revisando cuántos catálogos tienen cada columna, para ver si hay que renombrar
-# o no.
-crear_resumen_columnas_df(lista_catalogos) %>%
-  select(-nombre_df) %>%
-  gather("variable", "valor") %>%
-  group_by(variable) %>%
-  summarise(
-    n = sum(valor)
-  ) %>%
-  arrange(variable) %>%
-  View()
-# Parece que todo bien
-
-################################################################################
 # 3. Revision de valores en catálogos:
 ################################################################################
 
