@@ -463,6 +463,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   
   mutate(
     # Muestra_sitio_bentos_info.longitud_muestreada_media_m,
+    
     Muestra_._bentos_info.numero_puntos_muestreados = case_when(
       stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "PIT" ~
         as.integer(puntos_o_cm_reales_transecto),
@@ -637,11 +638,12 @@ datos_globales <- datos_globales_columnas_selectas %>%
     Muestra_subcuadrante_de_transecto_complejidad_info.comentarios = NA_character_
   ) %>%
   
-  ### Tablas de datos ###
+  ### Tablas de registros de observaciones ###
   
-  # Las tablas de datos corresponden a las tablas que contienen los datos
-  # correspondientes a un muestreo particular de determinado aspecto. Por ejemplo,
-  # "Muestra_transecto_bentos_punto" o "Muestra_transecto_corales_observacion".
+  # Las tablas de registros de observaciones corresponden a las tablas que
+  # contienen los datos correspondientes a un muestreo particular de determinado
+  # aspecto. Por ejemplo, "Muestra_transecto_bentos_punto" o
+  # "Muestra_transecto_corales_observacion".
   
   # Cabe destacar que al operar sobre estas tablas, se debe tener cuidado de no
   # perder los registros de muestreos realizados pero donde no se obtuvieron
@@ -649,8 +651,8 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # invertebrados.
     
   # Para todas las tablas de datos:
-  # - Datos.codigo = codigo
-  # - La columna "Datos.numero_observacion" corresponde a la
+  # - Registro_observacion.codigo = codigo
+  # - La columna "Registro_observacion.numero_observacion" corresponde a la
   #   enumeración de observaciones para cada muestreo de determinado aspecto en
   #   determinado muestreo de transecto.
   
@@ -663,10 +665,10 @@ datos_globales <- datos_globales_columnas_selectas %>%
   #   aparecen observaciones de la misma naturaleza (por lo que tiene sentido
   #   enlistarlas).
 
-  # Notar que este número no tiene significado para muchos archivos de Excel (los
-  # que contienen datos de complejidad, de toma de datos en cuadrantes, o datos
-  # agregados). Sin embargo, para no agregar complejidad al código, se decidió
-  # calcularla para todos los archivos de Excel. Simplemente hacer caso omiso de
+  # Notar que este número no tiene significado para muchas tablas en el esquema
+  # (las que contienen datos de complejidad, de toma de datos en cuadrantes, o
+  # datos agregados). Sin embargo, para no agregar complejidad al código, se
+  # decidió calcularla para todos los datos. Simplemente hacer caso omiso de
   # esta columna para las tablas en que no tiene sentido.
   
   ddply(
@@ -680,16 +682,16 @@ datos_globales <- datos_globales_columnas_selectas %>%
       
       resultado <- df %>%
         mutate(
-            Datos.numero_observacion = 1:nrow(df)
+            Registro_observacion.numero_observacion = 1:nrow(df)
           )
       return(resultado)
   }, .parallel = TRUE) %>%
   
   rename(
-    Datos.codigo = codigo
+    Registro_observacion.codigo = codigo
     # Para los archivos de peces se tiene la columna "nombre_cientifico_abreviado"
     # que es más útil, y para invertebrados se tiene únicamente "tipo". Por ello,
-    # "Datos.codigo" sólamente es útil para bentos, corales y reclutas
+    # "Registro_observacion.codigo" sólamente es útil para bentos, corales y reclutas
   ) %>%
   
   ### Muestra_sitio/transecto_bentos_porcentaje
@@ -715,7 +717,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           # y se agregará por sitio.
           Muestra_transecto.nombre, 
           # en el ddply ya se separó por "archivo_origen"
-          Datos.codigo
+          Registro_observacion.codigo
         ) %>%
         mutate(
           Muestra_._bentos_porcentaje.porcentaje_cobertura = sum(
@@ -732,7 +734,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
           Muestra_transecto.nombre,
           # en el ddply ya se separó por "achivo_origen"
-          Datos.codigo,
+          Registro_observacion.codigo,
           .keep_all = TRUE
         )
     } else{
@@ -854,11 +856,11 @@ datos_globales <- datos_globales_columnas_selectas %>%
         # que filtrar a la hora de crear la tabla: "Muestra_transecto_peces_cuenta".
         filter(!is.na(cuenta) | is.na(nombre_cientifico_abreviado)) %>%
         # Generando campos de "tamanio_minimo_cm" y "tamanio_maximo_cm"
-        separate(col = peces_tamanio_min_max, into = c("etiqueta_1", "etiqueta_2",
+        separate(col = peces_tamanio_min_max, into = c("peces", "tamanio",
           "peces_tamanio_minimo_cm", "peces_tamanio_maximo_cm")) %>%
         select(
-          -etiqueta_1,
-          -etiqueta_2
+          -peces,
+          -tamanio
         ) %>%
         mutate(
           # Quitándoles la etiqueta de "cm" a "peces_tamanio_minimo_cm" y "peces_tamanio_maximo_cm"
@@ -977,7 +979,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
       resultado <- df
     }
     return(resultado)
-  }) %>%
+  }, .parallel = TRUE) %>%
   
    
   rename(
