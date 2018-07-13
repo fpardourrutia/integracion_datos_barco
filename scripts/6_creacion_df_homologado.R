@@ -1,12 +1,14 @@
-# En este script se crea un data frame homologado con la información en
-# "lista_tablas_columnas_homologadas".
+# En este script se toma "lista_tablas_columnas_homologadas· y se crea un data
+# frame listo para ser separado en las tablas descritas en el esquema v5".
 
 # La idea básica es la siguiente:
 # 1. Se agregan los data frames en "lista_tablas_columnas_homologadas" en uno sólo.
 # 2. Del data frame anterior, se seleccionan las columnas con información de
 # interés para el esquema v5 de la base de datos
 # 3. Se realizan diversas transformaciones en el data frame anterior con el fin
-# de formar las tablas y columnas especificadas en el esquema v5.
+# de formar un nuevo data frame que se pueda dividir fácilmente en las tablas y
+# columnas especificadas en el esquema v5.
+# 4. Se realiza una revisión rápida del data frame formado en el paso 3. 
 
 # Se supone que los datos están lo más limpios posible a la hora de formar el
 # data frame, anterior. Toda imperfección deberá ser arreglada en los archivos
@@ -48,106 +50,108 @@ datos_globales_crudos <- Reduce(rbind.fill, lista_tablas_columnas_homologadas) %
 
 datos_globales_columnas_selectas <- datos_globales_crudos %>%
   
-  ## Mutate numeric eliminará por completo cualquier valor no numérico en las
+  ## Mutate numeric_integer eliminará por completo cualquier valor no numérico en las
   ## columnas seleccionadas
-  mutate_numeric(
+  mutate_numeric_integer(c(
+    
+    ### Auxiliar ###
+    "serie" = "integer",
     
     ### Muestreo ###
-    "anio_inicio_proyecto",
-    "anio_termino_proyecto",
+    "anio_inicio_proyecto" = "integer",
+    "anio_termino_proyecto" = "integer",
     
     ### Muestra_sitio ###
-    "anio",
-    "mes",
-    "dia",
-    "hora",
-    "minutos",
-    "latitud",
-    "longitud",
-    "temperatura_c",
-    "profundidad_media_m_sitio",
+    "anio" = "integer",
+    "mes" = "integer",
+    "dia" = "integer",
+    "hora" = "integer",
+    "minutos" = "integer",
+    "latitud" = "numeric",
+    "longitud" = "numeric",
+    "temperatura_c" = "numeric",
+    "profundidad_media_m_sitio" = "numeric",
     
     ### Muestra_transecto ###
-    "profundidad_inicial_m",
-    "profundidad_final_m",
-    "longitud_cuadrante_m",
-    "ancho_cuadrante_m",
+    "profundidad_inicial_m" = "numeric",
+    "profundidad_final_m" = "numeric",
+    "longitud_cuadrante_m" = "numeric",
+    "ancho_cuadrante_m" = "numeric",
     
     ### Muestra_sitio_bentos_info ###
-    "puntos_o_cm_reales_transecto",
+    "puntos_o_cm_reales_transecto" = "integer",
     
     ### Muestra_sitio_bentos_porcentaje ###
-    "cobertura",
+    "cobertura" = "numeric",
     
     ### Muestra_transecto_bentos_info ###
-    "longitud_transecto_m",
+    "longitud_transecto_m" = "numeric",
     # "puntos_o_cm_reales_transecto",
     
     ### Muestra_transecto_bentos_punto ###
-    "altura_algas_cm",
+    "altura_algas_cm" = "numeric",
     
     ### Muestra_transecto_bentos_porcentaje ###
     # "cobertura",
     
     ### Muestra_transecto_corales_info ###
     # "longitud_transecto_m",
-    "ancho_transecto_m",
+    "ancho_transecto_m" = "numeric",
     
     ### Muestra_transecto_corales_observacion ###
-    "d1_max_diam_cm",
-    "d2_min_diam_cm",
-    "altura_maxima_cm",
-    "porcentaje",
-    "mortalidad_antigua",
-    "mortalidad_reciente",
-    "mortalidad_total",
-    "mortalidad_transicion",
+    "d1_max_diam_cm" = "numeric",
+    "d2_min_diam_cm" = "numeric",
+    "altura_maxima_cm" = "numeric",
+    "porcentaje" = "integer",
+    "mortalidad_antigua" = "integer",
+    "mortalidad_reciente" = "integer",
+    "mortalidad_total" = "integer",
+    "mortalidad_transicion" = "integer",
     
     ### Muestra_transecto_peces_info ###
     # "longitud_transecto_m",
     # "ancho_transecto_m",
     
     ### Muestra_transecto_peces_cuenta ###
-    "peces_tamanio_0cm_5cm",
-    "peces_tamanio_101cm_110cm",
-    "peces_tamanio_101cm_9999cm",
-    "peces_tamanio_111cm_120cm",
-    "peces_tamanio_11cm_20cm",
-    "peces_tamanio_191cm_200cm",
-    "peces_tamanio_21cm_30cm",
-    "peces_tamanio_31cm_40cm",
-    "peces_tamanio_41cm_50cm",
-    "peces_tamanio_51cm_60cm",
-    "peces_tamanio_61cm_70cm",
-    "peces_tamanio_6cm_10cm",
-    "peces_tamanio_71cm_80cm",
-    "peces_tamanio_81cm_90cm",
-    "peces_tamanio_91cm_100cm",
+    "peces_tamanio_0cm_5cm" = "integer",
+    "peces_tamanio_101cm_110cm" = "integer",
+    "peces_tamanio_101cm_9999cm" = "integer",
+    "peces_tamanio_111cm_120cm" = "integer",
+    "peces_tamanio_11cm_20cm" = "integer",
+    "peces_tamanio_191cm_200cm" = "integer",
+    "peces_tamanio_21cm_30cm" = "integer",
+    "peces_tamanio_31cm_40cm" = "integer",
+    "peces_tamanio_41cm_50cm" = "integer",
+    "peces_tamanio_51cm_60cm" = "integer",
+    "peces_tamanio_61cm_70cm" = "integer",
+    "peces_tamanio_6cm_10cm" = "integer",
+    "peces_tamanio_71cm_80cm" = "integer",
+    "peces_tamanio_81cm_90cm" = "integer",
+    "peces_tamanio_91cm_100cm" = "integer",
     
     ### Muestra_transecto_invertebrados_info ###
     # "longitud_transecto_m",
     # "ancho_transecto_m",
     
     ### Muestra_transecto_invertebrados_cuenta ###
-    "conteo",
+    "conteo" = "integer",
     
     ### Muestra_subcuadrante_de_transecto_reclutas_info ###
     # "cuadrante",
     
     ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
-    "tamanio_minimo_cm",
-    "tamanio_maximo_cm",
-    "n",
+    "tamanio_minimo_cm" = "numeric",
+    "tamanio_maximo_cm" = "numeric",
+    "n" = "integer",
     
     ### Muestra_transecto_complejidad_info ###
     # "longitud_transecto_m",
-    "tamanio_cadena_m",
+    "tamanio_cadena_m" = "numeric",
     
     ### Muestra_subcuadrante_de_transecto_complejidad_info ###
     # "cuadrante",
-    "relieve",
-    warnings = FALSE
-  ) %>%
+    "relieve" = "numeric"
+  ), warnings = FALSE) %>%
   
   ## Reestructurando columnas booleanas:
   mutate(
@@ -241,7 +245,12 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     -X__2,
     -x__1,
     -zona_arrecife_redundante
-  )
+  ) %>%
+  
+  # Ordenando las columnas en orden alfabético
+  select(noquote(sort(colnames(.))))
+
+glimpse(datos_globales_columnas_selectas)
 
 ################################################################################
 # 3. Creando la tabla con la información lista para ser integrada
@@ -327,8 +336,8 @@ datos_globales <- datos_globales_columnas_selectas %>%
   ) %>%
   mutate(
     # Agregando un 0 antes de meses y días cuando se requiera:
-    mes = ifelse(as.numeric(mes) %in% c(1:9), paste0("0", mes), mes),
-    dia = ifelse(as.numeric(dia) %in% c(1:9), paste0("0", dia), dia),
+    mes = ifelse(mes %in% c(1:9), paste0("0", mes), mes),
+    dia = ifelse(dia %in% c(1:9), paste0("0", dia), dia),
     Muestra_sitio.fecha = paste0(anio, "-", mes, "-", dia)
   ) %>%
   select(
@@ -338,8 +347,8 @@ datos_globales <- datos_globales_columnas_selectas %>%
   ) %>%
   mutate(
     # Agregando un 0 antes de horas y minutos cuando se requiera:
-    hora = ifelse(as.numeric(hora) %in% c(0:9), paste0("0", hora), hora),
-    minutos = ifelse(as.numeric(minutos) %in% c(0:9), paste0("0", minutos), minutos),
+    hora = ifelse(hora %in% c(0:9), paste0("0", hora), hora),
+    minutos = ifelse(minutos %in% c(0:9), paste0("0", minutos), minutos),
     Muestra_sitio.hora = ifelse(
       is.na(hora) | is.na(minutos), NA,
       paste0(hora, ":", minutos))
@@ -768,7 +777,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
     ),
     Muestra_transecto_corales_observacion.porcentaje_blanqueamiento = ifelse(
       stri_detect_fixed(archivo_origen, "corales") & Muestra_transecto_corales_observacion.tipo_blanqueamiento == "NO",
-      0,
+      as.integer(0),
       porcentaje
     ),
     Muestra_transecto_corales_observacion.porcentaje_mortalidad_total = ifelse(
@@ -865,10 +874,10 @@ datos_globales <- datos_globales_columnas_selectas %>%
           # Quitándoles la etiqueta de "cm" a "peces_tamanio_minimo_cm" y "peces_tamanio_maximo_cm"
           peces_tamanio_minimo_cm = stri_sub(peces_tamanio_minimo_cm, from = 1,
             to = (stri_length(peces_tamanio_minimo_cm)-2)) %>%
-            as.numeric(),
+            as.integer(),
           peces_tamanio_maximo_cm = stri_sub(peces_tamanio_maximo_cm, from = 1,
             to = (stri_length(peces_tamanio_maximo_cm)-2)) %>%
-            as.numeric(),
+            as.integer(),
           es_juvenil = NA # lógico
         ) %>%
         rename(
@@ -1040,11 +1049,105 @@ datos_globales <- datos_globales_columnas_selectas %>%
         )
     }
     return(resultado)
-  }, .parallel = TRUE)
+  }, .parallel = TRUE) %>%
   
-saveRDS(datos_globales,
-  paste0(ruta_salidas_3_crear_df_homologado, "/datos_globales.RDS"))
+  #### Arreglos finales ###
+  
+  # Renombrando columnas que faltan
+  rename(
+    Auxiliar.archivo_origen = archivo_origen,
+    Auxiliar.id = id,
+    Auxiliar.identificador_sitio = identificador_sitio,
+    Auxiliar.serie = serie
+  ) %>%
 
+  # Redondeando apropiadamente
+  mutate(
+    Muestra_._bentos_porcentaje.porcentaje_cobertura =
+      round(Muestra_._bentos_porcentaje.porcentaje_cobertura, 4),
+    
+    Muestra_._info.ancho_muestreado_m = round(Muestra_._info.ancho_muestreado_m, 2),
+    
+    Muestra_._info.longitud_muestreada_m = round(Muestra_._info.longitud_muestreada_m, 2),
+    
+    Muestra_sitio.profundidad_m = round(Muestra_sitio.profundidad_m, 2),
+    
+    Muestra_sitio.temperatura_c = round(Muestra_sitio.temperatura_c, 2),
+    
+    Muestra_subcuadrante_de_transecto_complejidad_info.maximo_relieve_m =
+      round(Muestra_subcuadrante_de_transecto_complejidad_info.maximo_relieve_m, 2),
+    
+    Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm =
+      round(Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm, 1),
+    
+    Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm =
+      round(Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm, 1),
+    
+    Muestra_transecto_bentos_info.longitud_contorno_transecto_si_lit_m =
+      round(Muestra_transecto_bentos_info.longitud_contorno_transecto_si_lit_m, 2),
+    
+    Muestra_transecto_bentos_punto.altura_si_alga_cm =
+      round(Muestra_transecto_bentos_punto.altura_si_alga_cm, 1),
+    
+    Muestra_transecto_complejidad_info.rugosidad_longitud_contorno_m =
+      round(Muestra_transecto_complejidad_info.rugosidad_longitud_contorno_m, 2),
+    
+    Muestra_transecto_complejidad_info.rugosidad_longitud_lineal_m =
+      round(Muestra_transecto_complejidad_info.rugosidad_longitud_lineal_m, 2),
+    
+    Muestra_transecto_corales_observacion.altura_maxima_cm =
+      round(Muestra_transecto_corales_observacion.altura_maxima_cm, 1),
+    
+    Muestra_transecto_corales_observacion.d1_max_diam_cm =
+      round(Muestra_transecto_corales_observacion.d1_max_diam_cm, 1),
+    
+    Muestra_transecto_corales_observacion.d2_min_diam_cm =
+      round(Muestra_transecto_corales_observacion.d2_min_diam_cm, 1),
+    
+    Muestra_transecto.ancho_subcuadrante_m =
+      round(Muestra_transecto.ancho_subcuadrante_m, 2),
+    
+    Muestra_transecto.longitud_subcuadrante_m =
+      round(Muestra_transecto.longitud_subcuadrante_m, 2),
+    
+    Muestra_transecto.profundidad_final_m =
+      round(Muestra_transecto.profundidad_final_m, 2),
+    
+    Muestra_transecto.profundidad_inicial_m =
+      round(Muestra_transecto.profundidad_inicial_m, 2)
+  ) %>%
+  
+  # Cambiando los NA's a "" en columnas tipo caracter:
+  cambia_na_strings_vacios() %>%
+  
+  # Ordenando las columnas en orden alfabético
+  select(noquote(sort(colnames(.))))
+  
+saveRDS(datos_globales, paste0(rutas_salida[6], "/datos_globales.RDS"))
+
+################################################################################
+# 4. revisión rápida del data frame anterior
+################################################################################
+
+glimpse(datos_globales)
+
+lista_revision <- revisa_valores(datos_globales)
+
+l_ply(1:length(lista_revision), function(i){
+  print(names(lista_revision)[i])
+  print(class(datos_globales[[names(lista_revision)[i]]]))
+  View(lista_revision[[i]])
+  readline(prompt="Presionar [enter] para continuar")
+})
+
+################################################################################
+
+# Revisando columnas de tipo "double" no "integer" para ver si hay que redondear
+
+datos_globales %>%
+  select_if(is_double) %>%
+  glimpse()
+  
 ### Me quedé generando las tablas, después crearé varios resúmenes para
 ### revisarlas y las integraré en la base.
 
@@ -1052,30 +1155,13 @@ saveRDS(datos_globales,
 # valer el porcentaje de blanqueamiento del tipo seleccionado o NA si no se
 # registró el porcentaje.
 
-
-
-  mutate(
-    # Redondeando apropiadamente columnas numéricas que lo necesitan
-    profundidad_inicial_m = round(profundidad_inicial_m, 1),
-    profundidad_final_m = round(profundidad_final_m, 1),
-    profundidad_media_m = round(profundidad_media_m, 2),
-    profundidad_media_m_sitio = round(profundidad_media_m_sitio, 2),
-    temperatura_c = round(temperatura_c, 2),
-    
-    # Creando columnas auxiliares útiles a la hora de generar las tablas
-    strings_vacios = "",
-    verdadero = TRUE,
-    falso = FALSE,
-    na_numerico = NA_real_,
-    datum = "WGS84"
-  ) # %>%
-
-# mutate(
-# Invertebrates_transect_sample_info
-# "numero" siempre es 1 para conacyt_greenpeace_2016_invertebrados_desagregados_v3"
-
-# Recruit_quadrant_sample_transect_count
-# En realidad no son cuentas, sino incidencias
+  #   # Creando columnas auxiliares útiles a la hora de generar las tablas
+  #   strings_vacios = "",
+  #   verdadero = TRUE,
+  #   falso = FALSE,
+  #   na_numerico = NA_real_,
+  #   datum = "WGS84"
+  # ) # %>%
 
 # # arreglando mortalidades si suman más de 100. Ésto se corregirá en v3.
 # suma_mortalidades = mortalidad_antigua +

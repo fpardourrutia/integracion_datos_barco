@@ -892,16 +892,34 @@ elimina_columnas_vacias <- function(df){
 
 ################################################################################
 
-# Función para transformar un conjunto de variables a tipo numérico:
-# df: data_frame cuyas variables se quieren transformar
-# ...: nombres de las variables a transformar
-mutate_numeric <- function(df, ..., warnings = TRUE){
-  # Obteniendo variables como un vector
-  variables <- list(...) %>%
-    as.character() 
+# Función para transformar un conjunto de columna a tipo numérico o entero:
+# df: data_frame cuyas columna se quieren transformar
+# relacion_variables_tipo: vector con nombres y valores de la forma:
+#   c("columna" = "valor"), que indica qué tipo de datos debe tener cada 
+#   columna enlistada. "valor" puede ser sólo "integer" o "numeric".
+# warnings: TRUE para mostrarlas y FALSE para eliminarlas
+# La función regresa df con los tipos de datos nuevos para las columnas
+# especificadas. Si "columna" no se puede castear a los tipos especificados,
+# por ejemplo, si contiene caracteres, se introducirán NA's y se lanzarán
+# warnings si así se desea.
+
+# Notas: 
+# - Castear de tipo double a entero no genera warnings, por ejemplo,
+#   as.integer(pi).
+# - Recordar que todo integer es numeric y todo double es numeric, pero integer
+#   y double son mutuamente excluyentes. as.numeric() castea a double por default.
+
+mutate_numeric_integer <- function(df, relacion_variables_tipo, warnings = TRUE){
+  
+  variables <- names(relacion_variables_tipo)
+  condiciones <- relacion_variables_tipo
+  
+  if(!all(condiciones %in% c("integer", "numeric"))){
+    stop("Todas las condiciones especificadas deben ser o 'numeric' o 'integer'")
+  }
   
   # Formando la expresión para el mutate_
-  expresion <- paste0("as.numeric(", variables, ")") %>%
+  expresion <- paste0("as.", condiciones, "(", variables, ")") %>%
     as.list()
   
   # Asignando nombres a la expresión porque el mutate_ los necesita para asignar
