@@ -28,7 +28,7 @@ library("doMC") # procesamiento en paralelo
 registerDoMC(4)
 
 ################################################################################
-# 1. Creando data frame con la información integrada:
+# 1. Creando data frame con la información integrada
 ################################################################################
 
 # Leyendo lista de tablas con columnas homologadas
@@ -1126,7 +1126,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
 saveRDS(datos_globales, paste0(rutas_salida[6], "/datos_globales.RDS"))
 
 ################################################################################
-# 4. revisión rápida del data frame anterior
+# 4. Revisión rápida del data frame anterior
 ################################################################################
 
 glimpse(datos_globales)

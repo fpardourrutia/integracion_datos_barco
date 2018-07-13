@@ -1,34 +1,93 @@
-# En este script se generarán las tablas principales que se insertarán en la base
-# de datos.
+# En este script se usa "datos_globales" para generar las diversas tablas que se
+# insertarán en la base de datos.
 
-library("plyr")
-library("dplyr")
-library("tidyr")
-library("stringi")
-library("lubridate")
-library("readr")
-# Cargando funciones auxiliares:
+# La idea es que en "datos_globales" ya estén los datos lo más procesados posible,
+# para simplemente "cortar" las tablas usando este script.
+
+# Pasos a seguir:
+# 1. Se lee el data frame "datos_globales".
+# 2. Se crean las tablas que corresponden a datos que están en todos los archivos
+# de Excel, a saber: "Muestreo", y "Muestra_sitio".
+
+# Cargando archivo de configuración y funciones auxiliares
+source("config.R")
 source("funciones_auxiliares.R")
 
-datos_globales <- readRDS("../productos/v3/datos_globales.RData")
+################################################################################
+# 1. Leyendo "datos_globales"
+################################################################################
+
+datos_globales <- readRDS(paste0(rutas_salida[6], "/datos_globales.RDS"))
 glimpse(datos_globales)
 
-# Revisando valores de las columnas de datos_globales:
-revision_valores <- revisa_valores(datos_globales)
-names(revision_valores)
+datos_globales %>%
+  pull(Auxiliar.archivo_origen) %>%
+  unique()
 
-# Función para consultar el objeto anterior:
-# nombre_columna: nombre de la columna a consultar.
-# La función regresa la tabla correspondiente a esa columna
-# El nombre de esta función es muy rápido para hacer la operación fácilmente
-crv <- function(nombre_columna){
-  return(revision_valores[[nombre_columna]])
-}
+################################################################################
+# 2. Generando columnas que especifican qué registros tomar en cuenta para qué
+# tablas
+################################################################################
 
-datos_globales_llaves_primarias <- datos_globales %>%
-  genera_llave("muestreo_id", "nombre_proyecto") %>%
-  genera_llave("muestra_sitio_id", "identificador_muestreo_sitio") %>%
-  genera_llave("muestra_transecto_id", "muestra_sitio_id", "transecto")
+# Por ejemplo, todos los registros se toman en cuenta para formar "Muestreo" y
+# "Muestra_sitio", pero sólo los de archivos de Excel de corales se toman en
+# cuenta para formar "Muestra_transecto_corales_info" y
+# "Muestra_transecto_corales_observacion"
+
+datos_globales %>%
+  mutate(
+    ### Generales ###
+    
+    Auxiliar.integrar_en_muestreo = TRUE,
+    Auxiliar.integrar_en_muestra_sitio = TRUE,
+    Auxiliar.integrar_en_Muestra_transecto = ifelse(
+      Auxiliar.archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura",
+      FALSE, TRUE),
+    
+    ### Bentos ###
+    
+    Auxiliar.integrar_en_muestra_sitio_bentos_info = ifelse(
+      Auxiliar.archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura",
+      TRUE, FALSE),
+    Auxiliar.integrar_en_muestra_sitio_bentos_porcentaje = ifelse(
+      Auxiliar.archivo_origen == "historicos_y_2017_sitio_bentos_agregados_porcentajes_tipo_cobertura",
+      TRUE, FALSE),
+    Auxiliar.integrar_en_muestra_transecto_bentos_info = ifelse(
+      Auxiliar.archivo_origen %in% c(
+        "conacyt_greenpeace_2016_bentos_desagregados",
+        "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura",
+        "historicos_y_2017_transecto_bentos_desagregados_pit_lit",
+        "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados"
+      ), TRUE, FALSE)
+  )
+  
+
+################################################################################
+# 2. Generando llaves primarias
+################################################################################
+
+#### Muestreo y Muestra_sitio ###
+
+datos_globales_llaves_muestreo_muestra_sitio <- datos_globales %>%
+  arrange(
+    Muestreo.nombre,
+    Muestra_sitio.nombre,
+    Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+    Muestra_sitio.aux_remuestreo_en_mismo_muestreo
+  ) %>%
+  genera_llave("Muestreo.id", "Muestreo.nombre") %>%
+  genera_llave("Muestra_sitio.id",
+    "Muestreo.id", # Por limpieza se encadena la generación de llaves primarias
+    "Muestra_sitio.nombre",
+    "Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace",
+    "Muestra_sitio.aux_remuestreo_en_mismo_muestreo")
+
+################################################################################
+
+### Muestra_transecto ###
+
+datos_globales_llaves_muestreo_muestra_sitio
+
 saveRDS(datos_globales_llaves_primarias, "../productos/v3/datos_globales_llaves_primarias.RData")
 
 ######################################
