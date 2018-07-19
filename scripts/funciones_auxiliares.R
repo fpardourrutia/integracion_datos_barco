@@ -984,19 +984,20 @@ cambia_na_strings_vacios <- function(df){
 # que contiene). Es decir, dos registros tendrán el mismo número si y sólo si
 # tienen los mismos valores en las columnas de la llave natural.
 # nombre_columna_llave: nombre de la columna que contendrá la llave numérica
-# ...: nombre de las variables que definen la llave natural.
+# nombres_columnas_llave_natural: vector con los nombres de las variables que
+# definen la llave natural.
 # El resultado es el df con la llave generada como una nueva columna.
-# Si no se pasa argumentos extras a la función (en ...), la llave generada
+# Si "nombres_columnas_llave_natural" es de longitud 0, la llave generada
 # será simplemente una cuenta de todos los renglones, en el orden en que aparecen
-genera_llave <- function(df, nombre_columna_llave, ...){
-  
-  nombres_columnas_llave_natural <- c(...)
+# Nota: la función crea la llave natural ordenando por las columnas en las que
+# se basa.
+genera_llave <- function(df, nombre_columna_llave, nombres_columnas_llave_natural){
   
   if(length(nombres_columnas_llave_natural) > 0){
     
     # Generando la expresión para ordenar primero el df por los factores, ya
     # que estos se generarán en orden de aparición (forcats::as_factor())
-    expresion_arrange_ = as.list(nombres_columnas_llave_natural)
+    expresion_arrange_ = nombres_columnas_llave_natural
     
     # Generando la expresión para el mutate_:
     expresion_mutate_ = paste0(
@@ -1007,8 +1008,7 @@ genera_llave <- function(df, nombre_columna_llave, ...){
       # forcats::as_factor() crea los factores en el órden de aparición, sin ordenar
       # primero (lo cuál causaba problemas de "11" < "2" al usar as.factor())
       "%>% as_factor() %>% as.integer()"
-    ) %>%
-      as.list()
+    )
     
     # Asignando el nombre de la columna que contendrá la llave numérica a la expresión
     # porque el mutate_ lo requiere
@@ -1028,7 +1028,7 @@ genera_llave <- function(df, nombre_columna_llave, ...){
   } else{
     # Si no se pasan columnas que especifiquen una llave natural:
     
-    expresion_mutate_ = list("1:nrow(.)")
+    expresion_mutate_ = "1:nrow(.)"
     names(expresion_mutate_) <- nombre_columna_llave
     
     resultado <- df %>%
@@ -1040,39 +1040,149 @@ genera_llave <- function(df, nombre_columna_llave, ...){
 
 ################################################################################
 
+# La siguiente función es un wrapper de "genera_llave()", que permite,
+# dado un data frame con datos que se dividirán en tablas, generar las llaves
+# numéricas de cada una de las tablas futuras.
+# Parámetros:
+# - df: una tabla de datos que se segmentará en distintas tablas. Para cada
+# tabla a crear, df debe contener una columna lógica que indique qué registros
+# se utilizarán para crearla.
+# - prefijo_columnas_indicadoras: los nombres de las columnas lógicas anteriores
+# deberán ser de la forma: prefijo_columnas_indicadoras"nombre_tabla_nueva",
+# para ser fácilmente identificables.
+# - sufijo_columnas_llaves_numericas: para cada tabla, el nombre de la columna 
+# que corresponderá a la llave numérica generada será
+# "nombre_tabla_nueva"sufijo_columnas_llaves_numericas
+# - relacion_tablas_columnas_llaves: una lista que especificará qué
+# columnas se utilizarán para crear una llave numérica de qué tabla. Es decir,
+# las columnas donde cada combinación de valores representa un registro
+# distinto de dicha tabla. Estos valores estarán especificados de la forma:
+# list("nombre_tabla_nueva" = c("nombre_columna_1", "nombre_columna_2", ...))
+
+# La función regresa un data frame que corresponde al de entrada, anexando las
+# columnas correspondientes a las llaves numéricas de las tablas futuras.
+# El procedimiento seguido para obtener este data frame es el siguiente:
+# 1. Se obtienen las columnas lógicas que determinan qué registros se usarán
+# para generar la nueva tabla con ayuda de "prefijo_columnas_indicadoras" y
+# "nombre_tabla_nueva".
+# 2. Se toma un subconjunto de "df" que contenga sólo los registros especificados
+# en dicha columna.
+# 3. Se genera la llave numérica de la nueva tabla usando los registros y
+# columnas especificados (para los registros no especificados esta llave vale NA).
+# Notas:
+# - Las llaves numéricas se generan en el orden especificado, por lo que para
+# generar la llave de una tabla se puede hacer referencia a la llave de una tabla
+# anterior. De hecho, por simplicidad, esto es lo más recomendable.
+# - La función "genera_llave()" ordena los registros por las columnas especificadas
+# antes de calcular la llave numérica, para que ésta sea lo más natural posible
+
+genera_llaves_varias_tablas <- function(df, prefijo_columnas_indicadoras,
+  sufijo_columnas_llaves_numericas, relacion_tablas_columnas_llaves){
+  
+  nombres_columnas_df <- colnames(df)
+  nombres_tablas_nuevas <- names(relacion_tablas_columnas_llaves)
+  
+  # Generando los nombres de las columnas indicadoras y de llaves numéricas
+  # a partir de los nombres de las tablas nuevas:
+  nombres_columnas_indicadoras <- paste0(prefijo_columnas_indicadoras,
+    nombres_tablas_nuevas)
+  nombres_columnas_llaves_numericas <- paste0(nombres_tablas_nuevas,
+    sufijo_columnas_llaves_numericas)
+  
+  # Revisando que todas las columnas indicadoras se encuentren en df
+  if(!all(nombres_columnas_indicadoras %in% nombres_columnas_df)){
+    stop(paste0("Existen nombres de tablas en 'relacion_tablas_columnas_llaves' ",
+      "sin columnas indicadoras asociadas"))
+  }
+  
+  # Revisando que todas las columnas especificadas como parte de las llaves
+  # naturales de cada tabla se encuentren en "df", o bien, se encuentren en:
+  # nombres_columnas_llaves_numericas (ya que la función está diseñada para poder
+  # construir una llave numérica con la salida de una anterior)
+  l_ply(1:length(relacion_tablas_columnas_llaves), function(i){
+    if(!all(relacion_tablas_columnas_llaves[[i]] %in%
+        base::union(nombres_columnas_df, nombres_columnas_llaves_numericas))){
+      stop(paste0("Algunas colummas que definen la llave natural de ",
+        nombres_tablas_nuevas[i], " no se encontraron en df"))
+    }
+  })
+  
+  # Creando las llaves numéricas de cada tabla nueva y nombrándolas apropiadamente.
+  # Estas columnas se generarán utilizando un "for" debido a que se va actualizando
+  # un data frame y no se desea utilizar una variable global
+  data_frame_columnas_llaves_numericas <- df
+  
+  for(i in 1:length(nombres_tablas_nuevas)){
+    
+    nombre_tabla_actual <- nombres_tablas_nuevas[[i]]
+    nombre_columna_indicadora <- nombres_columnas_indicadoras[i]
+    nombre_columna_llave_numerica <- nombres_columnas_llaves_numericas[i]
+    nombres_columnas_llave_natural <- relacion_tablas_columnas_llaves[[i]]
+    
+    print(paste0("Generando llave numérica para la tabla: ", nombre_tabla_actual))
+    
+    # Generando la llave numérica de la i-ésima tabla usando únicamente los
+    # registros indicados por la i-ésima columna indicadora
+    data_frame_columnas_llaves_numericas <- ddply(data_frame_columnas_llaves_numericas,
+      nombre_columna_indicadora, function(df){
+        
+        # Generando variable para seleccionar registros de interés
+        indicadora <- unique(df[[nombre_columna_indicadora]])
+        
+        # No usar do.call porque es muy lenta con data frames muy grandes
+        if(indicadora){
+          resultado <- genera_llave(df, nombre_columna_llave_numerica,
+            nombres_columnas_llave_natural)
+        } else{
+          
+          # Generando la expresión para el mutate_
+          expresion_mutate_ <- NA
+          names(expresion_mutate_) <- nombre_columna_llave_numerica
+          
+          resultado <- df %>%
+            mutate_(.dots = expresion_mutate_)
+        }
+        return(resultado)
+      })
+  }
+  
+  return(data_frame_columnas_llaves_numericas)
+}
+
+################################################################################
+
 # Función auxiliar para generar una tabla a partir de una columna de llave 
-# y una lista nombrada de columnas adicionales, para calcular el valor de cada
+# y un vector nombrado de columnas adicionales. Para calcular el valor de cada
 # columna adicional correspondiente a un valor de "nombre_columna_llave" se
 # utilizará el primer valor encontrado.
 # df: df que contiene la columna "nombre_columna_llave" y las columnas a incluir en
 # la nueva tabla.
 # nombre_columna_llave: nombre de la columna que será una llave de la tabla nueva.
 # nombre_nuevo_columna_llave: el nombre que tendrá la llave en el nuevo data frame
-# lista_columnas_adicionales: lista nombrada de columnas adicionales a incluir
+# vector_columnas_adicionales: vector nombrado de columnas adicionales a incluir
 # en la tabla nueva.
-# Para cada elemento en la lista, el "nombre" corresponde al nombre de la columna
+# Para cada elemento en el vector, el "nombre" corresponde al nombre de la columna
 # en el data frame nuevo, y el valor al nombre de ésta en el df anterior..
 # La función regresa la tabla generada con las especificaciones anteriores
-genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
-  lista_columnas_adicionales){
+genera_tabla_1 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
+  vector_columnas_adicionales = c()){
   
   # Generando la expresión para el group_by:
-  expresion_group_by_ <- nombre_columna_llave %>%
-    as.list()
+  expresion_group_by_ <- nombre_columna_llave
   
   # Generando la expresión para el rename (de la columna de la llave)
-  expresion_rename_ <- list(nombre_columna_llave)
+  expresion_rename_ <- nombre_columna_llave
   names(expresion_rename_) <- nombre_nuevo_columna_llave
   
-  # Hay dos casos distintos: si lista_columnas_adicionales es vacía o no:
-  if(length(lista_columnas_adicionales) > 0){
+  # Hay dos casos distintos: si vector_columnas_adicionales es vacío o no:
+  if(length(vector_columnas_adicionales) > 0){
     
     # Generando la expresión para el summarise:
     expresion_summarise_ <- paste0("first(.data$",
-      lista_columnas_adicionales, ")")
+      vector_columnas_adicionales, ")")
     
     # Asignando nombres de variables en la nueva tabla:
-    names(expresion_summarise_) <- names(lista_columnas_adicionales)
+    names(expresion_summarise_) <- names(vector_columnas_adicionales)
     
     # Generando resultado
     resultado <- df %>%
@@ -1086,7 +1196,7 @@ genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
       )
     
   } else{
-    # Generando resultado en el caso de "lista_columnas_adicionales" sea vacía,
+    # Generando resultado en el caso de "vector_columnas_adicionales" sea vacío,
     # en este caso, la tabla tendrá como única columna "nombre_columna_llave"
     resultado <- df %>%
       group_by_(.dots = expresion_group_by_) %>%
@@ -1103,7 +1213,7 @@ genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
 ################################################################################
 
 # Función auxiliar para generar una tabla a partir de una columna de llave 
-# y una lista nombrada de columnas adicionales, para calcular el valor de cada
+# y un vector nombrado de columnas adicionales. Para calcular el valor de cada
 # columna adicional correspondiente a un valor de "nombre_columna_llave" se
 # utilizará la moda del valor de dicha columna en el nivel correspondiente de
 # "nombre_columna_llave".
@@ -1113,29 +1223,37 @@ genera_tabla <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
 # nombre_nuevo_columna_llave: el nombre que tendrá la llave en el nuevo data frame
 # lista_columnas_adicionales: lista nombrada de columnas adicionales a incluir
 # en la tabla nueva.
-# Para cada elemento en la lista, el "nombre" corresponde al nombre de la columna
+# Para cada elemento en el vector, el "nombre" corresponde al nombre de la columna
 # en el data frame nuevo, y el valor al nombre de ésta en el df anterior..
 # La función regresa la tabla generada con las especificaciones anteriores
+# Notas:
+# - La diferencia entre "genera_tabla" y "genera_tabla_2" es que "genera_tabla"
+# utiliza el primer valor encontrado para asignar el valor de cada campo para
+# cada nivel de "nombre_columna_llave", y "genera_tabla_2" utiliza el valor más
+# frecuente. Cabe destacar que "genera_tabla_2" es más lenta que "genera_tabla".
+# - No debe haber columnas llamadas "n" en df.
 genera_tabla_2 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
-  lista_columnas_adicionales){
+ vector_columnas_adicionales){
   
   # Generando la expresión para el rename (de la columna de la llave), que se
   # usará al final del ddply
-  expresion_rename_ <- list(nombre_columna_llave)
+  expresion_rename_ <- nombre_columna_llave
   names(expresion_rename_) <- nombre_nuevo_columna_llave
   
   resultado <- df %>%
     group_by_(nombre_columna_llave) %>%
     # Para cada grupo:
     do(
-      # Se utilizará el hecho de que "lista_columnas_adicionales" está nombrada
+      # Se utilizará el hecho de que "vector_columnas_adicionales" está nombrada
       # para asignar el nuevo nombre de las columnas a "resultado".
-      map(lista_columnas_adicionales, function(columna, df_sub){
+      map(vector_columnas_adicionales, function(columna, df_sub){
           resultado <- df_sub %>%
             # Seleccionando la columna de interés
             group_by_(columna) %>%
             # Calculando la moda
-            tally() %>%
+            summarise(
+              n = n()
+            ) %>%
             ungroup() %>%
             arrange(desc(n)) %>%
             # Sacándolo como un tipo de datos primitivo
@@ -1155,12 +1273,6 @@ genera_tabla_2 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
   return(resultado)
 }
 
-# Nota: La diferencia entre "genera_tabla" y "genera_tabla_2" es que "genera_tabla"
-# utiliza el primer valor encontrado para asignar el valor de cada campo para
-# cada nivel de "nombre_columna_llave", y "genera_tabla_2" utiliza el valor más
-# frecuente. Cabe destacar que "genera_tabla_2" es un poco más lenta que
-# "genera_tabla".
-
 ################################################################################
 # Funciones auxiliares sobre vectores
 ################################################################################
@@ -1178,9 +1290,9 @@ simple_cap <- function(vec){
   vec[posicion_NAs] <- ""
   
   lista_palabras_por_string <- vec %>%
-    # quitando espacios en blanco
+    # Quitando espacios en blanco
     stri_trim_both() %>%
-    # cortando cada entrada del vector por palabras
+    # Cortando cada entrada del vector por palabras
     stri_split_coll(pattern = " ")
   
   # Capitalizando cada letra de inicio de cada palabra y minimizando las otras

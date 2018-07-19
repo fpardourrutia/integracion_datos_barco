@@ -989,6 +989,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
     return(resultado)
   }, .parallel = TRUE) %>%
   
+  ### Muestra_subcuadrante_de_transecto_reclutas_cuenta ###
    
   rename(
     Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio = categoria_tamanio,
