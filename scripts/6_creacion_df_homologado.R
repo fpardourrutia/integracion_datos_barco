@@ -473,7 +473,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   mutate(
     # Muestra_sitio_bentos_info.longitud_muestreada_media_m,
     
-    Muestra_._bentos_info.numero_puntos_muestreados = case_when(
+    Muestra_._bentos_info.numero_puntos_muestreados_si_aplica = case_when(
       stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "PIT" ~
         as.integer(puntos_o_cm_reales_transecto),
       stri_detect_fixed(archivo_origen, "bentos") & Muestra_._info.metodo_muestreo == "CPF" ~
@@ -762,8 +762,8 @@ datos_globales <- datos_globales_columnas_selectas %>%
   ### Muestra_transecto_corales_observacion ###
   rename(
     Muestra_transecto_corales_observacion.tipo_observacion = clump,
-    Muestra_transecto_corales_observacion.d1_max_diam_cm = d1_max_diam_cm,
-    Muestra_transecto_corales_observacion.d2_min_diam_cm = d2_min_diam_cm,
+    Muestra_transecto_corales_observacion.d1_diametro_maximo_cm = d1_max_diam_cm,
+    Muestra_transecto_corales_observacion.d2_diametro_minimo_cm = d2_min_diam_cm,
     Muestra_transecto_corales_observacion.altura_maxima_cm = altura_maxima_cm
   ) %>%
   
@@ -1099,11 +1099,11 @@ datos_globales <- datos_globales_columnas_selectas %>%
     Muestra_transecto_corales_observacion.altura_maxima_cm =
       round(Muestra_transecto_corales_observacion.altura_maxima_cm, 1),
     
-    Muestra_transecto_corales_observacion.d1_max_diam_cm =
-      round(Muestra_transecto_corales_observacion.d1_max_diam_cm, 1),
+    Muestra_transecto_corales_observacion.d1_diametro_maximo_cm =
+      round(Muestra_transecto_corales_observacion.d1_diametro_maximo_cm, 1),
     
-    Muestra_transecto_corales_observacion.d2_min_diam_cm =
-      round(Muestra_transecto_corales_observacion.d2_min_diam_cm, 1),
+    Muestra_transecto_corales_observacion.d2_diametro_minimo_cm =
+      round(Muestra_transecto_corales_observacion.d2_diametro_minimo_cm, 1),
     
     Muestra_transecto.ancho_subcuadrante_m =
       round(Muestra_transecto.ancho_subcuadrante_m, 2),

@@ -1077,7 +1077,7 @@ genera_llave <- function(df, nombre_columna_llave, nombres_columnas_llave_natura
 # antes de calcular la llave numérica, para que ésta sea lo más natural posible
 
 genera_llaves_varias_tablas <- function(df, prefijo_columnas_indicadoras,
-  sufijo_columnas_llaves_numericas, relacion_tablas_columnas_llaves){
+  sufijo_columnas_llaves_numericas = ".id", relacion_tablas_columnas_llaves){
   
   nombres_columnas_df <- colnames(df)
   nombres_tablas_nuevas <- names(relacion_tablas_columnas_llaves)
@@ -1119,7 +1119,7 @@ genera_llaves_varias_tablas <- function(df, prefijo_columnas_indicadoras,
     nombre_columna_llave_numerica <- nombres_columnas_llaves_numericas[i]
     nombres_columnas_llave_natural <- relacion_tablas_columnas_llaves[[i]]
     
-    print(paste0("Generando llave numérica para la tabla: ", nombre_tabla_actual))
+    print(paste0("Generando llave numérica para la tabla: '", nombre_tabla_actual, "'"))
     
     # Generando la llave numérica de la i-ésima tabla usando únicamente los
     # registros indicados por la i-ésima columna indicadora
@@ -1227,7 +1227,7 @@ genera_tabla_1 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
 # en el data frame nuevo, y el valor al nombre de ésta en el df anterior..
 # La función regresa la tabla generada con las especificaciones anteriores
 # Notas:
-# - La diferencia entre "genera_tabla" y "genera_tabla_2" es que "genera_tabla"
+# - La diferencia entre "genera_tabla()" y "genera_tabla_2()" es que "genera_tabla"
 # utiliza el primer valor encontrado para asignar el valor de cada campo para
 # cada nivel de "nombre_columna_llave", y "genera_tabla_2" utiliza el valor más
 # frecuente. Cabe destacar que "genera_tabla_2" es más lenta que "genera_tabla".
@@ -1270,6 +1270,114 @@ genera_tabla_2 <- function(df, nombre_columna_llave, nombre_nuevo_columna_llave,
     # a "nuevo_nombre_columna_llave"
     rename_(.dots = expresion_rename_)
   
+  return(resultado)
+}
+
+################################################################################
+
+# La siguiente función es un wrapper de "genera_tabla_1()" y genera_tabla_2()",
+# que permite, dado un data frame con datos que se dividirán en tablas, y una
+# columna por llave numérica correspondiente a tabla nueva, formar las nuevas
+# tablas con ciertas columnas especificadas para cada una.
+
+# Parámetros:
+# - df: una tabla de datos que se segmentará en distintas tablas. Para cada
+# tabla a crear, "df" debe contener una columna de llave numérica, es decir, una
+# columna donde cada valor distinto represente un registro distinto.
+# - sufijo_columnas_llaves_numericas: los nombres de columnas con las llaves
+# anteriores deberán ser de la forma "nombre_tabla_nueva"sufijo_columnas_llaves_numericas,
+# para ser fácilmente localizables.
+# - nombre_nuevo_columnas_llaves_numericas: el nuevo nombre que tendrán las
+# columnas correspondientes a las llaves numéricas en su nueva tabla.
+# - relacion_tablas_columnas_funciones: una lista que especificará qué columnas
+# contendrá cada tabla, además de la función que se utilizará para agregar los
+# datos en caso de que se encuentren varias combinaciones por valor de la llave.
+# Esta lista será especificada como sigue:
+# list("nombre_tabla_nueva#numero_funcion_agregacion" = c(
+#   "nombre_nuevo_columna_1" = "nombre_columna_1",
+#   "nombre_nuevo_columna_2" = nombre_columna_2",
+#   ...), ...)
+# Donde "numero_funcion_agregacion" = i, si se quiere utilizar la función
+# "genera_tabla_i()".
+#
+# La función regresa una lista nombrada que contiene las tablas nuevas generadas
+# con las especificaciones anteriores. Cabe destacar que la función anterior está
+# diseñada para trabajar en conjunto con "genera_llaves_varias_tablas". Por este
+# motivo, a la hora de integrar cualquier tabla, se ignoran los registros que
+# tienen NA en la llave correspondiente.
+genera_tablas <- function(df, sufijo_columnas_llaves_numericas = ".id",
+  nombre_nuevo_columnas_llaves_numericas = "id", relacion_tablas_columnas_funciones){
+  
+  nombres_columnas_df <- colnames(df)
+  nombres_tablas_nuevas <- (names(relacion_tablas_columnas_funciones) %>%
+      stri_match_first_regex("(.*)#.*"))[,2]
+  numeros_funciones_agregacion <- as.numeric((names(relacion_tablas_columnas_funciones) %>%
+      stri_match_first_regex(".*#(.*)"))[,2])
+  
+  # Generando los nombres de las columnas que contienen las llaves numéricas
+  # a partir de los nombres de las tablas nuevas:
+  nombres_columnas_llaves_numericas <- paste0(
+    nombres_tablas_nuevas, sufijo_columnas_llaves_numericas)
+  
+  # Revisando que los nombres de las tablas nuevas y de las funciones de agregación
+  # estén correctamente formados.
+  
+  if(NA %in% nombres_tablas_nuevas){
+    stop("Alguna tabla no está correctamente nombrada.")
+  }
+  
+  if(!all(numeros_funciones_agregacion %in% c(1,2))){
+    stop("Algún número de función de agregación no es válido")
+  }
+  
+  # Revisando que todas las columnas correpondientes a llaves se encuentren en df
+  if(!all(nombres_columnas_llaves_numericas %in% nombres_columnas_df)){
+    stop(paste0("No se encontraron las columnas de llaves numéricas asociadas ",
+      "a algunas tablas nuevas especificadas."))
+  }
+  
+  # Revisando que todas las columnas especificadas como parte de las tablas nuevas
+  # se encuentren en "df"
+  l_ply(1:length(relacion_tablas_columnas_funciones), function(i){
+    if(!all(relacion_tablas_columnas_funciones[[i]] %in% nombres_columnas_df)){
+      stop(paste0("Algunas colummas que se desea formen parte de la tabla ",
+        nombres_tablas_nuevas[i], " no se encontraron en df"))
+    }
+  })
+  
+  # Cortando las tablas nuevas utilizando la especificación correspondiente a
+  # cada una.
+  
+  resultado <- llply(1:length(relacion_tablas_columnas_funciones), function(i){
+    
+    nombre_tabla_actual <- nombres_tablas_nuevas[i]
+    numero_funcion_agregacion <- numeros_funciones_agregacion[i]
+    nombre_columna_llave_numerica <- nombres_columnas_llaves_numericas[i]
+    nombre_nuevo_columna_llave_numerica <- nombre_nuevo_columnas_llaves_numericas
+    vector_columnas_adicionales <- relacion_tablas_columnas_funciones[[i]]
+    
+    print(paste0("\nGenerando la tabla: '", nombre_tabla_actual, "'"))
+    
+    # Generando la expresión para el filter_:
+    expresion_filter_ <- paste0("!is.na(", nombre_columna_llave_numerica, ")")
+    
+    # Generando la i-ésima tabla:
+    
+    if(numero_funcion_agregacion == 1){
+      resultado <- df %>%
+        filter_(expresion_filter_) %>%
+        genera_tabla_1(nombre_columna_llave_numerica, nombre_nuevo_columna_llave_numerica,
+          vector_columnas_adicionales)
+    } else{
+      resultado <- df %>%
+        filter_(expresion_filter_) %>%
+        genera_tabla_2(nombre_columna_llave_numerica, nombre_nuevo_columna_llave_numerica,
+          vector_columnas_adicionales)
+    }
+    return(resultado)
+  })
+  
+  names(resultado) <- nombres_tablas_nuevas
   return(resultado)
 }
 

@@ -6,8 +6,20 @@
 
 # Pasos a seguir:
 # 1. Se lee el data frame "datos_globales".
-# 2. Se crean las tablas que corresponden a datos que están en todos los archivos
-# de Excel, a saber: "Muestreo", y "Muestra_sitio".
+# 2. Se generan columnas auxiliares que indican qué registros tomar en cuenta
+# para generar qué tabla del esquema v5.
+# 3. Se generan las columnas que corresponderán a llaves numéricas para cada
+# tabla nueva, usando únicamente los registros que se deben tomar en cuenta para
+# cada una. Recordar que, dada una tabla del esquema de datos v5, dos registros
+# de "datos_globales" tendrán el mismo valor en su llave numérica correspondiente
+# si y solo sí tienen los mismos valores en ciertas columnas especificadas como
+# una llave natural para la misma.
+# 4. Se "recortan" las tablas correspondientes al esquema v5 a partir del data
+# frame que contiene las llaves numéricas para cada una de ellas. Este recorte
+# se produce seleccionando las columnas que contendrá la nueva tabla, y para
+# crear un registro correspondiente a determinada llave numérica, se utilizará
+# una regla que permite seleccionar los valores de cada columna (por ejemplo, la
+# moda).
 
 # Cargando archivo de configuración y funciones auxiliares
 source("config.R")
@@ -76,6 +88,8 @@ datos_globales_columnas_indicadoras <- datos_globales %>%
         "historicos_y_2017_transecto_bentos_desagregados_pit_lit",
         "historicos_y_2017_transecto_bentos_desagregados_pit_lit_privados"
       ), TRUE, FALSE),
+    
+    # Auxiliar.integrar_en_Muestra_transecto_bentos_linea
     
     ### Corales ###
     
@@ -165,7 +179,7 @@ sufijo_columnas_llaves_numericas <- ".id"
 
 relacion_tablas_columnas_llaves <- list(
   
-  ### Tablas de "Muestreo", "Muestra_sitio" y "Muestra_transecto":
+  ### Tablas generales
   
   "Muestreo" = c(
     "Muestreo.nombre"
@@ -206,6 +220,8 @@ relacion_tablas_columnas_llaves <- list(
   
   "Muestra_transecto_bentos_punto" = c(
   ),
+  
+  # "Muestra_transecto_bentos_linea" = c(),
   
   ### Corales ###
   
@@ -265,218 +281,282 @@ datos_globales_llaves_numericas <- genera_llaves_varias_tablas(
   relacion_tablas_columnas_llaves
 )
 
-################################################################################
-
-# La siguiente función es un wrapper de "genera_tabla_1()" y genera_tabla_2()",
-# que permite, dado un data frame con datos que se dividirán en tablas, y una
-# columna por llave numérica correspondiente a tabla nueva, formar las nuevas
-# tablas con ciertas columnas especificadas para cada una.
-
-# Parámetros:
-# - df: una tabla de datos que se segmentará en distintas tablas. Para cada
-# tabla a crear, "df" debe contener una columna de llave numérica, es decir, una
-# columna donde cada valor distinto represente un registro distinto.
-# - sufijo: los nombres de columnas con las llaves anteriores deberán ser de la
-#   forma "nombre_tabla_nueva"sufijo, para ser fácilmente localizables.
-# - relacion_tablas_columnas_funciones: una lista que especificará qué columnas
-# contendrá cada tabla, además de la función que se utilizará para agregar los
-# datos en caso de que se encuentren varias combinaciones por valor de la llave.
-# Esta lista será especificada como sigue:
-# list("nombre_tabla_nueva#numero_funcion_agregacion" = c(
-#   "nombre_nuevo_columna_1" = "nombre_columna_1",
-#   "nombre_nuevo_columna_2" = nombre_columna_2",
-#   ...), ...)
-# Donde "numero_funcion_agregacion" = i, si se quiere utilizar la función
-# "genera_tabla_i()".
-#
-# La función regresa una lista nombrada que contiene las tablas nuevas generadas
-# con las especificaciones anteriores. Cabe destacar los siguientes puntos:
-# - El nombre en cada tabla nueva de la columna que corresponde a la llave
-# numérica es simplemente "id".
-# - La función está diseñada para trabajar en conjunto con "genera_llaves_varias_tablas".
-# Por este motivo, a la hora de integrar cualquier tabla, se ignoran los registros
-# que tienen NA en la llave correspondiente.
-
-genera_tablas <- function(df, sufijo, relacion_tablas_columnas_funciones){
-  
-  nombres_columnas_df <- colnames(df)
-  nombres_tablas_nuevas <- (names(relacion_tablas_columnas_funciones) %>%
-    stri_match_first_regex("(.*)#.*"))[,2]
-  numeros_funciones_agregacion <- as.numeric((names(relacion_tablas_columnas_funciones) %>%
-      stri_match_first_regex(".*#(.*)"))[,2])
-  
-  # Generando los nombres de las columnas que contienen las llaves numéricas
-  # a partir de los nombres de las tablas nuevas:
-  nombres_columnas_llaves <- paste0(nombres_tablas_nuevas, ".id")
-  
-  # Revisando que los nombres de las tablas nuevas y de las funciones de agregación
-  # estén correctamente formados.
-  
-  if(NA %in% nombres_tablas_nuevas){
-    stop("Alguna tabla no está correctamente nombrada.")
-  }
-  
-  if(!all(numeros_funciones_agregacion %in% c(1,2))){
-    stop("Algún número de función de agregación no es válido")
-  }
-  
-  # Revisando que todas las columnas correpondientes a llaves se encuentren en df
-  if(!all(nombres_columnas_llaves %in% nombres_columnas_df)){
-    stop(paste0("No se encontraron las columnas de llaves numéricas asociadas ",
-      "a algunas tablas nuevas especificadas."))
-  }
-  
-  # Revisando que todas las columnas especificadas como parte de las tablas nuevas
-  # se encuentren en "df"
-  l_ply(1:length(relacion_tablas_columnas_funciones), function(i){
-    if(!all(relacion_tablas_columnas_funciones[[i]] %in% nombres_columnas_df)){
-      stop(paste0("Algunas colummas que se desea formen parte de la tabla ",
-        nombres_tablas_nuevas[i], " no se encontraron en df"))
-    }
-  })
-  
-  # Cortando las tablas nuevas utilizando la especificación correspondiente a
-  # cada una.
-  
-  resultado <- llply(1:length(relacion_tablas_columnas_funciones), function(i){
-    # nombre_tabla_nueva <- nombres_tablas_nuevas[i]
-    numero_funcion_agregacion <- numeros_funciones_agregacion[i]
-    nombre_columna_llave <- nombres_columnas_llaves[i]
-    nombre_nuevo_columna_llave <- "id"
-    vector_columnas_adicionales <- relacion_tablas_columnas_funciones[[i]]
-    
-    # Generando la expresión para el filter_:
-    expresion_filter_ <- paste0("!is.na(", nombre_columna_llave, ")")
-    
-    # Generando la i-ésima tabla:
-    
-    if(numero_funcion_agregacion == 1){
-      resultado <- df %>%
-        filter_(expresion_filter_) %>%
-        genera_tabla_1(df, nombre_columna_llave, nombre_nuevo_columna_llave,
-          vector_columnas_adicionales)
-    }else{
-      resultado <- df %>%
-        filter_(expresion_filter_) %>%
-        genera_tabla_2(df, nombre_columna_llave, nombre_nuevo_columna_llave,
-          vector_columnas_adicionales)
-    }
-    return(resultado)
-  })
-  
-  names(resultado) <- nombres_tablas_nuevas
-  return(resultado)
-}
+saveRDS(datos_globales_llaves_numericas,
+  paste0(rutas_salida[7], "/datos_globales_llaves_numericas.RDS"))
 
 ################################################################################
+# 4. Generando tablas a insertar en la base de datos final
+################################################################################
 
+# Sufijo para localizar las llaves numéricas generadas con la función
+# "genera_llaves_varias_tablas()"
+sufijo_columnas_llaves_numericas <- ".id"
 
+# Nombre que tendrán las columnas numéricas en las nuevas tabla:
+nombre_nuevo_columnas_llaves_numericas <- "id"
 
-######################################
-# Generando la tabla "Proyecto_anual"
-######################################
-
-lista_columnas_muestreo <- list(
-  nombre = "nombre_proyecto",
-  descripcion = "titulo",
-  proposito = "tema",
-  area_estudio = "localidad_proyecto",
-  organizacion = "institucion",
-  suborganizacion = "suborganizacion",
-  encargado = "autor_administrador_proyecto",
-  contacto = "contacto",
-  referencia = "cita",
-  comentarios = "strings_vacios",
-  nombre_proyecto = "nombre_proyecto_sin_anio",
-  anio_inicio_proyecto = "anio_inicio_proyecto",
-  anio_termino_proyecto = "anio_termino_proyecto"
-  # Faltan columnas del cliente de captura
-)
-
-muestreo <- genera_tabla_2(
-  df = datos_globales_llaves_numericas,
-  nombre_columna_llave = "muestreo_id",
-  nombre_nuevo_columna_llave = "id",
-  lista_columnas_adicionales = lista_columnas_muestreo
-  ) %>%
-  # Para los datos CONACyT / GreenPeace no se necesita, pero igual y para los
-  # datos históricos sí.
-  cambia_na_strings_vacios()
-
-####################################
-# Generando la tabla "Muestra_sitio"
-####################################
-
-lista_columnas_muestra_sitio <- list(
-  muestreo_id = "muestreo_id",
-  nombre = "nombre_sitio",
-  fecha = "fecha_muestreo_sitio",
-  hora = "hora_muestreo_sitio",
-  pais = "pais",
-  region_healthy_reefs = "region_healthy_reefs",
-  localidad = "localidad",
-  tipo_arrecife = "tipo_arrecife",
-  subtipo_arrecife = "subtipo_arrecife",
-  zona_arrecifal = "zona_arrecife",
-  dentro_area_natural_protegida = "dentro_anp",
-  nombre_area_natural_protegida = "anp",
-  dentro_area_no_pesca = "dentro_area_no_pesca",
-  latitud = "latitud",
-  longitud = "longitud",
-  datum = "datum",
-  metodo_seleccion = "metodo_seleccion_sitios",
-  metodologia = "protocolo",
-  temperatura_c = "na_numerico", # Esta es por transecto para "CONACyT_GREENPEACE"
-  profundidad_m = "profundidad_media_m_sitio",
-  comentarios = "strings_vacios",
-  fuente = "documento"
+relacion_tablas_columnas_funciones <- list(
   
-  # Faltan columnas del cliente de captura
+  ### Tablas generales ###
+  
+  "Muestreo#2" = c(
+    "nombre" = "Muestreo.nombre",
+    "descripcion" = "Muestreo.descripcion",
+    "proposito" = "Muestreo.proposito",
+    "area_estudio" = "Muestreo.area_estudio",
+    "organizacion" = "Muestreo.organizacion",
+    "suborganizacion" = "Muestreo.suborganizacion",
+    "encargado" = "Muestreo.encargado",
+    "contacto" = "Muestreo.contacto",
+    "referencia" = "Muestreo.referencia",
+    "nombre_proyecto" = "Muestreo.nombre_proyecto",
+    "anio_inicio_proyecto" = "Muestreo.anio_inicio_proyecto",
+    "anio_termino_proyecto" = "Muestreo.anio_termino_proyecto",
+    "comentarios" = "Muestreo.comentarios"
+    # "etapa_revision" = "Muestreo.etapa_revision",
+    # "compatibilidad_cliente" = "Muestreo.compatibilidad_cliente",
+  ),
+  
+  "Muestra_sitio#2" = c(
+    "muestreo_id" = "Muestreo.id",
+    "nombre" = "Muestra_sitio.nombre", 
+    "nombre_original" = "Muestra_sitio.nombre_original",
+    "fecha" = "Muestra_sitio.fecha",
+    "hora" = "Muestra_sitio.hora",
+    "pais" = "Muestra_sitio.pais",
+    "region_healthy_reefs" = "Muestra_sitio.region_healthy_reefs",
+    "localidad" = "Muestra_sitio.localidad",
+    "tipo_arrecife" = "Muestra_sitio.tipo_arrecife",
+    "subtipo_arrecife" = "Muestra_sitio.subtipo_arrecife",
+    "zona_arrecifal" = "Muestra_sitio.zona_arrecifal",
+    "dentro_area_natural_protegida" = "Muestra_sitio.dentro_area_natural_protegida",
+    "nombre_area_natural_protegida" = "Muestra_sitio.nombre_area_natural_protegida",
+    "dentro_area_no_pesca" = "Muestra_sitio.dentro_area_no_pesca",
+    "latitud" = "Muestra_sitio.latitud",
+    "longitud" = "Muestra_sitio.longitud",
+    "datum" = "Muestra_sitio.datum",
+    "metodo_seleccion" = "Muestra_sitio.metodo_seleccion",
+    "metodologia" = "Muestra_sitio.metodologia",
+    "temperatura_c" = "Muestra_sitio.temperatura_c",
+    "profundidad_m" = "Muestra_sitio.profundidad_m",
+    "comentarios" = "Muestra_sitio.comentarios",
+    "excluir" = "Muestra_sitio.excluir",
+    "datos_abiertos" = "Muestra_sitio.datos_abiertos",
+    # "etapa_revision" = "Muestra_sitio.etapa_revision",
+    # "compatibilidad_cliente" = "Muestra_sitio.compatibilidad_cliente
+    "fuente" = "Muestra_sitio.fuente"
+  ),
+  
+  "Muestra_transecto#2" = c(
+    "muestra_sitio_id" = "Muestra_sitio.id",
+    "nombre" = "Muestra_transecto.nombre",
+    "transecto_fijo" = "Muestra_transecto.transecto_fijo",
+    "profundidad_inicial_m" = "Muestra_transecto.profundidad_inicial_m",
+    "profundidad_final_m" = "Muestra_transecto.profundidad_final_m",
+    "subcuadrantes_planeados" = "Muestra_transecto.subcuadrantes_planeados",
+    #"seleccion_aleatoria_centros_subcuadrantes" = "Muestra_transecto.seleccion_aleatoria_centros_subcuadrantes",
+    #"distancia_centros_subcuadrantes_m" = "Muestra_transecto.distancia_centros_subcuadrantes_m",
+    "longitud_subcuadrante_m" = "Muestra_transecto.longitud_subcuadrante_m",
+    "ancho_subcuadrante_m" = "Muestra_transecto.ancho_subcuadrante_m",
+    "comentarios" = "Muestra_transecto.comentarios"
+  ),
+  
+  ### Bentos ###
+  
+  "Muestra_sitio_bentos_info#2" = c(
+    "muestra_sitio_id" = "Muestra_sitio.id",
+    "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
+    "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
+    "observador" = "Muestra_._info.observador",
+    #"longitud_muestrada_media_m",
+    "numero_puntos_muestreados_si_aplica" = "Muestra_._bentos_info.numero_puntos_muestreados_si_aplica",
+    "muestreo_completado" = "Muestra_._info.muestreo_completado"
+  ),
+  
+  "Muestra_sitio_bentos_porcentaje#1" = c(
+    "muestra_sitio_bentos_info_id" = "Muestra_sitio_bentos_info.id",
+    "codigo" = "Registro_observacion.codigo",
+    "porcentaje_cobertura" = "Muestra_._bentos_porcentaje.porcentaje_cobertura"
+  ),
+  
+  "Muestra_transecto_bentos_info#2" = c(
+    "muestra_transecto_id" = "Muestra_transecto.id",
+    "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
+    "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
+    "observador" = "Muestra_._info.observador",
+    "longitud_muestreada_m" = "Muestra_._info.longitud_muestreada_m",
+    "numero_puntos_muestreados_si_aplica" = "Muestra_._bentos_info.numero_puntos_muestreados_si_aplica",
+    "longitud_contorno_transecto_si_lit_m" = "Muestra_transecto_bentos_info.longitud_contorno_transecto_si_lit_m",
+    "muestreo_completado" = "Muestra_._info.muestreo_completado",
+    "comentarios" = "Muestra_._bentos_info.comentarios"
+  ),
+  
+  "Muestra_transecto_bentos_porcentaje#1" = c(
+    "muestra_transecto_bentos_info_id" = "Muestra_transecto_bentos_info.id",
+    "codigo" = "Registro_observacion.codigo",
+    "porcentaje_cobertura" = "Muestra_._bentos_porcentaje.porcentaje_cobertura"
+  ),
+  
+  "Muestra_transecto_bentos_punto#1" = c(
+    "muestra_transecto_bentos_info_id" = "Muestra_transecto_bentos_info.id",
+    "numero_punto" = "Registro_observacion.numero_observacion",
+    "codigo" = "Registro_observacion.codigo",
+    "altura_si_alga_cm" = "Muestra_transecto_bentos_punto.altura_si_alga_cm"
+  ),
+  
+  # "Muestra_transecto_bentos_linea" = c(
+  #   "muestra_transecto_bentos_info_id" = "Muestra_transecto_bentos_info.id",
+  #   "numero_observacion" = "Registro_observacion.numero_observacion",
+  #   "codigo" = "Registro_observacion.codigo",
+  #   "longitud_cm"
+  # ),
+  
+  ### Corales ###
+  
+  "Muestra_transecto_corales_info#2" = c(
+    "muestra_transecto_id" = "Muestra_transecto.id",
+    "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
+    "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
+    "observador" = "Muestra_._info.observador",
+    "longitud_muestreada_m" = "Muestra_._info.longitud_muestreada_m",
+    "ancho_muestreado_m" = "Muestra_._info.ancho_muestreado_m",
+    # "criterio_seleccion_colonias",
+    # "tamanio_minimo_colonia_cm",
+    "muestreo_completado" = "Muestra_._info.muestreo_completado",
+    "comentarios" = "Muestra_transecto_corales_info.comentarios"
+  ),
+  
+  "Muestra_transecto_corales_observacion#1" = c(
+    "muestra_transecto_corales_info_id" = "Muestra_transecto_corales_info.id",
+    "numero_observacion" = "Registro_observacion.numero_observacion",
+    "codigo" = "Registro_observacion.codigo",
+    "tipo_observacion" = "Muestra_transecto_corales_observacion.tipo_observacion",
+    "d1_diametro_maximo_cm" = "Muestra_transecto_corales_observacion.d1_diametro_maximo_cm",
+    "d2_diametro_minimo_cm" = "Muestra_transecto_corales_observacion.d2_diametro_minimo_cm",
+    "altura_maxima_cm" = "Muestra_transecto_corales_observacion.altura_maxima_cm",
+    "tipo_blanqueamiento" = "Muestra_transecto_corales_observacion.tipo_blanqueamiento",
+    "porcentaje_blanqueamiento" = "Muestra_transecto_corales_observacion.porcentaje_blanqueamiento",
+    "porcentaje_mortalidad_reciente" = "Muestra_transecto_corales_observacion.porcentaje_mortalidad_reciente",
+    "porcentaje_mortalidad_transicion" = "Muestra_transecto_corales_observacion.porcentaje_mortalidad_transicion",
+    "porcentaje_mortalidad_antigua" = "Muestra_transecto_corales_observacion.porcentaje_mortalidad_antigua",
+    "porcentaje_mortalidad_total" = "Muestra_transecto_corales_observacion.porcentaje_mortalidad_total",
+    "enfermedad" = "Muestra_transecto_corales_observacion.enfermedad",
+    "sobrecrecimiento" = "Muestra_transecto_corales_observacion.sobrecrecimiento",
+    "sobrecrecimiento_adicional" = "Muestra_transecto_corales_observacion.sobrecrecimiento_adicional",
+    "depredacion" = "Muestra_transecto_corales_observacion.depredacion",
+    "lesion" = "Muestra_transecto_corales_observacion.lesion",
+    "comentarios" = "Muestra_transecto_corales_observacion.comentarios"
+  ),
+  
+  ### Peces ###
+  
+  "Muestra_transecto_peces_info#2" = c(
+    "muestra_transecto_id" = "Muestra_transecto.id",
+    "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
+    "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
+    "observador" = "Muestra_._info.observador",
+    "longitud_muestreada_m" = "Muestra_._info.longitud_muestreada_m",
+    "ancho_muestreado_m" = "Muestra_._info.ancho_muestreado_m",
+    "peces_muestreados" = "Muestra_transecto_peces_info.peces_muestreados",
+    "muestreo_completado" = "Muestra_._info.muestreo_completado",
+    "comentarios" = "Muestra_transecto_peces_info.comentarios"
+  ),
+  
+  "Muestra_transecto_peces_cuenta#1" = c(
+    "muestra_transecto_peces_info_id" = "Muestra_transecto_peces_info.id",
+    "nombre_cientifico_abreviado" = "Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado",
+    "es_juvenil" = "Muestra_transecto_peces_cuenta.es_juvenil",
+    "tamanio_minimo_cm" = "Muestra_transecto_peces_cuenta.tamanio_minimo_cm",
+    "tamanio_maximo_cm" = "Muestra_transecto_peces_cuenta.tamanio_maximo_cm",
+    "cuenta" = "Muestra_transecto_peces_cuenta.cuenta"
+  ),
+  
+  ### Invertebrados ###
+  
+  "Muestra_transecto_invertebrados_info#2" = c(
+    "muestra_transecto_id" = "Muestra_transecto.id",
+    "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
+    "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
+    "observador" = "Muestra_._info.observador",
+    "longitud_muestreada_m" = "Muestra_._info.longitud_muestreada_m",
+    "ancho_muestreado_m" = "Muestra_._info.ancho_muestreado_m",
+    "todos_invertebrados_muestreados" = "Muestra_transecto_invertebrados_info.todos_invertebrados_muestreados",
+    "crustaceos_decapodos_carideos_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_carideos_muestreados",
+    "crustaceos_decapodos_estenopodideos_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_estenopodideos_muestreados",
+    "crustaceos_decapodos_aquelados_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_aquelados_muestreados",
+    "crustaceos_decapodos_astacideos_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_astacideos_muestreados",
+    "crustaceos_decapodos_braquiuros_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_braquiuros_muestreados",
+    "crustaceos_decapodos_anomuros_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_anomuros_muestreados",
+    "crustaceos_decapodos_estomatopodos_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_estomatopodos_muestreados",
+    "crustaceos_decapodos_palinuridos_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_decapodos_palinuridos_muestreados",
+    "crustaceos_no_decapodos_muestreados" = "Muestra_transecto_invertebrados_info.crustaceos_no_decapodos_muestreados",
+    "moluscos_gastropodos_muestreados" = "Muestra_transecto_invertebrados_info.moluscos_gastropodos_muestreados",
+    "moluscos_bivalvos_muestreados" = "Muestra_transecto_invertebrados_info.moluscos_bivalvos_muestreados",
+    "moluscos_cefalopodos_muestreados" = "Muestra_transecto_invertebrados_info.moluscos_cefalopodos_muestreados",
+    "otros_moluscos_muestreados" = "Muestra_transecto_invertebrados_info.otros_moluscos_muestreados",
+    "equinodermos_crinoideos_muestreados" = "Muestra_transecto_invertebrados_info.equinodermos_crinoideos_muestreados",
+    "equinodermos_asteroideos_muestreados" = "Muestra_transecto_invertebrados_info.equinodermos_asteroideos_muestreados",
+    "equinodermos_ofiuroideos_muestreados" = "Muestra_transecto_invertebrados_info.equinodermos_ofiuroideos_muestreados",
+    "equinodermos_equinoideos_muestreados" = "Muestra_transecto_invertebrados_info.equinodermos_equinoideos_muestreados",
+    "equinodermos_holothuroideos_muestreados" = "Muestra_transecto_invertebrados_info.equinodermos_holothuroideos_muestreados",
+    "otros_equinodermos_muestreados" = "Muestra_transecto_invertebrados_info.otros_equinodermos_muestreados",
+    "otros_invertebrados_muestreados" = "Muestra_transecto_invertebrados_info.otros_invertebrados_muestreados",
+    "detalles_invertebrados_muestreados" = "Muestra_transecto_invertebrados_info.detalles_invertebrados_muestreados",
+    "muestreo_completado" = "Muestra_._info.muestreo_completado",
+    "comentarios" = "Muestra_transecto_invertebrados_info.comentarios"
+  ),
+  
+  "Muestra_transecto_invertebrados_cuenta#1" = c(
+    "muestra_transecto_invertebrados_info_id" = "Muestra_transecto_invertebrados_info.id",
+    "tipo" = "Muestra_transecto_invertebrados_cuenta.tipo",
+    "cuenta" = "Muestra_transecto_invertebrados_cuenta.cuenta"
+  ),
+  
+  ### Reclutas ###
+  
+  "Muestra_subcuadrante_de_transecto_reclutas_info#2" = c(
+    "muestra_transecto_id" = "Muestra_transecto.id",
+    "numero_cuadrante" = "Muestra_subcuadrante_de_transecto_reclutas_info.numero_cuadrante",
+    "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
+    "observador" = "Muestra_._info.observador",
+    "substrato" = "Muestra_subcuadrante_de_transecto_reclutas_info.sustrato",
+    "comentarios" = "Muestra_subcuadrante_de_transecto_reclutas_info.comentarios"
+  ),
+  
+  "Muestra_subcuadrante_de_transecto_reclutas_cuenta#1" = c(
+    "muestra_subcuadrante_de_transecto_reclutas_info_id" = "Muestra_subcuadrante_de_transecto_reclutas_info.id",
+    "codigo" = "Registro_observacion.codigo",
+    "categoria_tamanio" = "Muestra_subcuadrante_de_transecto_reclutas_cuenta.categoria_tamanio",
+    "tamanio_minimo_cm" = "Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_minimo_cm",
+    "tamanio_maximo_cm" = "Muestra_subcuadrante_de_transecto_reclutas_cuenta.tamanio_maximo_cm",
+    "cuenta" = "Muestra_subcuadrante_de_transecto_reclutas_cuenta.cuenta"
+  ),
+  
+  ### Complejidad ###
+  
+  "Muestra_transecto_complejidad_info#1" = c(
+    "muestra_transecto_id" = "Muestra_transecto.id",
+    "observador" = "Muestra_._info.observador",
+    "rugosidad_longitud_contorno_m" = "Muestra_transecto_complejidad_info.rugosidad_longitud_contorno_m",
+    "rugosidad_longitud_lineal_m" = "Muestra_transecto_complejidad_info.rugosidad_longitud_lineal_m",
+    #"rugosidad_longitud_lineal_fija" = "Muestra_transecto_complejidad_info.rugosidad_longitud_lineal_fija",
+    "comentarios" = "Muestra_transecto_complejidad_info.comentarios"
+  ),
+  
+  "Muestra_subcuadrante_de_transecto_complejidad_info#2" = c(
+    "muestra_transecto_id" = "Muestra_transecto.id",
+    "numero_cuadrante" = "Muestra_subcuadrante_de_transecto_complejidad_info.numero_cuadrante",
+    "observador" = "Muestra_._info.observador",
+    "maximo_relieve_m" = "Muestra_subcuadrante_de_transecto_complejidad_info.maximo_relieve_m",
+    "comentarios" = "Muestra_subcuadrante_de_transecto_complejidad_info.comentarios"
+    )
 )
 
-muestra_sitio <- genera_tabla_2(
-  df = datos_globales_llaves_primarias,
-  nombre_columna_llave = "muestra_sitio_id",
-  nombre_nuevo_columna_llave = "id",
-  lista_columnas_adicionales = lista_columnas_muestra_sitio
-) %>%
-  # Para los datos CONACyT / GreenPeace no se necesita, pero igual y para los
-  # datos históricos sí.
-  cambia_na_strings_vacios()
-
-########################################
-# Generando la tabla "Muestra_transecto"
-########################################
-# Supuestos: en cada transecto se vio al menos una observación, sea la que sea.
-# En particular, para los datos de CONACyT / GreenPeace:
-# bentos: alguna de bentos, corales, reclutas, complejidad (invertebrados si aplica)
-# peces: agún pez (o invertebrado), si aplica.
-
-lista_columnas_muestra_transecto <- list(
-  muestra_sitio_id = "muestra_sitio_id",
-  nombre = "transecto",
-  transecto_fijo = "transecto_fijo",
-  longitud_m = "longitud_teorica_transecto_m",
-  temperatura_c = "temperatura_c",
-  profundidad_inicial_m = "profundidad_inicial_m",
-  profundidad_final_m = "profundidad_final_m",
-  subcuadrantes_planeados = "subcuadrantes_planeados",
-  numero_subcuadrantes_planeados = "numero_subcuadrantes_planeados",
-  seleccion_aleatoria_centros_subcuadrantes = "seleccion_aleatoria_centros_subcuadrantes",
-  longitud_subcuadrante_m = "longitud_subcuadrante_m",
-  ancho_subcuadrante_m = "ancho_subcuadrante_m",
-  comentarios = "strings_vacios"
+lista_tablas_bd <- genera_tablas(
+  datos_globales_llaves_numericas,
+  sufijo_columnas_llaves_numericas,
+  nombre_nuevo_columnas_llaves_numericas,
+  relacion_tablas_columnas_funciones
 )
 
-muestra_transecto <- genera_tabla_2(
-  df = datos_globales_llaves_primarias,
-  nombre_columna_llave = "muestra_transecto_id",
-  nombre_nuevo_columna_llave = "id",
-  lista_columnas_adicionales = lista_columnas_muestra_transecto)
-
-# save(
-#   muestreo,
-#   muestra_sitio,
-#   muestra_transecto,
-#   file = "../productos/v3/tablas_muestreos_sitios_transectos.RData"
-# )
+saveRDS(lista_tablas_bd, paste0(rutas_salida[7], "/lista_tablas_bd.RDS"))
