@@ -21,6 +21,77 @@
 # una regla que permite seleccionar los valores de cada columna (por ejemplo, la
 # moda).
 
+# Supuestos de este proceso de generación de tablas
+# 1. Muestreo:
+#   - Todos los muestreos distintos correspondientes al mismo proyecto tienen
+#     distinto nombre.
+# 2. Muestra_sitio:
+#   - Dos muestras de sitio corresponden espacialmente si y sólo si tienen el
+#     mismo nombre
+#   - Como la fecha es propensa a muchos errores (por ejemplo, causados por
+#     diferencias entre el formato "general" y "fecha" en Excel), la tabla de
+#     "datos_globales" contiene los campos "Muestra_sitio.aux_remuestreo_en_mismo_muestreo"
+#     y "Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace" para
+#   diferenciar remuestreos en los mismos sitios.
+# 3. Muestra_transecto:
+#   - Toda muestra de transecto está declarada en al menos algún archivo de Excel.
+#   - Dado un muestreo de sitio, dos aspectos fueron muestreados sobre el mismo
+#     transecto si y sólo si tienen el mismo valor en "Muestra_transecto.nombre".
+# 4. Muestra_sitio_bentos_info:
+#   - Existe máximo un muestreo de bentos por muestra de sitio.
+# 5. Muestra_sitio_bentos_porcentaje:
+#   - Los porcentajes de cobertura son agregados por código antes de ser
+#    insertados a la base de datos, por lo que no importa el orden en estos últimos.
+# 6. Muestra_transecto_bentos_info:
+#   - Existe máximo un muestreo de bentos por muestra de transecto
+# 7. Muestra_transecto_bentos_punto:
+#   - Los registros están anotados en los archivos de Excel en el orden en que
+#     se encontraron (el orden sí importa).
+# 8. Muestra_transecto_bentos_porcentaje:
+#   - Los porcentajes de cobertura son agregados por código antes de ser
+#     insertados a la base de datos, por lo que no importa el orden en estos últimos.
+# 9. Muestra_transecto_corales_info:
+#   - Existe máximo un muestreo de corales por muestra de transecto
+# 10. Muestra_transecto_corales_observacion:
+#   - Los registros están anotados en los archivos de Excel en el orden en que
+#     se encontraron (el orden sí importa).
+#   - Al construir "datos_globales", se presupuso que varios campos fueron medidos
+#     y un NA significó que no se encontraron rastros de la variable medida (vs
+#     que esta variable no se midió). Ver "6_creacion_df_homologado.R" para más
+#     detalles.
+# 11. Muestra_transecto_peces_info:
+#   - Existe máximo un muestreo de peces por muestra de transecto
+#   - Los muestreos de peces que no tuvieron observaciones fueron declarados en
+#     sus archivos de Excel correspondientes con código NA.
+# 12. Muestra_transecto_peces_cuenta:
+#   - Las cuentas de peces son agregadas antes de ser introducidas a la base de
+#     datos, por lo que  no importa el orden en que se encuentren estos registros.
+#   - Los nombres científicos abreviados son una llave natural del catálogo
+#     "catalogos_registro_peces__nombre_cientifico_abreviado".
+# 13. Muestra_transecto_invertebrados_info:
+#   - Existe máximo un muestreo de invertebrados por muestra de transecto.
+#   - Los muestreos de invertebrados que no tuvieron observaciones fueron
+#     declarados en sus archivos de Excel correspondientes con tipo NA.
+# 14. Muestra_transecto_invertebrados_cuenta:
+#   - Las cuentas de invertebradas son agregadas antes de ser introducidas a la
+#     base de datos, por lo que  no importa el orden en que se encuentren estos
+#     registros.
+# 15. Muestra_subcuadrante_de_transecto_reclutas_info:
+#   - Existe máximo un muestreo de reclutas por muestreo de cuadrante. Si no
+#     es así, a un sólo muestreo de reclutas en cuadrante se le asociarían todas
+#     las observaciones de todos los muestreos redundantes en el mismo, inflando
+#     por mucho el número de observaciones.
+#   - Los muestreos de cuadrantes que no tuvieron observaciones fueron declarados
+#     en sus archivos de Excel correspondientes con tipo NA.
+# 16. Muestra_subcuadrante_de_transecto_reclutas_cuenta:
+#   - No importa el orden de los registros pues los cuadrantes no permiten tenerlo.
+# 17. Muestra_transecto_complejidad_info:
+#   - Existe máximo un muestreo de complejidad por muestra de transecto.
+# 18. Muestra_subcuadrante_de_transecto_complejidad_info
+#   - Existe máximo un muestreo de complejidad por muestreo de cuadrante. Si no
+#     es así, se asignarán las modas de los valores correspondientes al mismo
+#     cuadrante como sus valores en cada una de las variables.
+
 # Cargando archivo de configuración y funciones auxiliares
 source("config.R")
 source("funciones_auxiliares.R")
@@ -559,4 +630,31 @@ lista_tablas_bd <- genera_tablas(
   relacion_tablas_columnas_funciones
 )
 
+# Revisión rápida de las tablas creadas.
+l_ply(1:length(lista_tablas_bd), function(i){
+  print(names(lista_tablas_bd)[i])
+  glimpse(lista_tablas_bd[[i]])
+})
+
 saveRDS(lista_tablas_bd, paste0(rutas_salida[7], "/lista_tablas_bd.RDS"))
+
+################################################################################
+
+library("RSQLite")
+
+lista_catalogos <- readRDS(paste0(rutas_salida[1], "/lista_catalogos.RData"))
+
+base_output <- dbConnect(RSQLite::SQLite(), "../productos/v3/barco_db_v3.sqlite")
+
+# Insertando catálogos:
+l_ply(1:length(lista_catalogos), function(i){
+  dbWriteTable(base_output, names(lista_catalogos)[i], lista_catalogos[[i]])
+})
+
+# Insertando_tablas:
+l_ply(1:length(lista_tablas_bd), function(i){
+  dbWriteTable(base_output, names(lista_tablas_bd)[i], lista_tablas_bd[[i]])
+})
+
+
+
