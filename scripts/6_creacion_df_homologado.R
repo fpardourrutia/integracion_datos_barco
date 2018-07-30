@@ -1124,7 +1124,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   # Ordenando las columnas en orden alfabético
   select(noquote(sort(colnames(.))))
   
-saveRDS(datos_globales, paste0(rutas_salida[6], "/datos_globales.RDS"))
+saveRDS(datos_globales, paste0(rutas_salida[6], "/datos_globales.RData"))
 
 ################################################################################
 # 4. Revisión rápida del data frame anterior

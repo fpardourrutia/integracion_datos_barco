@@ -20,8 +20,10 @@
 # crear un registro correspondiente a determinada llave numérica, se utilizará
 # una regla que permite seleccionar los valores de cada columna (por ejemplo, la
 # moda).
+# 5. Se actualizan los nombres de los catálogos en "lista_catalogos", con el
+# fin de tenerlos listos para ser insertados en la base de datos.
 
-# Supuestos de este proceso de generación de tablas
+# Supuestos de este proceso de generación de tablas:
 # 1. Muestreo:
 #   - Todos los muestreos distintos correspondientes al mismo proyecto tienen
 #     distinto nombre.
@@ -100,7 +102,7 @@ source("funciones_auxiliares.R")
 # 1. Leyendo "datos_globales"
 ################################################################################
 
-datos_globales <- readRDS(paste0(rutas_salida[6], "/datos_globales.RDS"))
+datos_globales <- readRDS(paste0(rutas_salida[6], "/datos_globales.RData"))
 glimpse(datos_globales)
 
 datos_globales %>%
@@ -353,7 +355,7 @@ datos_globales_llaves_numericas <- genera_llaves_varias_tablas(
 )
 
 saveRDS(datos_globales_llaves_numericas,
-  paste0(rutas_salida[7], "/datos_globales_llaves_numericas.RDS"))
+  paste0(rutas_salida[7], "/datos_globales_llaves_numericas.RData"))
 
 ################################################################################
 # 4. Generando tablas a insertar en la base de datos final
@@ -636,25 +638,26 @@ l_ply(1:length(lista_tablas_bd), function(i){
   glimpse(lista_tablas_bd[[i]])
 })
 
-saveRDS(lista_tablas_bd, paste0(rutas_salida[7], "/lista_tablas_bd.RDS"))
+saveRDS(lista_tablas_bd, paste0(rutas_salida[7], "/lista_tablas_bd.RData"))
 
 ################################################################################
-
-library("RSQLite")
+# 5. Actualizando los nombres de los catálogos
 
 lista_catalogos <- readRDS(paste0(rutas_salida[1], "/lista_catalogos.RData"))
 
-base_output <- dbConnect(RSQLite::SQLite(), "../productos/v3/barco_db_v3.sqlite")
+names(lista_catalogos)
 
-# Insertando catálogos:
+# Revisión rápida de "lista_catalogos":
+
 l_ply(1:length(lista_catalogos), function(i){
-  dbWriteTable(base_output, names(lista_catalogos)[i], lista_catalogos[[i]])
+  print(names(lista_catalogos)[i])
+  glimpse(lista_catalogos[[i]])
 })
 
-# Insertando_tablas:
-l_ply(1:length(lista_tablas_bd), function(i){
-  dbWriteTable(base_output, names(lista_tablas_bd)[i], lista_tablas_bd[[i]])
-})
+lista_catalogos_bd <- lista_catalogos
 
+# Renombrando los catálogos apropiadamente
+names(lista_catalogos_bd) <- stri_match_first_regex(names(lista_catalogos), "catalogos_(.*)")[,2] %>%
+  paste0("Catalogo_", .)
 
-
+saveRDS(lista_catalogos_bd, paste0(rutas_salida[7], "/lista_catalogos_bd.RData"))
