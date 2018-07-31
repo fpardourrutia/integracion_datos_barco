@@ -36,7 +36,7 @@ tabla_revision <- Reduce(rbind.fill, lista_tablas_columnas_homologadas)
 names(lista_tablas_columnas_homologadas)
 
 lista_tablas_columnas_homologadas %>%
-  crear_resumen_columnas_df() %>%
+  crea_resumen_columnas_df() %>%
   glimpse()
 
 lista_tablas_columnas_homologadas[lista_tablas_columnas_homologadas %>%
