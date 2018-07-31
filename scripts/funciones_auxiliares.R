@@ -1356,8 +1356,8 @@ genera_tablas <- function(df, sufijo_columnas_llaves_numericas = ".id",
     nombre_nuevo_columna_llave_numerica <- nombre_nuevo_columnas_llaves_numericas
     vector_columnas_adicionales <- relacion_tablas_columnas_funciones[[i]]
     
-    print(paste0("\nGenerando la tabla: '", nombre_tabla_actual, "'"))
-    
+    print(paste0("Generando la tabla: '", nombre_tabla_actual, "'"))
+
     # Generando la expresión para el filter_:
     expresion_filter_ <- paste0("!is.na(", nombre_columna_llave_numerica, ")")
     
