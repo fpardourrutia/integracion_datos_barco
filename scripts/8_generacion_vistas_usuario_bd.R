@@ -5,8 +5,15 @@
 source("config.R")
 source("funciones_auxiliares.R")
 
+# Pasos a seguir:
+# 1. Se leen las listas de tablas y catálogos.
+# 2. Se generan algunas tablas auxiliares que son tronco común para generar las
+# vistas.
+# 3. Se generan las vistas de usuario.
+# 4. Se genera la lista de vistas que se utilizará para insertarlas en la base
+
 ################################################################################
-# Leyendo listas de tablas y catálogos
+# 1. Leyendo listas de tablas y catálogos
 ################################################################################
 
 lista_tablas_bd <- readRDS(paste0(rutas_salida[7], "/lista_tablas_bd.RData"))
@@ -16,7 +23,7 @@ names(lista_tablas_bd)
 names(lista_catalogos_bd)
 
 ################################################################################
-# Generando tablas auxiliares que serán de utilidad al generar las vistas
+# 2. Generando tablas auxiliares que serán de utilidad al generar las vistas
 ################################################################################
 
 # Aunque es considerada mala práctica, en este caso el uso de attach() y detach()
@@ -63,7 +70,7 @@ Auxiliar_muestreos_sitios_transectos <- Auxiliar_muestreos_sitios %>%
   # "muestra_sitio_id" es una llave tan importante que se decide mantenerla
 
 ################################################################################
-# Generando diversas vistas de usuario utilizando las anteriores tablas
+# 3. Generando diversas vistas de usuario utilizando las anteriores tablas
 ################################################################################
 
 # Al generar las vistas, si sabemos que la información de interés (por ejemplo,
@@ -375,4 +382,17 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
   
   # Dándole a la vista un formato más amigable para el usuario.
   spread(nivel_3, porcentaje_cobertura, 0)
+
+################################################################################
+# 4. Generando la lista que contendrá las vistas para facilitar su integración
+# a la base de datos
+################################################################################
+
+
+lista_vistas_bd <- list(
+  "Vista_porcentaje_coberturas_bentos_sitio_nivel_3" =
+    Vista_porcentaje_coberturas_bentos_sitio_nivel_3
+)
   
+saveRDS(lista_vistas_bd,
+  paste0(rutas_salida[8], "/lista_vistas_bd.RData"))
