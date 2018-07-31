@@ -707,10 +707,55 @@ datos_globales <- datos_globales_columnas_selectas %>%
   rename(
     Muestra_._bentos_porcentaje.porcentaje_cobertura = cobertura
     # Esta columna hay que revisarla, pues contiene números negativos y otros que
-    # no suman el 100% (ver archivo auxiliar). Por lo pronto se copiará tal cual.
+    # no suman el 100% (ver archivo auxiliar)
   ) %>%
   
+  # Arreglando los porcentajes de cobertura raros sen el archivo
+  # "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"
+  ddply(.(archivo_origen), function(df){
+    archivo_origen <- unique(df$archivo_origen)
+
+    if(archivo_origen == "historicos_y_2017_transecto_bentos_agregados_porcentajes_tipo_cobertura"){
+      resultado <- df %>%
+        # Eliminamos negativos, ceros y NA's en el porcentaje de cobertura
+        filter(!is.na(Muestra_._bentos_porcentaje.porcentaje_cobertura),
+          Muestra_._bentos_porcentaje.porcentaje_cobertura > 0) %>%
+        # Normalizamos para que todos los porcentajes de cobertura sumen 100%
+        group_by(
+          Muestreo.nombre,
+          Muestra_sitio.nombre,
+          Muestra_sitio.aux_remuestreo_en_mismo_muestreo,
+          Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
+          Muestra_transecto.nombre
+        ) %>%
+        mutate(
+          total_cobertura = sum(Muestra_._bentos_porcentaje.porcentaje_cobertura)
+        ) %>%
+        ungroup() %>%
+        mutate(
+          Muestra_._bentos_porcentaje.porcentaje_cobertura =
+            Muestra_._bentos_porcentaje.porcentaje_cobertura * 100 / total_cobertura,
+          # Actualizando los comentarios si total de cobertura dista de 100 algo
+          # mayor o igual que 1.
+          Muestra_._bentos_info.comentarios = ifelse(
+            abs(total_cobertura - 100) >= 1, paste0("Los porcentajes de cobertura ",
+              "correspondientes al muestreo de bentos en cuestión fueron normalizados ",
+              "para que sumen 100%."), NA_character_)
+        ) %>%
+        select(
+          -total_cobertura
+        )
+    }
+    else{
+      resultado <- df
+    }
+    
+    return(resultado)
+  }, .parallel = TRUE) %>%
+  
   # Agregando los datos por muestra de sitio/transecto y código de especie.
+  # Notar que primero se quitaron negativos antes de agregar porque de lo
+  # contrario se podrían esconder errores.
   ddply(.(archivo_origen), function(df){
     archivo_origen <- unique(df$archivo_origen)
     
@@ -780,6 +825,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
       as.integer(0),
       porcentaje
     ),
+    
     Muestra_transecto_corales_observacion.porcentaje_mortalidad_total = ifelse(
       stri_detect_fixed(archivo_origen, "corales") & is.na(mortalidad_total),
       0,
@@ -829,6 +875,52 @@ datos_globales <- datos_globales_columnas_selectas %>%
     ),
     Muestra_transecto_corales_observacion.comentarios = NA_character_
   ) %>%
+  
+  # Arreglando mortalidades para que sumen máximo 100%
+  ddply(.(archivo_origen), function(df){
+    archivo_origen <- unique(df$archivo_origen)
+    
+    if(stri_detect_fixed(archivo_origen, "corales")){
+      resultado <- df %>%
+        mutate(
+          # Ya con anterioridad se eliminaron NA's para registros en archivos de
+          # corales, por lo que la suma siguiente se debe poder realizar sin
+          # problemas
+          suma_mortalidades =
+            Muestra_transecto_corales_observacion.porcentaje_mortalidad_total +
+            Muestra_transecto_corales_observacion.porcentaje_mortalidad_reciente +
+            Muestra_transecto_corales_observacion.porcentaje_mortalidad_transicion +
+            Muestra_transecto_corales_observacion.porcentaje_mortalidad_antigua,
+          
+          # Arreglando columna por columna de mortalidades
+          Muestra_transecto_corales_observacion.porcentaje_mortalidad_total =
+            ifelse(suma_mortalidades <= 100,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_total,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_total * 100
+              / suma_mortalidades),
+          Muestra_transecto_corales_observacion.porcentaje_mortalidad_reciente =
+            ifelse(suma_mortalidades <= 100,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_reciente,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_reciente * 100
+              / suma_mortalidades),
+          Muestra_transecto_corales_observacion.porcentaje_mortalidad_transicion =
+            ifelse(suma_mortalidades <= 100,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_transicion,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_transicion * 100
+              / suma_mortalidades),
+          Muestra_transecto_corales_observacion.porcentaje_mortalidad_antigua =
+            ifelse(suma_mortalidades <= 100,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_antigua,
+              Muestra_transecto_corales_observacion.porcentaje_mortalidad_antigua * 100
+              / suma_mortalidades)
+        ) %>%
+        select(-suma_mortalidades)
+    } else{
+      resultado <- df
+    }
+    return(resultado)
+  }, .parallel = TRUE) %>%
+  
   select(
     -blanqueamiento,
     -porcentaje,
@@ -1148,42 +1240,3 @@ l_ply(1:length(lista_revision), function(i){
 datos_globales %>%
   select_if(is_double) %>%
   glimpse()
-  
-### Me quedé generando las tablas, después crearé varios resúmenes para
-### revisarlas y las integraré en la base.
-
-# Para porcentaje, si blanqueamiento es NO o NA, vale NA. en otro caso, puede
-# valer el porcentaje de blanqueamiento del tipo seleccionado o NA si no se
-# registró el porcentaje.
-
-  #   # Creando columnas auxiliares útiles a la hora de generar las tablas
-  #   strings_vacios = "",
-  #   verdadero = TRUE,
-  #   falso = FALSE,
-  #   na_numerico = NA_real_,
-  #   datum = "WGS84"
-  # ) # %>%
-
-# # arreglando mortalidades si suman más de 100. Ésto se corregirá en v3.
-# suma_mortalidades = mortalidad_antigua +
-#   mortalidad_reciente +
-#   mortalidad_transicion +
-#   mortalidad_total
-# 
-# # Notar que si alguna mortalidad es NA, entonces la suma es NA y todas se
-# # hacen NA (lo cuál no es un problema porque acabamos de castear mortalidades
-# # NA a 0 para "CORALES_DESAGREGADOS_V2")
-# mortalidad_antigua = ifelse(suma_mortalidades > 100, #!!!
-#   (mortalidad_antigua / suma_mortalidades) * 100,
-#   mortalidad_antigua),
-# mortalidad_reciente = ifelse(suma_mortalidades > 100, #!!!
-#   (mortalidad_reciente / suma_mortalidades) * 100 ,
-#   mortalidad_reciente),
-# mortalidad_transicion = ifelse(suma_mortalidades > 100, #!!!
-#   (mortalidad_transicion / suma_mortalidades) * 100 ,
-#   mortalidad_transicion),
-# mortalidad_total = ifelse(suma_mortalidades > 100, #!!!
-#   (mortalidad_total / suma_mortalidades) * 100 ,
-#   mortalidad_total)
-
-# )
