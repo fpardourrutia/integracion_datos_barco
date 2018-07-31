@@ -43,7 +43,7 @@ lista_tablas_columnas_homologadas[lista_tablas_columnas_homologadas %>%
     names() %>%
     stri_detect_regex("reclutas")
   ] %>%
-  crear_resumen_columnas_df() %>%
+  crea_resumen_columnas_df() %>%
   glimpse()
 
 tabla_revision %>%
