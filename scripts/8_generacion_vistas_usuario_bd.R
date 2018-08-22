@@ -4,6 +4,7 @@
 # Cargando archivo de configuración y funciones auxiliares
 source("config.R")
 source("funciones_auxiliares.R")
+library("readr")
 
 # Pasos a seguir:
 # 1. Se leen las listas de tablas y catálogos.
@@ -31,6 +32,8 @@ names(lista_catalogos_bd)
 
 attach(lista_tablas_bd)
 attach(lista_catalogos_bd)
+
+################################################################################
 
 # La siguiente tabla es auxiliar para la generación de vistas y corresponde a una
 # relación de muestreos - muestras de sitio. Cabe destacar que en las vistas se
@@ -80,6 +83,32 @@ Auxiliar_muestreos_sitios_transectos <- Auxiliar_muestreos_sitios %>%
 
 ################################################################################
 
+### Vista_sitios_visitados ###
+
+# Vista que resume los sitios visitados. Supuestos:
+# 1. Dos muestreos de sitio son remuestreos del mismo sitio si y solo si tienen
+# el mismo nombre.
+# 2. Entre remuestreos del mismo sitio, la latitud y longitud están calculadas
+# sobre el mismo datum, y están expresadas con las mismas convenciones. Esto para
+# que calcular el promedio de las latitudes y longitudes entre remuestreos tenga
+# sentido.
+# 3. No existen muestreos de sitio duplicados introducidos en la base (este hecho
+# se revisará a detalle en scripts posteriores)
+
+Vista_sitios_visitados <- Auxiliar_muestreos_sitios %>%
+  group_by(sitio) %>%
+  summarise(
+    pais = first(pais),
+    latitud_promedio = mean(latitud),
+    longitud_promedio = mean(longitud),
+    datum = first(datum),
+    numero_muestreos = n()
+  ) %>%
+  ungroup() %>%
+  arrange(pais, sitio)
+
+################################################################################
+
 ### Vista_porcentaje_coberturas_bentos_sitio_nivel_3 ###
 
 # Vista que calcula los porcentajes de cobertura por sitio de bentos categorizados
@@ -96,7 +125,7 @@ Auxiliar_muestreos_sitios_transectos <- Auxiliar_muestreos_sitios %>%
 # 5. No hay categorías / códigos duplicados en los catálogos. Si los hubiera, se
 # duplicarían registos a la hora de hacer el inner join. para extraer la
 # información contenida en estos.
-# 6. para calcular el porcentaje de cobertura por sitio para un tipo de
+# 6. Para calcular el porcentaje de cobertura por sitio para un tipo de
 # cobertura determinado, simplemente se calcula el promedio de los porcentajes
 # de cobertura que cada transecto tuvo de ese tipo (pueden ser 0 para
 # determinados transectos).
@@ -383,15 +412,22 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
   # Dándole a la vista un formato más amigable para el usuario.
   spread(nivel_3, porcentaje_cobertura, 0)
 
+write_csv(Vista_porcentaje_coberturas_bentos_sitio_nivel_3,
+  paste0(rutas_salida[8], "/vista_porcentaje_coberturas_bentos_sitio_nivel_3.csv"))
+  
+################################################################################
+
+detach("lista_catalogos_bd")
+detach("lista_tablas_bd")
+
 ################################################################################
 # 4. Generando la lista que contendrá las vistas para facilitar su integración
 # a la base de datos
 ################################################################################
 
-
 lista_vistas_bd <- list(
-  "Vista_porcentaje_coberturas_bentos_sitio_nivel_3" =
-    Vista_porcentaje_coberturas_bentos_sitio_nivel_3
+  "Vista_sitios_visitados" = Vista_sitios_visitados,
+  "Vista_porcentaje_coberturas_bentos_sitio_nivel_3" = Vista_porcentaje_coberturas_bentos_sitio_nivel_3
 )
   
 saveRDS(lista_vistas_bd,

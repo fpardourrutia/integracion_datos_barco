@@ -33,6 +33,7 @@ rutas_salida[6] <- paste0(ruta_raiz_salida, "/6_datos_globales")
 rutas_salida[7] <- paste0(ruta_raiz_salida, "/7_generacion_tablas_bd")
 rutas_salida[8] <- paste0(ruta_raiz_salida, "/8_generacion_vistas_bd")
 rutas_salida[9] <- paste0(ruta_raiz_salida, "/9_bd_integrada")
+rutas_salida[10] <- paste0(ruta_raiz_salida, "/10_revisiones_bd_integrada")
 
 # Creando carpetas de salida
 l_ply(rutas_salida, function(ruta){

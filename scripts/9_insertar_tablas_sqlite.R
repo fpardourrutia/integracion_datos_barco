@@ -23,7 +23,7 @@ names(lista_vistas_bd)
 ################################################################################
 
 # Creando la conexión a la base de datos
-base_output <- dbConnect(RSQLite::SQLite(), paste0(rutas_salida[8], "/barco_db.sqlite"))
+base_output <- dbConnect(RSQLite::SQLite(), paste0(rutas_salida[9], "/barco_db.sqlite"))
 
 # Insertando catálogos:
 l_ply(1:length(lista_catalogos_bd), function(i){
@@ -40,5 +40,5 @@ l_ply(1:length(lista_vistas_bd), function(i){
   dbWriteTable(base_output, names(lista_vistas_bd)[i], lista_vistas_bd[[i]])
 })
 
-# Desconectándonos de la base de datos d
+# Desconectándonos de la base de datos
 dbDisconnect(base_output)

@@ -28,7 +28,7 @@ library("doMC") # procesamiento en paralelo
 registerDoMC(4)
 
 ################################################################################
-# 1. Creando data frame con la información integrada
+# 1. Leyendo datos y creando un data frame con la información integrada
 ################################################################################
 
 # Leyendo lista de tablas con columnas homologadas
@@ -40,6 +40,10 @@ datos_globales_crudos <- Reduce(rbind.fill, lista_tablas_columnas_homologadas) %
   mutate(
     id = 1:nrow(.)
   )
+
+# Leyendo lista de catálogos. Esta se utilizará en específico para cambiar el
+# "nombre_cientifico_abreviado" por "nombre_cientifico" en los registros de peces
+lista_catalogos <- readRDS(paste0(rutas_salida[1], "/lista_catalogos.RData"))
 
 ################################################################################
 # 2. Creando una tabla con las columnas de importancia la base de datos
@@ -207,6 +211,46 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
     sobrecrecimiento_1 = sobrecrecimiento__1
   ) %>%
   
+  ## Para todos los registros de peces, se cambiará la columna
+  ## "nombre_cientifico_abreviado" por "nombre_cientifico", por medio de un join
+  ## con el catálogo "catalogos_registro_peces__nombre_cientifico_abreviado"
+  ## cabe destacar que no deben crearse registros adicionales con ese join porque,
+  ## a pesar de que "nombre_cientifico_abreviado" no es una llave natural del
+  ## catálogo (es decir, hay duplicados), Esme me aseguró que, para todos los
+  ## registros de peces con los que contamos en la base, el
+  ## "nombre_científico_abreviado" no corresponde a uno que tenga duplicados en
+  ## el mismo.
+  
+  ddply(.(archivo_origen), function(df){
+    archivo_origen <- unique(df$archivo_origen)
+  
+    if(stri_detect_fixed(archivo_origen, "peces")){
+      resultado  <- df %>%
+        # Se usa un left join para preservar NA's que indican transectos sin
+        # observaciones (estos NA's no están en el catálogo correspondiente)
+        left_join(lista_catalogos[["catalogos_registro_peces__nombre_cientifico_abreviado"]] %>%
+            select(
+              nombre_cientifico_abreviado,
+              nombre_cientifico
+            ),
+          by = "nombre_cientifico_abreviado") %>%
+        select(
+          -nombre_cientifico_abreviado
+        )
+    } else{
+      resultado <- df %>%
+        # Sabemos que los registros correspondientes a otros aspectos no tienen
+        # columnas ni de nombre científico, ni de nombre científico abreviado.
+        # Por ello, simplemente renombramos el campo artificial que se introdujo
+        # al unir los datos.
+        rename(
+          nombre_cientifico = nombre_cientifico_abreviado
+        )
+    }
+  
+    return(resultado)
+  }, .parallel = TRUE) %>%
+  
   ## Eliminando columnas innecesarias:
   select(
     -abundancia,
@@ -251,6 +295,11 @@ datos_globales_columnas_selectas <- datos_globales_crudos %>%
   select(noquote(sort(colnames(.))))
 
 glimpse(datos_globales_columnas_selectas)
+
+# Revisando que no se hayan creado artefactos del join al arreglar los nombres
+# científicos de los peces. Si se crearon estos artefactos, revisar la
+# tabla "peces_nombres_cientificos_abreviados_en_datos_duplicados_en_catalogos".
+nrow(datos_globales_crudos) == nrow(datos_globales_columnas_selectas)
 
 ################################################################################
 # 3. Creando la tabla con la información lista para ser integrada
@@ -697,7 +746,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
   
   rename(
     Registro_observacion.codigo = codigo
-    # Para los archivos de peces se tiene la columna "nombre_cientifico_abreviado"
+    # Para los archivos de peces se tiene la columna "nombre_cientifico"
     # que es más útil, y para invertebrados se tiene únicamente "tipo". Por ello,
     # "Registro_observacion.codigo" sólamente es útil para bentos, corales y reclutas
   ) %>%
@@ -951,10 +1000,10 @@ datos_globales <- datos_globales_columnas_selectas %>%
       resultado  <- df %>%
         gather(key = peces_tamanio_min_max, value = cuenta, dplyr::contains("peces_tamanio")) %>%
         # Filtrando tamaños no encontrados en un mismo conteo de especie en transecto.
-        # Notar que si "nombre_cientifico_abreviado" es NA, se preserva el registro
+        # Notar que si "nombre_cientifico" es NA, se preserva el registro
         # pues puede corresponder a transectos sin observaciones. Estos se tendrán
         # que filtrar a la hora de crear la tabla: "Muestra_transecto_peces_cuenta".
-        filter(!is.na(cuenta) | is.na(nombre_cientifico_abreviado)) %>%
+        filter(!is.na(cuenta) | is.na(nombre_cientifico)) %>%
         # Generando campos de "tamanio_minimo_cm" y "tamanio_maximo_cm"
         separate(col = peces_tamanio_min_max, into = c("peces", "tamanio",
           "peces_tamanio_minimo_cm", "peces_tamanio_maximo_cm")) %>%
@@ -973,7 +1022,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           es_juvenil = NA # lógico
         ) %>%
         rename(
-          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado = nombre_cientifico_abreviado,
+          Muestra_transecto_peces_cuenta.nombre_cientifico = nombre_cientifico,
           Muestra_transecto_peces_cuenta.tamanio_minimo_cm = peces_tamanio_minimo_cm,
           Muestra_transecto_peces_cuenta.tamanio_maximo_cm = peces_tamanio_maximo_cm,
           Muestra_transecto_peces_cuenta.cuenta = cuenta,
@@ -988,7 +1037,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
           Muestra_transecto.nombre,
           # en el ddply ya se separó por "archivo_origen"
-          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
+          Muestra_transecto_peces_cuenta.nombre_cientifico,
           Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
           Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
           Muestra_transecto_peces_cuenta.es_juvenil
@@ -1007,7 +1056,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           Muestra_sitio.aux_identificador_muestreo_sitio_conacyt_greenpeace,
           Muestra_transecto.nombre,
           # en el ddply ya se separó por "achivo_origen"
-          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado,
+          Muestra_transecto_peces_cuenta.nombre_cientifico,
           Muestra_transecto_peces_cuenta.tamanio_minimo_cm,
           Muestra_transecto_peces_cuenta.tamanio_maximo_cm,
           Muestra_transecto_peces_cuenta.es_juvenil,
@@ -1022,7 +1071,7 @@ datos_globales <- datos_globales_columnas_selectas %>%
           -dplyr::contains("peces_tamanio_")
         ) %>%
         rename(
-          Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado = nombre_cientifico_abreviado
+          Muestra_transecto_peces_cuenta.nombre_cientifico = nombre_cientifico
         ) %>%
         mutate(
           Muestra_transecto_peces_cuenta.tamanio_minimo_cm = NA_integer_,

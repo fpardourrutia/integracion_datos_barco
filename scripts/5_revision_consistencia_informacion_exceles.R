@@ -30,7 +30,7 @@ source("config.R")
 source("funciones_auxiliares.R")
 
 ################################################################################
-# 1. Leyendo lista de tablas y creando data frame con la información integrada
+# 1. Leyendo listas de tablas y creando data frame con la información integrada
 ################################################################################
 
 # Leyendo lista de tablas con columnas homologadas
@@ -49,6 +49,11 @@ tabla_revision <- Reduce(rbind.fill, lista_tablas_columnas_homologadas) %>%
     ),
     cobertura = as.numeric(cobertura)
   )
+
+# La lista de catálogos se utilizará para las revisiones del campo
+# "nombre_cientifico_abrevidado" de los registros de peces
+lista_catalogos <- readRDS(paste0(rutas_salida[1], "/lista_catalogos.RData"))
+names(lista_catalogos)
 
 ################################################################################
 # 2. Revisando las relaciones exceles/columnas que contienen
@@ -975,6 +980,46 @@ write_csv(peces_por_transecto_resumen_contenido_archivos,
   paste0(rutas_salida[5],
     "/peces_por_transecto_resumen_contenido_archivos.csv"))
 
+# 5. En los archivos de Excel se incluyó la información de peces utilizando
+# el "nombre_cientifico_abreviado". No obstante, este dato presenta duplicados en
+# el catalogos_registro_peces__nombre_cientifico_abreviado", por lo que se debe
+# cambiar por "catalogos_registro_peces__nombre_cientifico_abreviado.nombre_cientifico"
+# para evitar artefactos del join al trabajar con la base de datos.
+# Para arreglarlo, Esme me aseguró que simplemente puedo hacer el join de los
+# registros en los Exceles con el catálogo por el nombre científico abreviado,
+# puesto que ningún registro en los datos tiene un nombre científico abreviado
+# que que esté duplicado en el catálogo. Aquí se revisará este hecho:
+
+peces_nombres_cientificos_abreviados_en_datos_duplicados_en_catalogos <- tabla_revision %>%
+  filter(archivo_origen %in% c(
+    "conacyt_greenpeace_2016_peces_agregados_especie_talla",                               
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
+    "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla",
+    "historicos_y_2017_transecto_peces_desagregados_especie_talla"
+  )) %>%
+  # Sabemos que (archivo_origen, serie) es una llave natural para "tabla revisión"
+  select(
+    archivo_origen,
+    serie,
+    nombre_cientifico_abreviado
+  ) %>%
+  # Usamos left join para no perder transectos sin observaciones (que tienen
+  # NA como valor en "nombre_cientifico_abreviado")
+  left_join(lista_catalogos[["catalogos_registro_peces__nombre_cientifico_abreviado"]] %>%
+      select(
+        nombre_cientifico,
+        nombre_cientifico_abreviado
+      ),
+    by = "nombre_cientifico_abreviado") %>%
+  group_by(archivo_origen, serie) %>%
+  summarise(n = n()) %>%
+  filter(n > 1) %>%
+  arrange(desc(n))
+
+write_csv(peces_nombres_cientificos_abreviados_en_datos_duplicados_en_catalogos,
+  paste0(rutas_salida[5],
+    "/peces_nombres_cientificos_abreviados_en_datos_duplicados_en_catalogos.csv"))
+
 ################################################################################
 
 ### Muestra_transecto_invertebrados_cuenta ###
@@ -1501,10 +1546,3 @@ write_csv(complejidad_por_cuadrante_resumen_contenido_archivos,
 #- Los muestreos de reclutas están a nivel de cuadrante, y no siempre hay
 # observaciones, pero esto está tomado en cuenta a nivel de cuadrante en los
 # exceles.
-
-# Por ello, para este proyecto, siempre se tiene que dar que el número de
-# transectos de bentos sea mayor que el de corales, reclutas, complejidad e
-# invertebrados en transecto de bentos.
-# De igual manera, el número de transectos de peces debe ser mayor que el de
-# invertebrados sacados de peces.
-# Revisando muestreos de sitio con cantidad anómala de transectos

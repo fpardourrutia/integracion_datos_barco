@@ -69,7 +69,10 @@ relacion_llaves_naturales_catalogo = list(
   "catalogos_registro_bentos__codigo" = "codigo",
   "catalogos_registro_corales__sobrecrecimiento" = "codigo",
   "catalogos_registro_invertebrados__tipo" = "tipo",
-  "catalogos_registro_peces__nombre_cientifico_abreviado" = "nombre_cientifico_abreviado"
+  # Sabemos que "catalogos_registro_peces__nombre_cientifico_abreviado.nombre_cientifico_abreviado"
+  # presenta duplicados, por lo que no es útil usarlo como llave foránea para
+  # referenciar al catálogo.
+  "catalogos_registro_peces__nombre_cientifico_abreviado" = "nombre_cientifico"
 )
 
 valores_duplicados_catalogos <- encuentra_duplicados(lista_catalogos,

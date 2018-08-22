@@ -61,6 +61,9 @@
 #     y un NA significó que no se encontraron rastros de la variable medida (vs
 #     que esta variable no se midió). Ver "6_creacion_df_homologado.R" para más
 #     detalles.
+#   - Cualquier registro con el campo "Registro_observacion.codigo" == ""
+#     corresponde a un muestreo sin observaciones, y por este motivo, no se debe
+#     tomar en cuenta para la tabla en cuestión.
 # 11. Muestra_transecto_peces_info:
 #   - Existe máximo un muestreo de peces por muestra de transecto
 #   - Los muestreos de peces que no tuvieron observaciones fueron declarados en
@@ -68,8 +71,11 @@
 # 12. Muestra_transecto_peces_cuenta:
 #   - Las cuentas de peces son agregadas antes de ser introducidas a la base de
 #     datos, por lo que  no importa el orden en que se encuentren estos registros.
-#   - Los nombres científicos abreviados son una llave natural del catálogo
+#   - Los nombres científicos son una llave natural del catálogo
 #     "catalogos_registro_peces__nombre_cientifico_abreviado".
+#   - Cualquier registro con el campo "Muestra_transecto_peces_cuenta.nombre_cientifico"
+#     == "" corresponde a un muestreo sin observaciones, y por este motivo, no
+#     se debe tomar en cuenta para la tabla en cuestión.
 # 13. Muestra_transecto_invertebrados_info:
 #   - Existe máximo un muestreo de invertebrados por muestra de transecto.
 #   - Los muestreos de invertebrados que no tuvieron observaciones fueron
@@ -78,6 +84,9 @@
 #   - Las cuentas de invertebradas son agregadas antes de ser introducidas a la
 #     base de datos, por lo que  no importa el orden en que se encuentren estos
 #     registros.
+#   - Cualquier registro con el campo "Muestra_transecto_invertebrados_cuenta.tipo"
+#     == "" corresponde a un muestreo sin observaciones, y por este motivo, no
+#     se debe tomar en cuenta para la tabla en cuestión.
 # 15. Muestra_subcuadrante_de_transecto_reclutas_info:
 #   - Existe máximo un muestreo de reclutas por muestreo de cuadrante. Si no
 #     es así, a un sólo muestreo de reclutas en cuadrante se le asociarían todas
@@ -87,6 +96,9 @@
 #     en sus archivos de Excel correspondientes con tipo NA.
 # 16. Muestra_subcuadrante_de_transecto_reclutas_cuenta:
 #   - No importa el orden de los registros pues los cuadrantes no permiten tenerlo.
+#   - Cualquier registro con el campo "Registro_observacion.codigo" == ""
+#     corresponde a un muestreo sin observaciones, y por este motivo, no se debe
+#     tomar en cuenta para la tabla en cuestión.
 # 17. Muestra_transecto_complejidad_info:
 #   - Existe máximo un muestreo de complejidad por muestra de transecto.
 # 18. Muestra_subcuadrante_de_transecto_complejidad_info
@@ -176,7 +188,7 @@ datos_globales_columnas_indicadoras <- datos_globales %>%
       Auxiliar.archivo_origen %in% c(
         "conacyt_greenpeace_2016_corales_desagregados",
         "historicos_y_2017_transecto_corales_desagregados_colonias_individuales"
-      ), TRUE, FALSE),
+      ) & Registro_observacion.codigo != "", TRUE, FALSE),
     
     ### Peces ###
     
@@ -194,7 +206,7 @@ datos_globales_columnas_indicadoras <- datos_globales %>%
         "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla",
         "historicos_y_2017_transecto_peces_agregados_conteos_especie_categoria_talla_privados",
         "historicos_y_2017_transecto_peces_desagregados_especie_talla"
-      ), TRUE, FALSE),
+      ) & Muestra_transecto_peces_cuenta.nombre_cientifico != "", TRUE, FALSE),
     
     ### Invertebrados ###
     
@@ -208,7 +220,7 @@ datos_globales_columnas_indicadoras <- datos_globales %>%
       Auxiliar.archivo_origen %in% c(
         "conacyt_greenpeace_2016_invertebrados_desagregados",
         "historicos_y_2017_transecto_invertebrados_agregados_conteos_especie"
-      ), TRUE, FALSE),
+      ) & Muestra_transecto_invertebrados_cuenta.tipo != "", TRUE, FALSE),
     
     ### Reclutas ###
     
@@ -224,7 +236,7 @@ datos_globales_columnas_indicadoras <- datos_globales %>%
         "conacyt_greenpeace_2016_reclutas_desagregados",
         "historicos_y_2017_cuadrante_reclutas_agregados_conteos_especie_categoria_talla",
         "historicos_y_2017_cuadrante_reclutas_desagregados"
-      ), TRUE, FALSE),
+      ) & Registro_observacion.codigo != "", TRUE, FALSE),
     
     ### Complejidad ###
     
@@ -372,7 +384,8 @@ relacion_tablas_columnas_funciones <- list(
   
   ### Tablas generales ###
   
-  "Muestreo#2" = c(
+  #2
+  "Muestreo#1" = c(
     "nombre" = "Muestreo.nombre",
     "descripcion" = "Muestreo.descripcion",
     "proposito" = "Muestreo.proposito",
@@ -390,7 +403,8 @@ relacion_tablas_columnas_funciones <- list(
     # "compatibilidad_cliente" = "Muestreo.compatibilidad_cliente",
   ),
   
-  "Muestra_sitio#2" = c(
+  #2
+  "Muestra_sitio#1" = c(
     "muestreo_id" = "Muestreo.id",
     "nombre" = "Muestra_sitio.nombre", 
     "nombre_original" = "Muestra_sitio.nombre_original",
@@ -420,7 +434,8 @@ relacion_tablas_columnas_funciones <- list(
     "fuente" = "Muestra_sitio.fuente"
   ),
   
-  "Muestra_transecto#2" = c(
+  #2
+  "Muestra_transecto#1" = c(
     "muestra_sitio_id" = "Muestra_sitio.id",
     "nombre" = "Muestra_transecto.nombre",
     "transecto_fijo" = "Muestra_transecto.transecto_fijo",
@@ -436,7 +451,8 @@ relacion_tablas_columnas_funciones <- list(
   
   ### Bentos ###
   
-  "Muestra_sitio_bentos_info#2" = c(
+  #2
+  "Muestra_sitio_bentos_info#1" = c(
     "muestra_sitio_id" = "Muestra_sitio.id",
     "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
     "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
@@ -452,7 +468,8 @@ relacion_tablas_columnas_funciones <- list(
     "porcentaje_cobertura" = "Muestra_._bentos_porcentaje.porcentaje_cobertura"
   ),
   
-  "Muestra_transecto_bentos_info#2" = c(
+  #2
+  "Muestra_transecto_bentos_info#1" = c(
     "muestra_transecto_id" = "Muestra_transecto.id",
     "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
     "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
@@ -486,7 +503,8 @@ relacion_tablas_columnas_funciones <- list(
   
   ### Corales ###
   
-  "Muestra_transecto_corales_info#2" = c(
+  #2
+  "Muestra_transecto_corales_info#1" = c(
     "muestra_transecto_id" = "Muestra_transecto.id",
     "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
     "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
@@ -523,7 +541,8 @@ relacion_tablas_columnas_funciones <- list(
   
   ### Peces ###
   
-  "Muestra_transecto_peces_info#2" = c(
+  #2
+  "Muestra_transecto_peces_info#1" = c(
     "muestra_transecto_id" = "Muestra_transecto.id",
     "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
     "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
@@ -537,7 +556,7 @@ relacion_tablas_columnas_funciones <- list(
   
   "Muestra_transecto_peces_cuenta#1" = c(
     "muestra_transecto_peces_info_id" = "Muestra_transecto_peces_info.id",
-    "nombre_cientifico_abreviado" = "Muestra_transecto_peces_cuenta.nombre_cientifico_abreviado",
+    "nombre_cientifico" = "Muestra_transecto_peces_cuenta.nombre_cientifico",
     "es_juvenil" = "Muestra_transecto_peces_cuenta.es_juvenil",
     "tamanio_minimo_cm" = "Muestra_transecto_peces_cuenta.tamanio_minimo_cm",
     "tamanio_maximo_cm" = "Muestra_transecto_peces_cuenta.tamanio_maximo_cm",
@@ -546,7 +565,8 @@ relacion_tablas_columnas_funciones <- list(
   
   ### Invertebrados ###
   
-  "Muestra_transecto_invertebrados_info#2" = c(
+  #2
+  "Muestra_transecto_invertebrados_info#1" = c(
     "muestra_transecto_id" = "Muestra_transecto.id",
     "metodo_muestreo" = "Muestra_._info.metodo_muestreo",
     "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
@@ -587,7 +607,8 @@ relacion_tablas_columnas_funciones <- list(
   
   ### Reclutas ###
   
-  "Muestra_subcuadrante_de_transecto_reclutas_info#2" = c(
+  #2
+  "Muestra_subcuadrante_de_transecto_reclutas_info#1" = c(
     "muestra_transecto_id" = "Muestra_transecto.id",
     "numero_cuadrante" = "Muestra_subcuadrante_de_transecto_reclutas_info.numero_cuadrante",
     "nivel_agregacion_datos" = "Muestra_._info.nivel_agregacion_datos",
@@ -616,7 +637,8 @@ relacion_tablas_columnas_funciones <- list(
     "comentarios" = "Muestra_transecto_complejidad_info.comentarios"
   ),
   
-  "Muestra_subcuadrante_de_transecto_complejidad_info#2" = c(
+  #2
+  "Muestra_subcuadrante_de_transecto_complejidad_info#1" = c(
     "muestra_transecto_id" = "Muestra_transecto.id",
     "numero_cuadrante" = "Muestra_subcuadrante_de_transecto_complejidad_info.numero_cuadrante",
     "observador" = "Muestra_._info.observador",
@@ -636,6 +658,7 @@ lista_tablas_bd <- genera_tablas(
 l_ply(1:length(lista_tablas_bd), function(i){
   print(names(lista_tablas_bd)[i])
   glimpse(lista_tablas_bd[[i]])
+  readline(prompt="Presionar [enter] para continuar")
 })
 
 saveRDS(lista_tablas_bd, paste0(rutas_salida[7], "/lista_tablas_bd.RData"))
@@ -659,5 +682,10 @@ lista_catalogos_bd <- lista_catalogos
 # Renombrando los catálogos apropiadamente
 names(lista_catalogos_bd) <- stri_match_first_regex(names(lista_catalogos), "catalogos_(.*)")[,2] %>%
   paste0("Catalogo_", .)
+
+# Actualizando el nombre del catálogo de nombre científico de peces:
+names(lista_catalogos_bd)[
+  names(lista_catalogos_bd) == "Catalogo_registro_peces__nombre_cientifico_abreviado"] <-
+  "Catalogo_registro_peces__nombre_cientifico"
 
 saveRDS(lista_catalogos_bd, paste0(rutas_salida[7], "/lista_catalogos_bd.RData"))
