@@ -980,6 +980,7 @@ write_csv(peces_por_transecto_resumen_contenido_archivos,
   paste0(rutas_salida[5],
     "/peces_por_transecto_resumen_contenido_archivos.csv"))
 
+### IMPORTANTE
 # 5. En los archivos de Excel se incluyó la información de peces utilizando
 # el "nombre_cientifico_abreviado". No obstante, este dato presenta duplicados en
 # el catalogos_registro_peces__nombre_cientifico_abreviado", por lo que se debe

@@ -48,9 +48,12 @@ Auxiliar_muestreos_sitios <- Muestreo %>%
       select(
         muestra_sitio_id = id,
         muestreo_id,
-        sitio = nombre,
+        nombre_sitio = nombre,
         fecha,
         pais,
+        tipo_arrecife,
+        zona_arrecifal,
+        profundidad_m,
         latitud,
         longitud,
         datum
@@ -96,7 +99,7 @@ Auxiliar_muestreos_sitios_transectos <- Auxiliar_muestreos_sitios %>%
 # se revisará a detalle en scripts posteriores)
 
 Vista_sitios_visitados <- Auxiliar_muestreos_sitios %>%
-  group_by(sitio) %>%
+  group_by(nombre_sitio) %>%
   summarise(
     pais = first(pais),
     latitud_promedio = mean(latitud),
@@ -105,7 +108,7 @@ Vista_sitios_visitados <- Auxiliar_muestreos_sitios %>%
     numero_muestreos = n()
   ) %>%
   ungroup() %>%
-  arrange(pais, sitio)
+  arrange(pais, nombre_sitio)
 
 ################################################################################
 
@@ -167,9 +170,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
   group_by(
     muestreo,
     muestra_sitio_id,
-    sitio,
+    nombre_sitio,
     fecha,
     pais,
+    tipo_arrecife,
+    zona_arrecifal,
+    profundidad_m,
     latitud,
     longitud,
     datum,
@@ -209,9 +215,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       group_by(
         muestreo,
         muestra_sitio_id,
-        sitio,
+        nombre_sitio,
         fecha,
         pais,
+        tipo_arrecife,
+        zona_arrecifal,
+        profundidad_m,
         latitud,
         longitud,
         datum,
@@ -233,9 +242,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
         nesting(
           muestreo,
           muestra_sitio_id,
-          sitio,
+          nombre_sitio,
           fecha,
           pais,
+          tipo_arrecife,
+          zona_arrecifal,
+          profundidad_m,
           latitud,
           longitud,
           datum,
@@ -256,9 +268,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       group_by(
         muestreo,
         muestra_sitio_id,
-        sitio,
+        nombre_sitio,
         fecha,
         pais,
+        tipo_arrecife,
+        zona_arrecifal,
+        profundidad_m,
         latitud,
         longitud,
         datum,
@@ -303,9 +318,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       group_by(
         muestreo,
         muestra_sitio_id,
-        sitio,
+        nombre_sitio,
         fecha,
         pais,
+        tipo_arrecife,
+        zona_arrecifal,
+        profundidad_m,
         latitud,
         longitud,
         datum,
@@ -320,9 +338,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       group_by(
         muestreo,
         muestra_sitio_id,
-        sitio,
+        nombre_sitio,
         fecha,
         pais,
+        tipo_arrecife,
+        zona_arrecifal,
+        profundidad_m,
         latitud,
         longitud,
         datum,
@@ -343,9 +364,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
         nesting(
           muestreo,
           muestra_sitio_id,
-          sitio,
+          nombre_sitio,
           fecha,
           pais,
+          tipo_arrecife,
+          zona_arrecifal,
+          profundidad_m,
           latitud,
           longitud,
           datum,
@@ -364,9 +388,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       group_by(
         muestreo,
         muestra_sitio_id,
-        sitio,
+        nombre_sitio,
         fecha,
         pais,
+        tipo_arrecife,
+        zona_arrecifal,
+        profundidad_m,
         latitud,
         longitud,
         datum,
@@ -391,9 +418,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
           group_by(
             muestreo,
             muestra_sitio_id,
-            sitio,
+            nombre_sitio,
             fecha,
             pais,
+            tipo_arrecife,
+            zona_arrecifal,
+            profundidad_m,
             latitud,
             longitud,
             datum,
@@ -407,6 +437,12 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       )
     return(resultado)
   }
+  ) %>%
+  
+  # Ahora, renombrando de manera apropiada los valores de la columna "nivel_3"
+  # para que las variables queden bien nombradas:
+  mutate(
+    nivel_3 = paste0("porcentaje_cobertura_", nivel_3)
   ) %>%
   
   # Dándole a la vista un formato más amigable para el usuario.
