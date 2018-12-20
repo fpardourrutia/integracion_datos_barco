@@ -453,6 +453,46 @@ write_csv(Vista_porcentaje_coberturas_bentos_sitio_nivel_3,
   
 ################################################################################
 
+### Vista_rugosidad_sitio ###
+
+# Vista que calcula la rugosidad promedio por sitio para los sitios que tienen
+# información en "Muestra_transecto_complejidad_info". Supuestos:
+# 1. Existe a lo más un registro de "Muestra_transecto_complejidad_info" por
+# muestra de transecto.
+# 2. Para calcular la rugosidad promedio por sitio, simplemente se calcula el
+# promedio de las rugosidades asociadas a cada transecto.
+# 3. Por ahora no se contempla la ponderación por longitud de transecto.
+# 4. No hay NA's en las columnas "rugosidad_longitud_lineal_m" y
+# "rugosidad_longitud_contorno_m".
+
+Vista_rugosidad_sitio <- Auxiliar_muestreos_sitios_transectos %>%
+  inner_join(Muestra_transecto_complejidad_info, by = "muestra_transecto_id") %>%
+  mutate(
+    rugosidad = rugosidad_longitud_contorno_m / rugosidad_longitud_lineal_m
+  ) %>%
+  # Calculando rugosidades por muestreo de sitio
+  group_by(
+    muestreo,
+    muestra_sitio_id,
+    nombre_sitio,
+    fecha,
+    pais,
+    tipo_arrecife,
+    zona_arrecifal,
+    profundidad_m,
+    latitud,
+    longitud,
+    datum
+  ) %>%
+  summarise(
+    rugosidad_media = mean(rugosidad)
+  )
+
+write_csv(Vista_rugosidad_sitio,
+  paste0(rutas_salida[8], "/vista_rugosidad_sitio.csv"))
+
+################################################################################
+
 detach("lista_catalogos_bd")
 detach("lista_tablas_bd")
 
@@ -463,7 +503,8 @@ detach("lista_tablas_bd")
 
 lista_vistas_bd <- list(
   "Vista_sitios_visitados" = Vista_sitios_visitados,
-  "Vista_porcentaje_coberturas_bentos_sitio_nivel_3" = Vista_porcentaje_coberturas_bentos_sitio_nivel_3
+  "Vista_porcentaje_coberturas_bentos_sitio_nivel_3" = Vista_porcentaje_coberturas_bentos_sitio_nivel_3,
+  "Vista_rugosidad_sitio" = Vista_rugosidad_sitio
 )
   
 saveRDS(lista_vistas_bd,
