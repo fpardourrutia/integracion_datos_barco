@@ -143,7 +143,14 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
   inner_join(Muestra_sitio_bentos_info %>%
       select(
         muestra_sitio_bentos_info_id = id,
-        muestra_sitio_id), by = "muestra_sitio_id") %>%
+        muestra_sitio_id,
+        metodo_muestreo
+      ), by = "muestra_sitio_id") %>%
+  mutate(
+    # Este campo corresponde a la suma de las longitudes de los transectos de
+    # bentos (cuando aplique), y se utilizó para la consultoría de huracanes.
+    longitud_muestreada_total_m = NA
+  ) %>%
   inner_join(Muestra_sitio_bentos_porcentaje %>%
       select(-id), by = "muestra_sitio_bentos_info_id") %>%
   
@@ -168,20 +175,22 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
   # ocurren repetidos porque muchos códigos pertenecen al mismo nivel 3 en
   # el catálogo.
   group_by(
-    muestreo,
     muestra_sitio_id,
-    nombre_sitio,
-    fecha,
-    pais,
-    tipo_arrecife,
-    zona_arrecifal,
-    profundidad_m,
-    latitud,
-    longitud,
-    datum,
     nivel_3
   ) %>%
   summarise(
+    muestreo = first(muestreo),
+    nombre_sitio = first(nombre_sitio),
+    fecha = first(fecha),
+    pais = first(pais),
+    tipo_arrecife = first(tipo_arrecife),
+    zona_arrecifal = first(zona_arrecifal),
+    profundidad_m = first(profundidad_m),
+    latitud = first(latitud),
+    longitud = first(longitud),
+    datum = first(datum),
+    metodo_muestreo = first(metodo_muestreo),
+    longitud_muestreada_total_m = first(longitud_muestreada_total_m),
     porcentaje_cobertura = sum(porcentaje_cobertura)
   ) %>%
   ungroup() %>%
@@ -194,8 +203,18 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       inner_join(Muestra_transecto_bentos_info %>%
           select(
             muestra_transecto_bentos_info_id = id,
-            muestra_transecto_id
+            muestra_transecto_id,
+            metodo_muestreo,
+            longitud_muestreada_m
           ), by = "muestra_transecto_id") %>%
+      
+      # Calulando "longitud_muestreada_total_m":
+      group_by(muestra_sitio_id) %>%
+      mutate(
+        longitud_muestreada_total_m = sum(longitud_muestreada_m, na.rm = TRUE)
+      ) %>%
+      ungroup() %>%
+      
       inner_join(Muestra_transecto_bentos_porcentaje %>%
           select(-id), by = "muestra_transecto_bentos_info_id"
       ) %>%
@@ -213,21 +232,23 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       
       # Sumando porcentajes de cobertura para cada muestra de transecto y nivel
       group_by(
-        muestreo,
-        muestra_sitio_id,
-        nombre_sitio,
-        fecha,
-        pais,
-        tipo_arrecife,
-        zona_arrecifal,
-        profundidad_m,
-        latitud,
-        longitud,
-        datum,
         muestra_transecto_id,
         nivel_3
       ) %>%
       summarise(
+        muestreo = first(muestreo),
+        muestra_sitio_id = first(muestra_sitio_id),
+        nombre_sitio = first(nombre_sitio),
+        fecha = first(fecha),
+        pais = first(pais),
+        tipo_arrecife = first(tipo_arrecife),
+        zona_arrecifal = first(zona_arrecifal),
+        profundidad_m = first(profundidad_m),
+        latitud = first(latitud),
+        longitud = first(longitud),
+        datum = first(datum),
+        metodo_muestreo = first(metodo_muestreo),
+        longitud_muestreada_total_m = first(longitud_muestreada_total_m),
         porcentaje_cobertura = sum(porcentaje_cobertura)
       ) %>%
       ungroup() %>%
@@ -251,7 +272,9 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
           latitud,
           longitud,
           datum,
-          muestra_transecto_id
+          muestra_transecto_id,
+          metodo_muestreo,
+          longitud_muestreada_total_m
         ),
         
         # Complétame los valores de "nivel_3"
@@ -261,25 +284,27 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
         fill = list("porcentaje_cobertura" = 0)
       ) %>%
       
-      # Calculando porcentajes de cobertura por sitio. Notar que si los
+      # Calculando porcentajes de cobertura por muestra de sitio. Notar que si los
       # porcentajes de cobertura suman 100% por muestra de transecto, entonces,
       # por ley de las esperanzas iteradas, los porcentajes de cobertura por
       # muestra de sitio también suman 100%.
       group_by(
-        muestreo,
         muestra_sitio_id,
-        nombre_sitio,
-        fecha,
-        pais,
-        tipo_arrecife,
-        zona_arrecifal,
-        profundidad_m,
-        latitud,
-        longitud,
-        datum,
         nivel_3
       ) %>%
       summarise(
+        muestreo = first(muestreo),
+        nombre_sitio = first(nombre_sitio),
+        fecha = first(fecha),
+        pais = first(pais),
+        tipo_arrecife = first(tipo_arrecife),
+        zona_arrecifal = first(zona_arrecifal),
+        profundidad_m = first(profundidad_m),
+        latitud = first(latitud),
+        longitud = first(longitud),
+        datum = first(datum),
+        metodo_muestreo = first(metodo_muestreo),
+        longitud_muestreada_total_m = first(longitud_muestreada_total_m),
         porcentaje_cobertura = mean(porcentaje_cobertura)
       ) %>%
       ungroup() %>%
@@ -293,8 +318,18 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       inner_join(Muestra_transecto_bentos_info %>%
           select(
             muestra_transecto_bentos_info_id = id,
-            muestra_transecto_id
+            muestra_transecto_id,
+            metodo_muestreo,
+            longitud_muestreada_m
           ), by = "muestra_transecto_id") %>%
+      
+      # Calulando "longitud_muestreada_total_m":
+      group_by(muestra_sitio_id) %>%
+      mutate(
+        longitud_muestreada_total_m = sum(longitud_muestreada_m, na.rm = TRUE)
+      ) %>%
+      ungroup() %>%
+      
       inner_join(Muestra_transecto_bentos_punto %>%
           select(
             -id,
@@ -316,17 +351,6 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       
       # Calculando número de puntos por muestreo de transecto
       group_by(
-        muestreo,
-        muestra_sitio_id,
-        nombre_sitio,
-        fecha,
-        pais,
-        tipo_arrecife,
-        zona_arrecifal,
-        profundidad_m,
-        latitud,
-        longitud,
-        datum,
         muestra_transecto_id
       ) %>%
       mutate(
@@ -336,21 +360,23 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       
       # Calculando porcentajes de cobertura por muestreo de transecto
       group_by(
-        muestreo,
-        muestra_sitio_id,
-        nombre_sitio,
-        fecha,
-        pais,
-        tipo_arrecife,
-        zona_arrecifal,
-        profundidad_m,
-        latitud,
-        longitud,
-        datum,
         muestra_transecto_id,
         nivel_3
       ) %>%
       summarise(
+        muestreo = first(muestreo),
+        muestra_sitio_id = first(muestra_sitio_id),
+        nombre_sitio = first(nombre_sitio),
+        fecha = first(fecha),
+        pais = first(pais),
+        tipo_arrecife = first(tipo_arrecife),
+        zona_arrecifal = first(zona_arrecifal),
+        profundidad_m = first(profundidad_m),
+        latitud = first(latitud),
+        longitud = first(longitud),
+        datum = first(datum),
+        metodo_muestreo = first(metodo_muestreo),
+        longitud_muestreada_total_m = first(longitud_muestreada_total_m),
         porcentaje_cobertura = n() * 100 / first(numero_puntos)
       ) %>%
       ungroup() %>%
@@ -373,6 +399,8 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
           latitud,
           longitud,
           datum,
+          metodo_muestreo,
+          longitud_muestreada_total_m,
           muestra_transecto_id
         ),
         # Complétame los valores de "nivel_3"
@@ -386,20 +414,22 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       # por ley de las esperanzas iteradas, los porcentajes de cobertura por
       # muestra de sitio también suman 100%.
       group_by(
-        muestreo,
         muestra_sitio_id,
-        nombre_sitio,
-        fecha,
-        pais,
-        tipo_arrecife,
-        zona_arrecifal,
-        profundidad_m,
-        latitud,
-        longitud,
-        datum,
         nivel_3
       ) %>%
       summarise(
+        muestreo = first(muestreo),
+        nombre_sitio = first(nombre_sitio),
+        fecha = first(fecha),
+        pais = first(pais),
+        tipo_arrecife = first(tipo_arrecife),
+        zona_arrecifal = first(zona_arrecifal),
+        profundidad_m = first(profundidad_m),
+        latitud = first(latitud),
+        longitud = first(longitud),
+        datum = first(datum),
+        metodo_muestreo = first(metodo_muestreo),
+        longitud_muestreada_total_m = first(longitud_muestreada_total_m),
         porcentaje_cobertura = mean(porcentaje_cobertura)
       ) %>%
       ungroup() %>%
@@ -416,20 +446,22 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
       rbind(
         df %>%
           group_by(
-            muestreo,
             muestra_sitio_id,
-            nombre_sitio,
-            fecha,
-            pais,
-            tipo_arrecife,
-            zona_arrecifal,
-            profundidad_m,
-            latitud,
-            longitud,
-            datum,
             tabla
           ) %>%
           summarise(
+            muestreo = first(muestreo),
+            nombre_sitio = first(nombre_sitio),
+            fecha = first(fecha),
+            pais = first(pais),
+            tipo_arrecife = first(tipo_arrecife),
+            zona_arrecifal = first(zona_arrecifal),
+            profundidad_m = first(profundidad_m),
+            latitud = first(latitud),
+            longitud = first(longitud),
+            datum = first(datum),
+            metodo_muestreo = first(metodo_muestreo),
+            longitud_muestreada_total_m = first(longitud_muestreada_total_m),
             nivel_3 = "total",
             porcentaje_cobertura = sum(porcentaje_cobertura)
           ) %>%
@@ -446,7 +478,14 @@ Vista_porcentaje_coberturas_bentos_sitio_nivel_3 <- Auxiliar_muestreos_sitios %>
   ) %>%
   
   # Dándole a la vista un formato más amigable para el usuario.
-  spread(nivel_3, porcentaje_cobertura, 0)
+  spread(nivel_3, porcentaje_cobertura, 0) %>%
+  
+  # Cambiando 0's en "longitud_muestreada_total_m" por NA's (los ceros en
+  # esta columna son artefactos producto de que se hace una suma sin argumentos)
+  mutate(
+    longitud_muestreada_total_m = ifelse(longitud_muestreada_total_m == 0, NA,
+      longitud_muestreada_total_m)
+  )
 
 write_csv(Vista_porcentaje_coberturas_bentos_sitio_nivel_3,
   paste0(rutas_salida[8], "/vista_porcentaje_coberturas_bentos_sitio_nivel_3.csv"))
@@ -472,19 +511,19 @@ Vista_rugosidad_sitio <- Auxiliar_muestreos_sitios_transectos %>%
   ) %>%
   # Calculando rugosidades por muestreo de sitio
   group_by(
-    muestreo,
     muestra_sitio_id,
-    nombre_sitio,
-    fecha,
-    pais,
-    tipo_arrecife,
-    zona_arrecifal,
-    profundidad_m,
-    latitud,
-    longitud,
-    datum
   ) %>%
   summarise(
+    muestreo = first(muestreo),
+    nombre_sitio = first(nombre_sitio),
+    fecha = first(fecha),
+    pais = first(pais),
+    tipo_arrecife = first(tipo_arrecife),
+    zona_arrecifal = first(zona_arrecifal),
+    profundidad_m = first(profundidad_m),
+    latitud = first(latitud),
+    longitud = first(longitud),
+    datum = first(datum),
     rugosidad_media = mean(rugosidad)
   )
 

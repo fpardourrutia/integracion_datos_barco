@@ -7,13 +7,8 @@ source("funciones_auxiliares.R")
 library("readr")
 
 ################################################################################
-# Revisando que no haya muestras de sitio duplicadas en la base de datos
+# Obteniendo tablas generales necesarias para hacer las revisiones
 ################################################################################
-
-# Recordar que una llave natural de un muestreo de sitio es básicamente el nombre
-# del sitio y la fecha de muestreo. La hora de muestreo al parecer no es tan
-# importante, ya que es difícil tener dos muestreos distintos del mismo sitio
-# el mismo día
 
 conexion_barco_db <- src_sqlite(paste0(rutas_salida[9], "/barco_db.sqlite"))
 
@@ -35,6 +30,15 @@ Muestra_sitio <- conexion_barco_db %>%
       ), by = "muestreo_id") %>%
   select(-muestreo_id)
 glimpse(Muestra_sitio)
+
+################################################################################
+# Revisando que no haya muestras de sitio duplicadas en la base de datos
+################################################################################
+
+# Recordar que una llave natural de un muestreo de sitio es básicamente el nombre
+# del sitio y la fecha de muestreo. La hora de muestreo al parecer no es tan
+# importante, ya que es difícil tener dos muestreos distintos del mismo sitio
+# el mismo día
 
 muestras_sitio_duplicadas <- (encuentra_duplicados(
   list("Muestra_sitio" = Muestra_sitio),
